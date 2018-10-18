@@ -368,7 +368,15 @@ def create_summary (samples_matrix_dict, logger) :
                     number =int(values)
                     summary_dict[key]['Exact match'] +=1
                 except:
-                    logger.debug('The value %s, was found when collecting summary information for the %s', values, summary_dict[key] )
+                    if '_' in values :
+                        tmp_value = values
+                        try:
+                            number = int(tmp_value[-1])
+                            summary_dict[key]['Exact match'] +=1
+                        except:
+                            logger.debug('The value %s, was found when collecting summary information for the %s', values, summary_dict[key] )
+                    else:    
+                        logger.debug('The value %s, was found when collecting summary information for the %s', values, summary_dict[key] )
         summary_sample_list = []
         for item in summary_heading_list :
             summary_sample_list.append(str(summary_dict[key][item]))
