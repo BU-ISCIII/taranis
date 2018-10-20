@@ -17,7 +17,8 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
 from Bio import Seq
-
+from Bio import pairwise2
+from Bio.pairwise2 import format_alignment
 from Bio.Blast.Applications import NcbiblastnCommandline
 from io import StringIO
 from Bio.Blast import NCBIXML
@@ -319,7 +320,7 @@ def check_sequence_order(allele_sequence, logger) :
         return 'reverse'
     return False
 
-def get_snp(sample, query) :
+def get_snp_2(sample, query) :
     snp_list = []
     for i in range(len(sample)):
         try:
@@ -329,6 +330,46 @@ def get_snp(sample, query) :
             snp_list.append([str(i+1), '-', sample[i]])
     return snp_list
 
+def get_snp (sample, query) :
+    prot_annotation = {'S': 'polar' ,'T': 'polar' ,'Y': 'polar' ,'Q': 'polar' ,'N': 'polar' ,'C': 'polar' ,'S': 'polar' ,
+                        'F': 'nonpolar' ,'L': 'nonpolar','I': 'nonpolar','M': 'nonpolar','P': 'nonpolar','V': 'nonpolar','A': 'nonpolar','W': 'nonpolar','G': 'nonpolar',
+                        'D' : 'acidic', 'E' :'acidic',
+                        'H': 'basic' , 'K': 'basic' , 'R' : 'basic',
+                        '-': '-----', '*' : 'Stop codon'}
+    
+    snp_list = []
+    length = max(len(sample), len(query))
+    # normalize the lenght of the sample for the iteration
+    if len(sample) < length :
+        need_to_add = length - len(sample)
+        sample = sample + need_to_add * '-'
+    if len(query) < length :
+        need_to_add = length - len(query)
+        query = query + need_to_add * '-'
+    # convert to Seq class to translate to protein
+    seq_sample = Seq.Seq(sample)
+    seq_query = Seq.Seq(query)
+    
+    
+    for index in range (0, length -2, 3) :
+        codon_seq = seq_sample[index : index + 3]
+        codon_que = seq_query[index : index + 3]
+        if codon_seq != codon_que :
+            if str(codon_seq) != '---' :
+                prot_seq = str(codon_seq.translate())
+            else:
+                prot_seq = '-'
+            if str(codon_que) != '---' :
+                prot_que = str(codon_que.translate())
+            else:
+                prot_que = '-'
+            snp_list.append([str(index+1),str(codon_seq) + '/'+ str(codon_que), prot_seq + '/' + prot_que, prot_annotation[prot_seq] + ' / ' + prot_annotation[prot_que]])
+        
+            
+    
+    
+    return snp_list
+
 def convert_to_protein (sequence) :
 
     seq = Seq.Seq(sequence)
@@ -336,6 +377,46 @@ def convert_to_protein (sequence) :
     
     return protein
 
+def nucleotide_to_protein_aligment (sample_seq, query_seq ) :
+    aligment = []
+    sample_prot = convert_to_protein(sample_seq)
+    query_prot = convert_to_protein(query_seq)
+    minimun_length = min(len(sample_prot), len(query_prot))
+    for i in range(minimun_length):
+        if sample_prot[i] == query_prot[i] :
+            aligment.append('|')
+        else:
+            aligment.append(' ')
+    protein_alignment = [['sample', sample_prot],['match', ''.join(aligment)], ['schema', query_prot]]
+    return protein_alignment
+
+def get_alignment_for_indels (blast_db_name, qseq) :
+    #match_alignment =[]
+    cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=3)
+    out, err = cline(stdin = qseq)
+    psiblast_xml = StringIO(out)
+    blast_records = NCBIXML.parse(psiblast_xml)   
+    for blast_record in blast_records:
+        for alignment in blast_record.alignments:
+            for match in alignment.hsps:
+                match_alignment = [['sample', match.sbjct],['match', match.match], ['schema',match.query]]
+    return match_alignment
+
+
+def get_aligments_for_deletions (sample_seq, query_seq):
+    index_found = False
+    alignments = pairwise2.align.globalxx(sample_seq, query_seq)
+    for index in range(len(alignments)) :
+        if alignments[index][4] == len(query_seq) :
+            index_found = True
+            break
+    if not index_found :
+        index = 0
+    values = format_alignment(*alignments[index]).split('\n')
+        
+    match_alignment = [['sample', values[0]],['match', values[1]], ['schema',values[2]]]
+    
+    return match_alignment
 
 def create_summary (samples_matrix_dict, logger) :
     summary_dict = {}
@@ -401,6 +482,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     plot_dict = {}
     snp_dict = {}
     protein_dict = {}
+    match_alignment_dict = {}
     blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
     header_macthing_alleles_conting = ['Sample Name', 'Contig', 'Core Gene','start', 'stop', 'direction', 'codification']
     header_paralogs = ['Sample Name','Core Gene', 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
@@ -408,8 +490,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     header_insertions = [ 'Core Gene', 'Sample Name' , 'Insertion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_deletions = [ 'Core Gene', 'Sample Name' , 'Deletion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_plot = ['Core Gene', 'Sample Name' , 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
-    header_snp = ['Sample Name','Core Gene', 'Position','Value in Reference','Value in Sample']
+    header_snp = ['Sample Name','Core Gene', 'Position','Sequence Sample/Schema','Protein in Sample/Schema', 'Annotation Sample / Schema']
     header_protein = ['Sample Name','Core Gene', 'Protein in ' , 'Protein sequence']
+    header_match_alignment = ['Sample Name','Core Gene','Alignment', 'Sequence']
     
     for core_file in core_gene_dict_files:
         print ( 'Analyzing core file : ', core_file)
@@ -422,11 +505,13 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         logger.debug('load in memory the core file %s ', core_file)      
         ref_query_parse = list (SeqIO.parse(reference_query, "fasta"))
         query_length = len(ref_query_parse[0].seq)
-        query_length_list =[]
+        #query_length_list =[]
+        '''
         for allele in ref_query_parse :
             allele_length =  len(allele.seq)
             if not allele_length in query_length_list :
                 query_length_list.append(allele_length)
+        '''
         
         #create new_allele_dict to infer
         new_allele_dict ={}
@@ -463,7 +548,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     
                     s_length = values[4]
                     
-                    if int(s_length) in query_length_list :
+                    #if int(s_length) in query_length_list :
+                    if int(s_length) in schema_variability[core_name] :
                     #if int(s_length) == int(query_length) :
                         contig_id = values[1]
                         gene_start = values[9]
@@ -520,7 +606,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         values = line.split('\t')
                         s_length = values[4]
                     
-                        if int(s_length) == int(query_length) :
+                        #if int(s_length) == int(query_length) :
+                        if int(s_length) in schema_variability[core_name] :
                             contig_id = values[1]
                             gene_start = values[9]
                             gene_end = values[10]
@@ -637,8 +724,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     
                     
                     
-                    
-            if int(s_length) < query_length :
+            #if int(s_length) < min(schema_variability[core_name]) : 
+            if int(s_length) < int(query_length) :
                 ## check if the blast alignment could be clasified as PLOT
                 seq_id_split = sseqid.split('_')
                 length_sseqid = seq_id_split[3]
@@ -742,17 +829,30 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             snp_dict[core_name][sample_value] = []
                         snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
                         
+                        
+                        # execute again blast with the reference query the previous query found to get the aligment format to get the SNPs
+                        if not core_name in match_alignment_dict :
+                            match_alignment_dict[core_name] = {}
+                            if not sample_value in match_alignment_dict[core_name] :
+                                match_alignment_dict[core_name][sample_value] = get_aligments_for_deletions (new_sseq,  str(qseq))
+                                               
+                        
+                        
+                        
+                        
+                        
                         # convert the sequence to protein
                         if not core_name in protein_dict :
                             protein_dict[core_name] = {}
                         if not sample_value in protein_dict[core_name] :
                             protein_dict[core_name][sample_value] = []
-                        protein_dict[core_name][sample_value] = [['Sample',convert_to_protein(new_sseq)],['Schema', convert_to_protein(qseq)]]
+                        protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq ) 
                     else:
                         logger.error('ERROR : Stop codon was not found for the core %s and the sample %s', core_name, sample_value)
                         
             #if int(s_length) > int(query_length) :
-            elif int(s_length) > int(query_length) :   
+            elif int(s_length) > max(schema_variability[core_name]) :
+            #elif int(s_length) > int(query_length) :   
                 #print ('there is a insertion of  ', gapopen ,' bases in the sequence')
                 #print ('qlen is: ',qlen, ' seq_len is : ', length,  'query_reference_length is : ', query_length)
                 #query_seq = Seq.Seq(qseq)
@@ -771,7 +871,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         insertions_dict[core_name].append(new_sseq)
                     ### find the index of ASM  to include it in the sample matrix dict
                     index_insert = insertions_dict[core_name].index(new_sseq)
-                    if new_sequence_lenght < query_length :
+                    #if new_sequence_lenght < query_length :
+                    if new_sequence_lenght < min(schema_variability[core_name]) :
                         insert_allele = 'ASM_INSERT_' + core_name + '_' + str(index_insert)
                     else:
                         insert_allele = 'AEM_INSERT_' + core_name + '_' + str(index_insert)
@@ -795,18 +896,38 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     qseq = str(allele_sequence.reverse_complement())
                 else:
                     qseq = str(allele_sequence)
-                    # get the SNP for the  delection
-                    if not core_name in snp_dict :
-                        snp_dict[core_name] = {}
-                    if not sample_value in snp_dict[core_name] :
-                        snp_dict[core_name][sample_value] = []
-                    snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
+                # get the SNP for the  delection
+                if not core_name in snp_dict :
+                    snp_dict[core_name] = {}
+                if not sample_value in snp_dict[core_name] :
+                    snp_dict[core_name][sample_value] = []
+                snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
+                    
+                '''    
+                cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=3)
+                out, err = cline(stdin = qseq)
+                psiblast_xml = StringIO(out)
+                blast_records = NCBIXML.parse(psiblast_xml)   
+                for blast_record in blast_records:
+                    for alignment in blast_record.alignments:
+                        for match in alignment.hsps:
+                            match_alignment = [['sample', match.sbjct],['match', match.match], ['schema',match.query]]
+                ''' 
+                if not core_name in match_alignment_dict :
+                    match_alignment_dict[core_name] = {}
+                if not sample_value in match_alignment_dict[core_name] :
+                    match_alignment_dict[core_name][sample_value] = get_alignment_for_indels (blast_db_name, qseq) 
+                # index_not_match = [m.start() for m in re.finditer(' ', match.match)]
+                
                 # convert the sequence to protein
                 if not core_name in protein_dict :
                     protein_dict[core_name] = {}
                 if not sample_value in protein_dict[core_name] :
-                    protein_dict[core_name][sample_value] = []
-                protein_dict[core_name][sample_value] = [['Sample',convert_to_protein(new_sseq)],['Schema', convert_to_protein(qseq)]]
+                    #protein_dict[core_name][sample_value] = []
+                    protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq )
+                
+                # get the SNP from the alignment
+                
             
             else:
                 samples_matrix_dict[sample_value].append('ERROR ')
@@ -924,6 +1045,23 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     snp_fh.write(core + '\t' + sample + '\t' + '\t'.join (snp) + '\n')
     
     
+    match_alignment_dict
+    
+    logger.info('Saving matching alignment information to files..')
+    alignment_dir = os.path.join(outputdir,'alignments')
+    if os.path.exists(alignment_dir) :
+        shutil.rmtree(alignment_dir)
+        logger.info('deleting the alignment files from previous execution')
+    os.makedirs(alignment_dir)
+    for core in sorted(match_alignment_dict) :
+        for sample in sorted (match_alignment_dict[core]) :
+            match_alignment_file = os.path.join(alignment_dir, str('match_alignment_' + core + '_' + sample + '.txt'))
+            with open(match_alignment_file, 'w') as match_alignment_fh :
+                match_alignment_fh.write( '\t'.join(header_match_alignment) + '\n')
+                for match_align in match_alignment_dict[core][sample] :
+                    match_alignment_fh.write(core + '\t'+ sample +'\t'+ '\t'.join(match_align) + '\n')
+    
+    
     # saving protein in a separated file
     logger.info('Saving protein information to files..')
     protein_dir = os.path.join(outputdir,'proteins')
@@ -933,7 +1071,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     os.makedirs(protein_dir)
     for core in sorted(protein_dict) :
         for sample in sorted (protein_dict[core]) :
-            protein_file = os.path.join(protein_dir, str('protein_' + core + '_' + sample + '.tsv'))
+            protein_file = os.path.join(protein_dir, str('protein_' + core + '_' + sample + '.txt'))
             with open(protein_file, 'w') as protein_fh :
                 protein_fh.write( '\t'.join(header_protein) + '\n')
                 for protein in protein_dict[core][sample] :
@@ -954,7 +1092,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     return True
 
 if __name__ == '__main__' :
-    version = ' Taranis  0.0.1'
+    version = ' Taranis  0.0.3'
     if sys.argv[1] == '-v' or sys.argv[1] == '--version':
         print( version, '\n')
         exit (0)
