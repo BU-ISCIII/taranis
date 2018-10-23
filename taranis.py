@@ -12,7 +12,7 @@ from logging.handlers import RotatingFileHandler
 from datetime import datetime
 import glob
 import pickle
-import tempfile
+#import tempfile
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
