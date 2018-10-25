@@ -38,64 +38,8 @@ def check_arg(args=None):
     compare_parser.add_argument('-scheme2', help = 'Directory where are the schema files for the schema 2')
     
     return parser.parse_args()
-'''
-def open_log(log_name):
-    working_dir = os.getcwd()
-    log_name=os.path.join(working_dir, log_name)
-    #def create_log ():
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    #create the file handler
-    handler = logging.handlers.RotatingFileHandler(log_name, maxBytes=200000, backupCount=5)
-    handler.setLevel(logging.DEBUG)
-
-    #create a Logging format
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    #add the handlers to the logger
-    logger.addHandler(handler)
-
-    return logger
-
-def is_fasta_file (file_name):
-    with open (file_name, 'r') as fh:
-        fasta = SeqIO.parse(fh, 'fasta')
-        return any(fasta)
-
-def get_fasta_file_list (check_directory,  logger):
-    if not os.path.isdir(check_directory):
-        logger.info('directory %s does not exists', check_directory)
-        return False
-    filter_files = os.path.join(check_directory, '*.fasta')
-    list_filtered_files =  glob.glob(filter_files)
-    list_filtered_files.sort()
-    if len (list_filtered_files) == 0 :
-        logger.info('directory %s does not have any fasta file ', check_directory)
-        return False
-    valid_files = []
-    for file_name in list_filtered_files:
-        if is_fasta_file( file_name):
-            valid_files.append(file_name)
-        else:
-            logger.info('Ignoring file  %s .Does not have a fasta format', file_name)
-    if len(valid_files) == 0:
-        logger.info('There are not valid fasta files in the directory %s', check_directory)
-        logger.debug('Files in the directory are:  $s', list_filtered_files)
-        return False
-    else:
-        return valid_files
-
-def check_sequence_order(allele_sequence, logger) :
-    start_codon_forward= ['ATG','ATA','ATT','GTG', 'TTG']
-    start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
-    # check forward direction
-    if allele_sequence[0:3] in start_codon_forward :
-        return 'forward'
-    if allele_sequence[len(allele_sequence) -3: len(allele_sequence)] in start_codon_reverse :
-        return 'reverse'
-    return False
-'''    
-def analyze_schema (schema_files,  logger) :
+   
+def extract_info_schema (schema_files,  logger) :
     not_cds_dict = {}
     schema_sequence_dict ={}
     
@@ -166,14 +110,40 @@ def create_bar_graphic (x_data, y_data, x_label, y_label, title , rotation, file
     plt.bar(index, y_data)
     plt.xlabel(x_label, fontsize=5)
     plt.ylabel(y_label, fontsize=5)
-    plt.xticks(index, x_data, fontsize=10, rotation=rotation)
+    plt.xticks(index, x_data, fontsize= 7, rotation=rotation)
+
     plt.title(title)
     #plt.show()
     plt.savefig(file_name)
     plt.close()
     return True
 
-def summary_schema( schema_info, output_dir , logger) :
+def find_proteins_in_gene (raw_proteins_per_genes, logger) :
+    proteins_sequence_per_gene ={}
+    proteins_percent_per_gene ={}
+    logger.info('Start handling the raw_proteins to get the unique coding proteins')
+    for gene in raw_proteins_per_genes :
+        proteins = []
+
+        #num_alleles = len (proteins_per_genes[gene])
+        for allele, value in sorted(raw_proteins_per_genes[gene].items()) :
+            if value != 'NOT CDS' :
+                proteins.append(value)
+        proteins_sequence_per_gene[gene] = list(set(proteins))
+        if len(proteins) == 0 :
+            proteins_percent_per_gene[gene] = '0'
+        else:
+            proteins_percent_per_gene[gene] = format(len(list(set(proteins))) / len(proteins) , '.2f')
+        
+    logger.info('Complete the protein handling')
+    return proteins_sequence_per_gene, proteins_percent_per_gene
+
+
+def summary_schema_info ( schema_info,  output_dir , logger) :
+    logger.info('Start processing the information in schema info')
+    header_variability_length = ['Gene name', 'Length variability']
+    header_gene_length = ['Gene name', 'Length']
+    header_percent_allele_not_cds =['Gene name', 'Allele Percentage that is not coding CDS']
     summary_info = {}
     variability_length = {}
     coding_cds = {}
@@ -203,32 +173,59 @@ def summary_schema( schema_info, output_dir , logger) :
             if not values[3] in direction [gene]:
                 direction[gene][values[3]] = 0
             direction[gene][values[3]] += 1
-        try:  
-            mode_length=statistics.mode(g_length)
-        except:
-            import pdb; pdb.set_trace()
+
+        mode_length=statistics.mode(g_length)
         min_length = min(g_length)
         max_length = max(g_length)
         gene_length[gene] = mode_length
         variability_length[gene]=format(max((mode_length-min_length), (max_length-mode_length))/mode_length, '.2f')
     
-    # combine the length information to create the graphic to show the number of the lenght gene and the number of times that gene has the same length in the schema     
-    summary_length = {}    
-    set_of_length = []
-    number_of_set_length = []
+    logger.info('Create the summary folder')
+    os.makedirs(os.path.join(output_dir, 'summary'))
+    
+    logger.info('Dumping the variability length from the schema to file')
+    variability_length_file =  os.path.join(output_dir, 'summary' , 'variability_length.tsv')
+    save_simple_dict_to_file (variability_length,  header_variability_length, variability_length_file, logger)
+    '''
+    with open (variability_length_file , 'w') as variability_length_fh :
+        variability_length_fh.write('\t'.join(header_variability_length) + '\n')
+        for gene, value in sorted (variability_length.items()) :
+            variability_length_fh.write(gene + '\t' +  value + '\n')
+    '''
+    logger.info('Dumping completed')
+    
+    logger.info('Dumping the gene length from the schema to file')
+    gene_length_file = os.path.join(output_dir, 'summary' , 'gene_length.tsv')
+    save_simple_dict_to_file (gene_length,  header_gene_length, gene_length_file, logger) 
+
+    logger.info('Processing the picture for gene length')
+    # Length of the gene will be clustered in 10 groups to be presented in the graphic bar
+    x_axis = [150, 250, 500, 1000, 1500, 2000, 2500, 3000, 4000 , 5000]
+    gene_length_values = 10 *[0]
+    #summary_length = {}    
+    #set_of_length = []
+    #number_of_set_length = []
     
     for value  in gene_length.values() :
-        if not value in summary_length :
-            summary_length[value] = 0
-        summary_length[value] += 1   
-    for index, value in sorted(summary_length.items()) :
-        set_of_length.append(index)
-        number_of_set_length.append(value)
-       
-    length_graphic_file = os.path.join(output_dir, 'graphic_length_relation.png')
+        if value > 5000 :
+            # if gene length is bigger than 5000 it will be assigned to 5000
+            gene_length_values[len(x_axis)-1] += 1
+        else:
+            for index in range(len(x_axis)) :
+                if value <= x_axis[index] :
+                    gene_length_values[index] += 1
+                    break
+      
+
+    x_axis_label = ['<= {0}'.format(element) for element in x_axis]
+
+    length_graphic_file = os.path.join(output_dir, 'graphic_gene_length.png')
     rotation = 30
-    create_bar_graphic (set_of_length, number_of_set_length, 'length of gene', 'Number of gene with the same length', 'Length of the sequence for each gene defined in the schema ' , rotation,  length_graphic_file) 
+    create_bar_graphic (x_axis_label, gene_length_values, 'Gene length', 'Number of gene with the same length', 'Sequence length for genes defined in the schema ' , rotation,  length_graphic_file) 
+
+    #create_bar_graphic (set_of_length, number_of_set_length, 'length of gene', 'Number of gene with the same length', 'Length of the sequence for each gene defined in the schema ' , rotation,  length_graphic_file) 
     
+    logger.info('Processing the picture for variablity length')
     variation_lenght = {}
     index_variation = []
     value_varation = []
@@ -240,14 +237,15 @@ def summary_schema( schema_info, output_dir , logger) :
         index_variation.append(index)
         value_varation.append(value)
     
+    x_axis_label = ['{0}%'.format(int(float(element)*100)) for element in index_variation]
     varation_length_graphic_file = os.path.join(output_dir, 'graphic_varation_length.png')
     rotation = 30
-    create_bar_graphic (index_variation, value_varation, 'length variability of gene', 'Numbers of gene variability', 'Variability length of the sequence for each gene defined in the schema ' , rotation,  varation_length_graphic_file) 
-    
+    create_bar_graphic (x_axis_label, value_varation, 'length variability of gene', 'Numbers of gene variability', 'Variability length of the sequence for each gene defined in the schema ' , rotation,  varation_length_graphic_file) 
+    logger.info('Complete picture for variability length')
     
     # combine the number of times that an allele is not protein coding
     summary_coding_cds = {}
-    count_conting_cds = {}
+    #count_conting_cds = {}
     percents = []
     percent_value = []
     for gene in coding_cds :
@@ -261,16 +259,29 @@ def summary_schema( schema_info, output_dir , logger) :
             allele_no_coding_cds = 0
         percent_not_coding = format(allele_no_coding_cds/(allele_no_coding_cds + allele_coding_cds), '.2f')
         summary_coding_cds[gene] = percent_not_coding
-        if not percent_not_coding in count_conting_cds :
-            count_conting_cds[percent_not_coding] = 0
-        count_conting_cds[percent_not_coding] += 1
-    for index, value in sorted(count_conting_cds.items()) :
-        percents.append(index)
-        percent_value.append(value)
+        
+
+    logger.info('Dumping the allele percentage that are not codings CDS to file')
+    percent_allele_not_coding_file =  os.path.join(output_dir, 'summary' , 'percent_allele_not_coding.tsv')
+    save_simple_dict_to_file (summary_coding_cds,  header_percent_allele_not_cds, percent_allele_not_coding_file, logger)
+    
+  
+    
     # create the plot file for the (cdc/non cds) percent relation 
-    percent_graphic_file = os.path.join(output_dir, 'graphic_percent_relation.png')
+    percent_coding_one_decimal = []
+    for per_values in  summary_coding_cds.values() :
+        percent_coding_one_decimal.append(str(round(float(per_values), 1)))
+    
+    percent_number = []
+    percent_list = sorted(list(set(percent_coding_one_decimal)))
+    for item in percent_list :
+        percent_number.append(percent_coding_one_decimal.count(item))
+    
+    x_axis_label = ['{0}%'.format(int(float(element)*100)) for element in percent_list]
+    
+    percent_not_contig_graphic_file = os.path.join(output_dir, 'graphic_allele_percent_not_coding.png')
     rotation = 30
-    create_bar_graphic (percents, percent_value, 'Percent of non coding CDS', 'Number no coding CDS', 'Percent of the alleles in the schema that are not coding CDS ' , rotation, percent_graphic_file) 
+    create_bar_graphic (x_axis_label, percent_number, 'Percent of non coding CDS', 'Number of genes ', 'Alleles that are not coding CDS ( in % ) ' , rotation, percent_not_contig_graphic_file) 
     
     
     # combine the number of times that the error codo arise when trying to conver to cds
@@ -301,10 +312,68 @@ def summary_schema( schema_info, output_dir , logger) :
     rotation = 0
     create_bar_graphic (error_name, error_value, 'Error type when converting to CDS', 'Number of errors', 'Type of errors that are generated when trying to convert to CDS ' , rotation , error_type_graphic_file) 
     
+    logger.info('Schema info has been completed processed ')
     
     
-    return variability_length, gene_length, coding_cds , error_type, direction
+    
+    return True
 
+
+def save_simple_dict_list_to_files (dict_to_save,  heading_text, folder_name ,file_name, logger) :
+    logger.info('Saving file %s', file_name)
+    for gene , value_list in sorted(dict_to_save.items()):
+        f_name = os.path.join(folder_name, str(gene + file_name))
+        with open (f_name , 'w') as f_name_fh :
+            f_name_fh.write('\t'.join(heading_text) + '\n')
+            for item in value_list :
+                f_name_fh.write(gene + '\t' + item + '\n')
+    logger.info('Saved file  %s', file_name)
+    return True
+
+def save_simple_dict_to_file (dict_to_save,  heading_text, file_name, logger) :
+    logger.info('Saving file %s', file_name)
+    with open (file_name , 'w') as file_name_fh :
+        file_name_fh.write('\t'.join(heading_text) + '\n')
+        for gene , value in sorted (dict_to_save.items()) :
+            file_name_fh.write(gene + '\t' + str(value) + '\n')
+    logger.info('Saved file  %s', file_name)
+    return True
+
+
+def summary_proteins (raw_proteins_per_genes, output_dir, logger) :
+    logger.info('Start handling protein from the raw information')
+    heading_summary_proteins_sequence = ['Gene Name', 'Protein sequence']
+    heading_summary_proteins_percent = ['Gene Name', 'Percent of different proteins in the gene']
+    proteins_sequence_per_gene, proteins_percent_per_gene = find_proteins_in_gene (raw_proteins_per_genes, logger)
+    # Save proteins sequences proteins to file
+    os.makedirs(os.path.join(output_dir, 'summary', 'proteins'))
+    folder_summary_proteins = os.path.join(output_dir, 'summary', 'proteins')
+    proteins_sequence_file = '_summary_protein_sequence.tsv'
+    save_simple_dict_list_to_files (proteins_sequence_per_gene, heading_summary_proteins_sequence, folder_summary_proteins, proteins_sequence_file, logger)
+    # Save proteins percent to file
+    proteins_percent_file = os.path.join(output_dir, 'summary' , 'proteins_percent.tsv')
+    save_simple_dict_to_file (proteins_percent_per_gene, heading_summary_proteins_percent, proteins_percent_file ,logger)
+    
+    # create the diagram to display the percent protoins for each gene
+    # round number to 1 decimal to show the graphic
+    all_percent = []
+    pencent_values = proteins_percent_per_gene.values()
+    for percent_value in pencent_values :
+        all_percent.append(str(round(float(percent_value), 1)))
+    
+    #all_percent =  list(proteins_percent_per_gene.values() )
+    percent_list = sorted(list(set(all_percent)))
+    percent_number = []
+    for item in percent_list :
+        percent_number.append(all_percent.count(item))
+    x_axis_label = ['{0}%'.format(int(float(element)*100)) for element in percent_list]
+    protein_percent_graphic_file = os.path.join(output_dir, 'graphic_protein_percent.png')
+    rotation = 30
+    create_bar_graphic (x_axis_label, percent_number, 'Percent of proteins ',
+                        'Number of genes', 'Percent of Alleles that coding for the same protein (in %)'
+                        , rotation, protein_percent_graphic_file)
+    
+    return True
 
 def evaluate_schema (inputdir, outputdir, logger) :
 
@@ -314,27 +383,32 @@ def evaluate_schema (inputdir, outputdir, logger) :
     header_alleles_duplicated = ['Gene name', 'Duplicated alleles id' ]
     header_schema_info = ['Gene name', 'Allele id' , 'length', 'Coding(Yes/No)' , 'Error description','direction']
     schema_files = get_fasta_file_list(inputdir, logger)
-    allele_no_cds , reverse_alleles, proteins , schema_info , allele_duplicated = analyze_schema (schema_files,  logger)
+    logger.info('Extract the raw information for each gene in the schema')
+    allele_no_cds , reverse_alleles, raw_proteins_per_genes , schema_info , allele_duplicated = extract_info_schema (schema_files,  logger)
     
+    
+    logger.info('Start dumping the raw information to files')
     logger.info('Saving alleles not coding to protein to file..')
-    
+    os.makedirs(os.path.join(outputdir, 'raw_info'))
+    os.makedirs(os.path.join(outputdir, 'raw_info', 'allele_not_cds'))
     for schema in sorted (allele_no_cds) :
-        allele_no_cds_file =  os.path.join(outputdir, str(schema + '_allele_no_cds.tsv'))
+        allele_no_cds_file =  os.path.join(outputdir, 'raw_info' , 'allele_not_cds' ,str(schema + '_allele_no_cds.tsv'))
         with open (allele_no_cds_file , 'w') as allele_no_cds_fh :
             allele_no_cds_fh.write('\t'.join(header_allele_no_cds) + '\n')
             for allele in sorted (allele_no_cds[schema], key=int):
                 allele_no_cds_fh.write(schema + '\t' + str(allele) + '\t' + '\t'.join(allele_no_cds[schema][allele]) + '\n')
     
     logger.info('Saving dulicate alleles to file..')
+    os.makedirs(os.path.join(outputdir, 'raw_info', 'duplicated_alleles'))
     for gene in sorted (allele_duplicated) :
-        allele_duplicated_file =  os.path.join(outputdir, str(gene + '_alleles_duplicated.tsv'))
+        allele_duplicated_file =  os.path.join(outputdir, 'raw_info' , 'duplicated_alleles' , str(gene + '_alleles_duplicated.tsv'))
         with open (allele_duplicated_file , 'w') as allele_duplicated_fh :
             allele_duplicated_fh.write('\t'.join(header_allele_duplicated) + '\n')
             for duplication in (allele_duplicated[gene]):
                 allele_duplicated_fh.write(gene + '\t'  + '\t'.join(allele_duplicated[gene][duplication]) + '\n')
     
     logger.info('Saving schema info  to file..')
-    schema_info_file =  os.path.join(outputdir,  'schema_information.tsv')
+    schema_info_file =  os.path.join(outputdir, 'raw_info', 'schema_information.tsv')
     with open (schema_info_file , 'w') as schema_info_fh :
         schema_info_fh.write('\t'.join(header_schema_info) + '\n')
         for gene in sorted (schema_info) :
@@ -343,24 +417,33 @@ def evaluate_schema (inputdir, outputdir, logger) :
 
 
     logger.info('Saving alleles not coding to protein to file..')
+    os.makedirs(os.path.join(outputdir, 'raw_info', 'raw_reverse_alleles'))
     for schema in sorted (reverse_alleles) :
-        reverse_alleles_file =  os.path.join(outputdir, str(schema + '_reverse_alleles.tsv'))
+        reverse_alleles_file =  os.path.join(outputdir, 'raw_info', 'raw_reverse_alleles', str(schema + '_reverse_alleles.tsv'))
         with open (reverse_alleles_file , 'w') as reverse_alleles_fh :
             reverse_alleles_fh.write('\t'.join(header_reverse_alleles) + '\n')
             for allele in sorted (reverse_alleles[schema], key=int):
                 reverse_alleles_fh.write(schema + '\t' + str(allele) + '\t' + reverse_alleles[schema][allele] + '\n')
                 
     logger.info('Saving proteins to file..')
-    os.makedirs(os.path.join(outputdir, 'proteins'))
-    for schema in sorted (proteins) :
-        proteins_file =  os.path.join(outputdir, 'proteins', str(schema + '_proteins.tsv'))
+    os.makedirs(os.path.join(outputdir, 'raw_info', 'raw_proteins'))
+    for schema in sorted (raw_proteins_per_genes) :
+        proteins_file =  os.path.join(outputdir, 'raw_info', 'raw_proteins', str(schema + '_proteins.tsv'))
         with open (proteins_file , 'w') as proteins_fh :
             proteins_fh.write('\t'.join(header_proteins) + '\n')
-            for allele in sorted (proteins[schema], key=int):
-                proteins_fh.write(schema + '\t' + str(allele) + '\t' + proteins[schema][allele] + '\n')
-
-    variability_length, gene_length, coding_cds , error_type, direction = summary_schema( schema_info, outputdir, logger) 
+            for allele in sorted (raw_proteins_per_genes[schema], key=int):
+                proteins_fh.write(schema + '\t' + str(allele) + '\t' + raw_proteins_per_genes[schema][allele] + '\n')
     
+    logger.info('Completed dumped raw information to files')
+    
+    logger.info('Analyze the raw proteins to remove the non CDS and duplicated proteins for each gene')
+    #proteins_per_gene = find_proteins_in_gene (raw_proteins_per_genes, logger)
+    
+    logger.info('Dumping proteins to file ')
+    
+    
+    summary_schema_info( schema_info, outputdir, logger) 
+    summary_proteins (raw_proteins_per_genes, outputdir, logger) 
     
     return True
 
