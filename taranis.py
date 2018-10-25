@@ -12,7 +12,7 @@ from logging.handlers import RotatingFileHandler
 from datetime import datetime
 import glob
 import pickle
-import tempfile
+#import tempfile
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
@@ -56,7 +56,11 @@ def check_program_is_exec_version (program, version, logger):
         version_str= str(subprocess.check_output([program , '-version']))
         if version_str == "b''" :
             version_str = subprocess.getoutput( str (program + ' -version'))
-        if not re.search(version, version_str):
+        
+        tmp_re = re.search(r'.*: (\d.+)\.\d\+',version_str)
+        present_version = float(tmp_re.group(1))
+        #if not re.search(version, version_str):
+        if present_version < float(version) :
             logger.info('%s program does not have the right version ', program)
             print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
             return False
@@ -67,7 +71,7 @@ def check_program_is_exec_version (program, version, logger):
         
 
 def check_prerequisites (logger):
-    pre_requisite_list = [['blastp', '2.6'], ['makeblastdb' , '2.6'], ['prokka', '1.12']]
+    pre_requisite_list = [['blastp', '2.6'], ['makeblastdb' , '2.6']]
     # check if blast is installed and has the minimum version 
     for program, version in pre_requisite_list :
         if not check_program_is_exec_version (program , version, logger):
