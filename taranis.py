@@ -28,7 +28,7 @@ from BCBio import GFF
 
 import subprocess
 #from subprocess import check_output
-import shutil 
+import shutil
 
 def open_log(log_name):
     working_dir = os.getcwd()
@@ -56,7 +56,7 @@ def check_program_is_exec_version (program, version, logger):
         version_str= str(subprocess.check_output([program , '-version']))
         if version_str == "b''" :
             version_str = subprocess.getoutput( str (program + ' -version'))
-        
+
         tmp_re = re.search(r'.*: (\d.+)\.\d\+',version_str)
         present_version = float(tmp_re.group(1))
         #if not re.search(version, version_str):
@@ -68,24 +68,24 @@ def check_program_is_exec_version (program, version, logger):
     else:
         logger.info('Cannot find %s installed on your system', program)
         return False
-        
+
 
 def check_prerequisites (logger):
     pre_requisite_list = [['blastp', '2.6'], ['makeblastdb' , '2.6']]
-    # check if blast is installed and has the minimum version 
+    # check if blast is installed and has the minimum version
     for program, version in pre_requisite_list :
         if not check_program_is_exec_version (program , version, logger):
             return False
     return True
 
 def check_arg(args=None):
-    
-    parser = argparse.ArgumentParser(prog = 'get_subset', description="This program will make the Allele Calling using a predefined core Schema.")
-    
+
+    parser = argparse.ArgumentParser(prog = 'taranis.py', description="This program will make the Allele Calling using a predefined core Schema.")
+
     parser.add_argument('-coregenedir', help = 'Directory where the core gene files are located ')
     parser.add_argument('-inputdir', help ='Directory where are located the sample fasta files')
     parser.add_argument('-outputdir', help = 'Directory where the result files will be stored')
-    parser.add_argument('-cpus', required= False, help = 'Number of CPUS to be used in the program. Default is 3.', default = 3)
+    #parser.add_argument('-cpus', required= False, help = 'Number of CPUS to be used in the program. Default is 3.', default = 3)
     parser.add_argument('-updateschema' , required=False, help = 'Create a new schema with the new locus found. Default is True.', default = True)
     parser.add_argument('-percentlength', required=False, help = 'Allowed length percentage to be considered as ASM or ALM. Outside of this limit it is considered as LNF Default is 20.', default = 20)
     return parser.parse_args()
@@ -112,7 +112,7 @@ def write_first_allele_seq(file_sequence, store_dir, logger):
             exit (0)
     first_record = SeqIO.parse(file_sequence, "fasta").__next__()
     # build the fasta file name to store under first_allele_firectory
-    fasta_file = os.path.join(full_path_first_allele, f_name)   
+    fasta_file = os.path.join(full_path_first_allele, f_name)
     SeqIO.write(first_record, fasta_file, "fasta")
     return fasta_file
 
@@ -129,14 +129,14 @@ def create_blastdb (file_name, db_name,db_type, logger ):
             logger.info('Cannot create directory for local blast database on Core Gene file %s' , f_name[0])
             print ('Error when creating the directory %s for blastdb. ', db_dir)
             exit(0)
-        
+
         blast_command = ['makeblastdb' , '-in' , file_name , '-parse_seqids', '-dbtype',  db_type, '-out' , output_blast_dir]
         blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if blast_result.stderr:
             logger.error('cannot create blast db for %s ', f_name[0])
             logger.error('makeblastdb returning error code %s', blast_result.stderr)
             return False
-        
+
     else:
         logger.info('Skeeping the blastdb creation for %s, as it is already exists', f_name[0])
     return True
@@ -152,10 +152,10 @@ def check_blast (reference_allele, sample_files, db_name, logger) :
             return False
         cline = NcbiblastnCommandline(db=blast_db, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1, query=reference_allele)
         out, err = cline()
-        
+
         psiblast_xml = StringIO(out)
         blast_records = NCBIXML.parse(psiblast_xml)
-        
+
         for blast_record in blast_records:
             locationcontigs = []
             for alignment in blast_record.alignments:
@@ -208,7 +208,7 @@ def prepare_core_gene(core_gene_file_list, store_dir, logger):
     blast_dir = os.path.join(store_dir,'blastdb')
     logger.info('start preparation  of core genes files')
     for fasta_file in core_gene_file_list:
-        
+
         # parsing fasta file and get in the dictionary the id and the sequence
         fasta_file_parsed_dict = parsing_fasta_file_to_dict(fasta_file, logger)
         f_name = os.path.basename(fasta_file).split('.')
@@ -216,22 +216,22 @@ def prepare_core_gene(core_gene_file_list, store_dir, logger):
         # dump fasta file into pickle file
         with open (file_list[-1],'wb') as f:
             pickle.dump(fasta_file_parsed_dict, f)
-        # create the first allele for each core gene file    
+        # create the first allele for each core gene file
         #### used only for gene annotation
         first_alleles_list.append(write_first_allele_seq(fasta_file, store_dir, logger))
         alleles_len = []
         for allele in fasta_file_parsed_dict :
             alleles_len.append(len(fasta_file_parsed_dict[allele]))
-        
+
         schema_variability[f_name[0]]=list(set(alleles_len))
         schema_statistics[f_name[0]]=[statistics.mode(alleles_len), min(alleles_len), max(alleles_len)]
 
     return file_list , first_alleles_list , schema_variability, schema_statistics
-    
+
 def prepare_samples( sample_file_list, store_dir, logger):
     file_list = []
     blast_dir = os.path.join(store_dir,'blastdb')
-    
+
     for fasta_file in sample_file_list:
         # parsing fasta file and get in the dictionary the id and the sequence
         fasta_file_parsed_dict = parsing_fasta_file_to_dict(fasta_file, logger)
@@ -240,7 +240,7 @@ def prepare_samples( sample_file_list, store_dir, logger):
         # dump fasta file into pickle file
         with open (file_list[-1],'wb') as f:
             pickle.dump(fasta_file_parsed_dict, f)
-        
+
         # create local blast db for each core gene fasta file
         if not create_blastdb(fasta_file, blast_dir, 'nucl' ,logger):
             print('Error when creating the blastdb for core gene files. Check log file for more information. \n ')
@@ -265,21 +265,21 @@ def get_gene_annotation (annotation_file, annotation_dir, logger) :
     #annotation_result = subprocess.run (['prokka', annotation_file , '--outdir' , str(annotation_dir + 'prokka_anotation' + name_file[0]),
     annotation_result = subprocess.run (['prokka', annotation_file , '--outdir' , annotation_dir ,
                                          '--prefix', name_file[0]])
-    
+
     return str(annotation_dir + 'prokka_anotation' + name_file[0] + name_file[0] + '.gff')
 
 def analize_annotation_files (in_file, logger) :
     examiner = GFF.GFFExaminer()
-    file_fh = open(in_file) 
+    file_fh = open(in_file)
     datos = examiner.available_limits(in_file)
     file_fh.close()
     return True
 
 
-    
+
 def get_inferred_allele_number(core_dict, logger):
     #This function will look for the highest locus number and it will return a safe high value
-    # that will be added to the schema database 
+    # that will be added to the schema database
     logger.debug('running get_inferred_allele_number function')
     int_keys = []
     for key in core_dict.keys():
@@ -288,8 +288,8 @@ def get_inferred_allele_number(core_dict, logger):
     digit_length = len(str(max_value))
     # return any of the values ( 10000, 100000, 1000000 and so on ) according to the bigest allele number used
     return  True   #str 1 ( #'1'+ '0'*digit_length + 2)
-    
-    
+
+
 
 def get_stop_codon_index(seq, tga_stop_codon, indel_position) :
     stop_codons = ['TAA', 'TAG','TGA']
@@ -307,7 +307,7 @@ def get_stop_codon_index(seq, tga_stop_codon, indel_position) :
                     return index
                 else :
                     continue
-            
+
             return index
         #index +=3
     # Stop condon not foun tn the sequence
@@ -340,7 +340,7 @@ def get_snp (sample, query) :
                         'D' : 'acidic', 'E' :'acidic',
                         'H': 'basic' , 'K': 'basic' , 'R' : 'basic',
                         '-': '-----', '*' : 'Stop codon'}
-    
+
     snp_list = []
     length = max(len(sample), len(query))
     # normalize the lenght of the sample for the iteration
@@ -353,8 +353,8 @@ def get_snp (sample, query) :
     # convert to Seq class to translate to protein
     seq_sample = Seq.Seq(sample)
     seq_query = Seq.Seq(query)
-    
-    
+
+
     for index in range (0, length -2, 3) :
         codon_seq = seq_sample[index : index + 3]
         codon_que = seq_query[index : index + 3]
@@ -368,17 +368,17 @@ def get_snp (sample, query) :
             else:
                 prot_que = '-'
             snp_list.append([str(index+1),str(codon_seq) + '/'+ str(codon_que), prot_seq + '/' + prot_que, prot_annotation[prot_seq] + ' / ' + prot_annotation[prot_que]])
-        
-            
-    
-    
+
+
+
+
     return snp_list
 
 def convert_to_protein (sequence) :
 
     seq = Seq.Seq(sequence)
     protein = str(seq.translate())
-    
+
     return protein
 
 def nucleotide_to_protein_aligment (sample_seq, query_seq ) :
@@ -399,7 +399,7 @@ def get_alignment_for_indels (blast_db_name, qseq) :
     cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=3)
     out, err = cline(stdin = qseq)
     psiblast_xml = StringIO(out)
-    blast_records = NCBIXML.parse(psiblast_xml)   
+    blast_records = NCBIXML.parse(psiblast_xml)
     for blast_record in blast_records:
         for alignment in blast_record.alignments:
             for match in alignment.hsps:
@@ -417,9 +417,9 @@ def get_aligments_for_deletions (sample_seq, query_seq):
     if not index_found :
         index = 0
     values = format_alignment(*alignments[index]).split('\n')
-        
+
     match_alignment = [['sample', values[0]],['match', values[1]], ['schema',values[2]]]
-    
+
     return match_alignment
 
 def create_summary (samples_matrix_dict, logger) :
@@ -445,7 +445,7 @@ def create_summary (samples_matrix_dict, logger) :
             elif 'NIPH' in values :
                 summary_dict[key]['NIPH'] += 1
             elif 'NIPHEM' in values :
-                summary_dict[key]['NIPHEM'] += 1    
+                summary_dict[key]['NIPHEM'] += 1
             elif 'PLOT' in values :
                 summary_dict[key]['PLOT'] += 1
             else:
@@ -460,14 +460,14 @@ def create_summary (samples_matrix_dict, logger) :
                             summary_dict[key]['Exact match'] +=1
                         except:
                             logger.debug('The value %s, was found when collecting summary information for the %s', values, summary_dict[key] )
-                    else:    
+                    else:
                         logger.debug('The value %s, was found when collecting summary information for the %s', values, summary_dict[key] )
         summary_sample_list = []
         for item in summary_heading_list :
             summary_sample_list.append(str(summary_dict[key][item]))
         summary_result_list.append(key + '\t' +'\t'.join(summary_sample_list))
-    return summary_result_list    
-    
+    return summary_result_list
+
 
 
 
@@ -497,7 +497,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     header_snp = ['Sample Name','Core Gene', 'Position','Sequence Sample/Schema','Protein in Sample/Schema', 'Annotation Sample / Schema']
     header_protein = ['Sample Name','Core Gene', 'Protein in ' , 'Protein sequence']
     header_match_alignment = ['Sample Name','Core Gene','Alignment', 'Sequence']
-    
+
     for core_file in core_gene_dict_files:
         print ( 'Analyzing core file : ', core_file)
         full_gene_list.append(os.path.basename(core_file))
@@ -506,7 +506,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         reference_query = os.path.join(reference_query_directory, str( core_name + '.fasta'))
         with open (core_file, 'rb') as core_f:
             core_dict = pickle.load(core_f)
-        logger.debug('load in memory the core file %s ', core_file)      
+        logger.debug('load in memory the core file %s ', core_file)
         ref_query_parse = list (SeqIO.parse(reference_query, "fasta"))
         query_length = len(ref_query_parse[0].seq)
         #query_length_list =[]
@@ -516,7 +516,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             if not allele_length in query_length_list :
                 query_length_list.append(allele_length)
         '''
-        
+
         #create new_allele_dict to infer
         new_allele_dict ={}
         samples_inferred = []
@@ -526,39 +526,39 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             #with open (sample_file,'rb') as sample_f :
             #    sample_dict = pickle.load(sample_f)
             #logger.debug('loaded in memory the sample file %s' , sample_file)
-            
+
             sample_value = os.path.basename(sample_file)
             if not sample_value in samples_matrix_dict:
-                # initialize the sample list to add the number of alleles and the start, stop positions 
+                # initialize the sample list to add the number of alleles and the start, stop positions
                 samples_matrix_dict[sample_value] = []
                 matching_genes_dict[sample_value] = {}
             #intersection = set(core_dict.values()).intersection(gene_dict.values())
             blast_db_name = os.path.join(blast_db_directory, os.path.basename(sample_file),os.path.basename(sample_file))
             #blast_db_name = '/srv/project_wgmlst/samples_listeria/RA-L2073/blastdb'
             #reference_query = '/srv/project_wgmlst/lmo_test.fasta'
-            
+
             cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 100, outfmt = blast_parameters , max_target_seqs=2, max_hsps=1,num_threads=1, query=reference_query)
             #cline = NcbiblastnCommandline(db=Gene_Blast_DB_name, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1, query='/srv/project_wgmlst/seqSphere_listeria_cgMLST_test/targets/lmo0001.fasta')
             out, err = cline()
             out_lines = out.splitlines( )
-            
+
             if len (out_lines) > 0 :
-                
+
                 bigger_bitscore = 0
                 allele_found = {}
-                
+
                 for line in out_lines :
                     values = line.split('\t')
-                    
+
                     s_length = values[4]
-                    
+
                     #if int(s_length) in query_length_list :
                     if int(s_length) in schema_variability[core_name] :
                     #if int(s_length) == int(query_length) :
                         contig_id = values[1]
                         gene_start = values[9]
                         gene_end = values[10]
-                        
+
                         allele_is_subset = False
                         if len(allele_found) > 0 :
                             # check if the new match is a subset of the previous allele found in blast
@@ -567,7 +567,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                                     logger.info('Found allele %s that starts or ends as the same position as %s ' , values[0], allele_found[allele][0])
                                     allele_is_subset = True
                                     break
-                            
+
                         if len(allele_found) == 0 or not allele_is_subset :
                             contig_id_start = str(contig_id + '_'+ gene_start)
                             allele_found[contig_id_start] = values
@@ -575,7 +575,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             #qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend ,sseq , qseq= values
                             #bigger_bitscore = int(bitscore)
                             bigger_bitscore = int(values[8])
-                
+
                 if len(allele_found) > 1:
                     # found paralogs in the sample for the core gene
                     samples_matrix_dict[sample_value].append('NIPHEM')
@@ -598,7 +598,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         else:
                             matching_genes_dict[sample_value][sseqid].append([core_name, sstart,send,'+', 'NIPHEM'])
                     continue
-                    
+
                 elif len(allele_found) == 1 :
                     ## look for possible paralogos by finding other alleles that identity is  > 90%
                     paralog_found ={}
@@ -609,7 +609,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     for line in out_lines :
                         values = line.split('\t')
                         s_length = values[4]
-                    
+
                         #if int(s_length) == int(query_length) :
                         if int(s_length) in schema_variability[core_name] :
                             contig_id = values[1]
@@ -633,7 +633,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             matching_genes_dict[sample_value][sseqid].append([core_name, sstart,send,'-','EXACT'])
                         else:
                             matching_genes_dict[sample_value][sseqid].append([core_name, sstart,send,'+','EXACT'])
-                        
+
                         continue
                     else:
                         # paralog has been found
@@ -645,7 +645,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             paralog_dict[sample_value] [core_name]= []
                         # merging the 2 dictionary
                         paralog_matrix[sample_value] = {**allele_found, **paralog_found}
-                        
+
                         for paralog in paralog_matrix[sample_value] :
                             sstart = paralog_matrix[sample_value][paralog][9]
                             send = paralog_matrix[sample_value][paralog] [10]
@@ -685,17 +685,17 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             #print('mistmatch is : ', mismatch, 'gaps is : ', gapopen)
             #print('q start : ', qstart, ' q end : ', qend )
             #print ('s start : ', sstart, ' s end', send)
-            
-            
+
+
             if int(s_length) in schema_variability[core_name] :
-            
+
             #if int(s_length) == int(query_length) : # if equal then a new allele has been detected
                 logger.info('Found new allele for core gene %s ', core_name)
                 if not sample_value in inf_dict :
                     inf_dict[sample_value] = {}
                 if not core_name in inf_dict[sample_value] :
                     inf_dict[sample_value] [core_name]= []
-                ### adding new allele to the  inferred allele list if it is not already included                
+                ### adding new allele to the  inferred allele list if it is not already included
                 if not core_name in inferred_alleles_dict :
                     inferred_alleles_dict[core_name] = []
                 if not sseq in inferred_alleles_dict[core_name] :
@@ -705,7 +705,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 inferred_allele = 'INF_' + core_name + '_' + str(index_inferred)
                 samples_matrix_dict[sample_value].append(inferred_allele)
                 inf_dict[sample_value][core_name].append([qseqid,sseqid,bitscore,sstart, send, sseq])
-                
+
                 if not sseqid in matching_genes_dict[sample_value] :
                     matching_genes_dict[sample_value][sseqid] = []
                 if sstart > send :
@@ -713,22 +713,22 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 else:
                     matching_genes_dict[sample_value][sseqid].append([core_name, sstart,send,'+',inferred_allele])
                 continue
-            
+
             #if int(s_length) / int(query_length) < ( 1- percentlength/100)  or int(s_length) / int(query_length) > (1 + percentlength/100) :
             #    samples_matrix_dict[sample_value].append('LNF')
             #    logger.info('Locus found at sample %s, for gene  %s', sample_value, core_name)
-                
+
             #    continue
-            
+
             alleles_in_gene = list (SeqIO.parse(reference_query, "fasta"))
             for allele_item in alleles_in_gene :
                 if allele_item.id == qseqid :
                     break
             allele_sequence = allele_item.seq
-                    
-                    
-                    
-            #if int(s_length) < min(schema_variability[core_name]) : 
+
+
+
+            #if int(s_length) < min(schema_variability[core_name]) :
             if int(s_length) < int(query_length) :
                 ## check if the blast alignment could be clasified as PLOT
                 seq_id_split = sseqid.split('_')
@@ -747,9 +747,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     # print ('qlen is: ',qlen, ' seq_len is : ', length,  'query_reference_length is : ', query_length)
                     # print('mistmatch is : ', mismatch, 'gaps is : ', gapopen)
                     # print('q start : ', qstart, ' q end : ', qend )
-                    # print ('s start : ', sstart, ' s end', send) 
+                    # print ('s start : ', sstart, ' s end', send)
 
-                    
+
                     query_direction = check_sequence_order(allele_sequence, logger)
                     contig_file = os.path.join(inputdir,str(sample_value + '.fasta'))
                     records = list (SeqIO.parse(contig_file, "fasta"))
@@ -758,12 +758,12 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         if record.id == sseqid :
                             break
                     accession_sequence = record.seq
-                    
+
                     if allele_sequence.endswith ('TGA') or  allele_sequence.startswith ('TCA') :
                         tga_stop_codon = True
                     else:
                         tga_stop_codon = False
-                        #it is assume that reference query is in reverse complement. 
+                        #it is assume that reference query is in reverse complement.
                         #tga_stop_codon = allele_sequence.startswith('TCA')
                         #bassed_added_start = int(qlen) -len(qseq) - int(qstart)
                     if query_direction == 'reverse' :
@@ -780,7 +780,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             sample_gene_sequence = accession_sequence[int(sstart) -1 : int(send)  + 51]
                     #else:
                     #    tga_stop_codon = allele_sequence.endswith ('TGA') or  allele_sequence.startswith ('TCA')
-                    #    bassed_added_end = int(qlen) -len(qseq) 
+                    #    bassed_added_end = int(qlen) -len(qseq)
                     #    if query_direction == 'forward' :
                             # increasing the number of nucleotides in the sequence to find the stop codon when becomes longer because of the deletion
                     #        sample_gene_sequence = accession_sequence[int(send) - bassed_added_end - 51: int(sstart)  ]
@@ -790,9 +790,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     #        sample_gene_sequence = accession_sequence[int(send) -1: int(sstart) + bassed_added_end + 51]
                     stop_index = get_stop_codon_index(sample_gene_sequence, tga_stop_codon, int(qlen)- int(qstart))
                     if stop_index != False:
-                        new_sequence_lenght = stop_index +3                      
+                        new_sequence_lenght = stop_index +3
                         new_sseq = str(sample_gene_sequence[0:new_sequence_lenght])
-                        
+
                         ### adding ASM allele to the asm_allele_matrix if it is not already include
                         if not core_name in deletions_dict :
                             deletions_dict[core_name] = []
@@ -807,21 +807,21 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         else:
                             delete_allele = 'ALM_DELETE_' + core_name + '_' + str(index_delete)
                         samples_matrix_dict[sample_value].append(delete_allele)
-                        
+
                         if not sseqid in matching_genes_dict[sample_value] :
                             matching_genes_dict[sample_value][sseqid] = []
                         if sstart > send :
                             matching_genes_dict[sample_value][sseqid].append([core_name, str(int(sstart)-new_sequence_lenght -1), sstart,'-', delete_allele])
                         else:
                             matching_genes_dict[sample_value][sseqid].append([core_name, sstart,str(int(sstart)+ new_sequence_lenght),'+', delete_allele])
-                        
+
                         ### add the deletion into deletion list
                         if not core_name in list_deletions :
                             list_deletions [core_name] = {}
                         if not sample_value in list_deletions[core_name] :
                             list_deletions[core_name][sample_value] = {}
                         list_deletions[core_name][sample_value][delete_allele] = [qseqid, sseqid,  bitscore, str(query_length) , s_length, str(new_sequence_lenght), mismatch , gapopen, sstart, send,  new_sseq ]
-                        
+
                         if check_sequence_order(qseq, logger) == 'reverse' :
                             qseq = str(allele_sequence.reverse_complement())
                         else:
@@ -832,43 +832,43 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         if not sample_value in snp_dict[core_name] :
                             snp_dict[core_name][sample_value] = []
                         snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
-                        
-                        
+
+
                         # execute again blast with the reference query the previous query found to get the aligment format to get the SNPs
                         if not core_name in match_alignment_dict :
                             match_alignment_dict[core_name] = {}
                             if not sample_value in match_alignment_dict[core_name] :
                                 match_alignment_dict[core_name][sample_value] = get_aligments_for_deletions (new_sseq,  str(qseq))
-                                               
-                        
-                        
-                        
-                        
-                        
+
+
+
+
+
+
                         # convert the sequence to protein
                         if not core_name in protein_dict :
                             protein_dict[core_name] = {}
                         if not sample_value in protein_dict[core_name] :
                             protein_dict[core_name][sample_value] = []
-                        protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq ) 
+                        protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq )
                     else:
                         logger.error('ERROR : Stop codon was not found for the core %s and the sample %s', core_name, sample_value)
-                        
+
             #if int(s_length) > int(query_length) :
             elif int(s_length) > max(schema_variability[core_name]) :
-            #elif int(s_length) > int(query_length) :   
+            #elif int(s_length) > int(query_length) :
                 #print ('there is a insertion of  ', gapopen ,' bases in the sequence')
                 #print ('qlen is: ',qlen, ' seq_len is : ', length,  'query_reference_length is : ', query_length)
                 #query_seq = Seq.Seq(qseq)
                 tga_stop_codon = qseq.endswith('TGA')
                 sseq = sseq.replace('-','')
                 stop_index = get_stop_codon_index(sseq, tga_stop_codon, qseq.find('-'))
-                
+
                 if stop_index != False:
                     new_sequence_lenght = stop_index +3
                     ### adding ASM allele to the asm_allele_matrix if it is not already include
                     new_sseq = sseq[0:new_sequence_lenght]
-                    
+
                     if not core_name in insertions_dict :
                         insertions_dict[core_name] = []
                     if not new_sseq in insertions_dict[core_name] :
@@ -895,7 +895,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 if not sample_value in list_insertions[core_name] :
                     list_insertions[core_name][sample_value] = {}
                 list_insertions[core_name][sample_value][insert_allele] = [qseqid, sseqid,  bitscore, str(query_length) , s_length, str(new_sequence_lenght), mismatch , gapopen, sstart, send,  new_sseq ]
-            
+
                 if check_sequence_order(qseq, logger) == 'reverse' :
                     qseq = str(allele_sequence.reverse_complement())
                 else:
@@ -906,36 +906,36 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 if not sample_value in snp_dict[core_name] :
                     snp_dict[core_name][sample_value] = []
                 snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
-                    
-                '''    
+
+                '''
                 cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=3)
                 out, err = cline(stdin = qseq)
                 psiblast_xml = StringIO(out)
-                blast_records = NCBIXML.parse(psiblast_xml)   
+                blast_records = NCBIXML.parse(psiblast_xml)
                 for blast_record in blast_records:
                     for alignment in blast_record.alignments:
                         for match in alignment.hsps:
                             match_alignment = [['sample', match.sbjct],['match', match.match], ['schema',match.query]]
-                ''' 
+                '''
                 if not core_name in match_alignment_dict :
                     match_alignment_dict[core_name] = {}
                 if not sample_value in match_alignment_dict[core_name] :
-                    match_alignment_dict[core_name][sample_value] = get_alignment_for_indels (blast_db_name, qseq) 
+                    match_alignment_dict[core_name][sample_value] = get_alignment_for_indels (blast_db_name, qseq)
                 # index_not_match = [m.start() for m in re.finditer(' ', match.match)]
-                
+
                 # convert the sequence to protein
                 if not core_name in protein_dict :
                     protein_dict[core_name] = {}
                 if not sample_value in protein_dict[core_name] :
                     #protein_dict[core_name][sample_value] = []
                     protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq )
-                
+
                 # get the SNP from the alignment
-                
-            
+
+
             else:
                 samples_matrix_dict[sample_value].append('ERROR ')
-                
+
                 print ('ERROR when looking the allele match for core gene ', core_name, 'at sample ', sample_value )
 
     logger.debug ('matching genes =  %s', matching_genes_dict)
@@ -959,8 +959,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     logger.debug ('list of proteins = %s' , protein_dict)
     logger.debug ('---------------------------------------------------')
 
-            
-    
+
+
 
     # print ( 'valor de retorno ', samples_matrix_dict)
     result_file = os.path.join ( outputdir, 'result.tsv')
@@ -970,7 +970,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         out_fh.write ('Sample Name\t'+'\t'.join( full_gene_list) + '\n')
         for key in sorted (samples_matrix_dict):
             out_fh.write (key + '\t' + '\t'.join(samples_matrix_dict[key])+ '\n')
-    
+
     # saving paralog sequence to file
     logger.info('Saving paralog information to file..')
     paralog_file =  os.path.join(outputdir, 'paralog.tsv')
@@ -980,7 +980,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             for core in sorted (paralog_dict[sample]):
                 for paralog in paralog_dict[sample][core] :
                     paralog_fh.write(sample + '\t' + core + '\t' + '\t'.join (paralog) + '\n')
-    
+
     # saving inferred alleles to file
     logger.info('Saving inferred alleles information to file..')
     inferred_file =  os.path.join(outputdir, 'inferred_alleles.tsv')
@@ -1007,7 +1007,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 #matching_alleles = '\t'.join (matching_genes_dict[samples][contig])
                         matching_alleles = '\t'.join (contig)
                         matching_fh.write(samples + '\t' + contigs +'\t' + matching_alleles + '\n')
-    
+
     # saving insertions bases in contigs to file
     logger.info('Saving insert bases  information to file..')
     insertions_file =  os.path.join(outputdir, 'insertions.tsv')
@@ -1017,7 +1017,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             for sample in list_insertions[c_gene] :
                 for insert in list_insertions[c_gene][sample]:
                     insertions_fh.write(c_gene + '\t' + sample + '\t' + insert + '\t' + '\t'.join(list_insertions[c_gene][sample][insert]) + '\n')
-    
+
     # saving deletions bases in contigs to file
     logger.info('Saving deleted bases information to file..')
     deletions_file =  os.path.join(outputdir, 'deletions.tsv')
@@ -1027,7 +1027,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             for sample in list_deletions[c_gene] :
                 for delete in list_deletions[c_gene][sample]:
                     deletions_fh.write(c_gene + '\t' + sample + '\t' + delete + '\t' + '\t'.join(list_deletions[c_gene][sample][delete]) + '\n')
-         
+
    # saving PLOT  to file
     logger.info('Saving PLOT information to file..')
     plot_file =  os.path.join(outputdir, 'plot.tsv')
@@ -1037,7 +1037,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             for core in sorted (plot_dict[sample]):
                 for plot in plot_dict[sample][core] :
                     plot_fh.write(sample + '\t' + core + '\t' + '\t'.join (plot) + '\n')
-    
+
     # saving SNPs  to file
     logger.info('Saving SNPs information to file..')
     snp_file =  os.path.join(outputdir, 'snp.tsv')
@@ -1047,10 +1047,10 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             for sample in sorted (snp_dict[core]):
                 for snp in snp_dict[core][sample] :
                     snp_fh.write(core + '\t' + sample + '\t' + '\t'.join (snp) + '\n')
-    
-    
+
+
     match_alignment_dict
-    
+
     logger.info('Saving matching alignment information to files..')
     alignment_dir = os.path.join(outputdir,'alignments')
     if os.path.exists(alignment_dir) :
@@ -1064,8 +1064,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 match_alignment_fh.write( '\t'.join(header_match_alignment) + '\n')
                 for match_align in match_alignment_dict[core][sample] :
                     match_alignment_fh.write(core + '\t'+ sample +'\t'+ '\t'.join(match_align) + '\n')
-    
-    
+
+
     # saving protein in a separated file
     logger.info('Saving protein information to files..')
     protein_dir = os.path.join(outputdir,'proteins')
@@ -1080,8 +1080,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 protein_fh.write( '\t'.join(header_protein) + '\n')
                 for protein in protein_dict[core][sample] :
                     protein_fh.write(core + '\t'+ sample +'\t'+ '\t'.join(protein) + '\n')
-                
-                
+
+
     ### create summary information
     logger.info('Saving summary information to file..')
     summary_result = create_summary (samples_matrix_dict, logger)
@@ -1089,14 +1089,14 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     with open (summary_file , 'w') as summ_fh:
         for line in summary_result :
             summ_fh.write(line + '\n')
-    
-        
-            
-    
+
+
+
+
     return True
 
 if __name__ == '__main__' :
-    version = ' Taranis  0.0.3'
+    version = ' Taranis  0.3.0'
     if sys.argv[1] == '-v' or sys.argv[1] == '--version':
         print( version, '\n')
         exit (0)
@@ -1115,7 +1115,7 @@ if __name__ == '__main__' :
     if not valid_core_gene_files :
         print ('There are not valid  fasta files in ',  arguments.coregenedir , ' directory. Check log file for more information ')
         exit(0)
-    
+
     valid_sample_files = get_fasta_file_list(arguments.inputdir, logger)
     if not valid_sample_files :
         print ('There are not valid  fasta files in ',  arguments.inputdir , ' directory. Check log file for more information ')
@@ -1143,7 +1143,7 @@ if __name__ == '__main__' :
         logger.info('Deleting the temporary directory to clean up the temporary files created')
         shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
         exit(0)
-    
+
     #######################################################
     # Prepare the samples files
     #######################################################
@@ -1168,11 +1168,11 @@ if __name__ == '__main__' :
         logger.info('Deleting the temporary directory to clean up the temporary files created')
         shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
         exit(0)
-    
+
     ### core schema annotation  #########
     '''
-    
-    
+
+
     annotation_core_list =[]
     for annotation_core_file in core_first_alleles_files :
         annotation_core_list.append(get_gene_annotation (annotation_core_file, tmp_core_gene_dir, logger))
@@ -1180,8 +1180,8 @@ if __name__ == '__main__' :
     annotation_sample_list =[]
     for annotation_sample_file in valid_sample_files :
         annotation_sample_list.append(get_gene_annotation (annotation_sample_file, tmp_samples_dir, logger))
-    
-    
+
+
     '''
     #reference_query_directory = os.path.join(tmp_core_gene_dir,'first_alleles')
     ##########   Modified to get all alleles instead of the first one  #############
@@ -1194,4 +1194,4 @@ if __name__ == '__main__' :
 
 
 print ('script ends ')
- 
+
