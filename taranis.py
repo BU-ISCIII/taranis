@@ -85,7 +85,7 @@ def check_arg(args=None):
     parser.add_argument('-coregenedir', help = 'Directory where the core gene files are located ')
     parser.add_argument('-inputdir', help ='Directory where are located the sample fasta files')
     parser.add_argument('-outputdir', help = 'Directory where the result files will be stored')
-    #parser.add_argument('-cpus', required= False, help = 'Number of CPUS to be used in the program. Default is 3.', default = 3)
+    parser.add_argument('-cpus', required= False, help = 'Number of CPUS to be used in the program. Default is 3.', default = 3)
     parser.add_argument('-updateschema' , required=False, help = 'Create a new schema with the new locus found. Default is True.', default = True)
     parser.add_argument('-percentlength', required=False, help = 'Allowed length percentage to be considered as ASM or ALM. Outside of this limit it is considered as LNF Default is 20.', default = 20)
     return parser.parse_args()
