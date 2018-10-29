@@ -675,10 +675,10 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 continue
             for line in out_lines :
                 values = line.split('\t')
-                if  int(values[8]) > bigger_bitscore:
+                if  float(values[8]) > bigger_bitscore:
                     qseqid , sseqid , pident ,  qlen , s_length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend ,sseq , qseq = values
                     #print('q len seq is : ', len(qseq), ' s len seq is : ', len(sseq))
-                    bigger_bitscore = int(bitscore)
+                    bigger_bitscore = float(bitscore)
             #cline = NcbiblastnCommandline(db=Gene_Blast_DB_name, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1, query='/srv/project_wgmlst/seqSphere_listeria_cgMLST_test/targets/lmo0001.fasta')= values
             #print ( 'number of matches is : ', len(out_lines))
             #print ('qlen is: ',qlen, ' seq_len is : ', length , 'query_reference_length is : ', query_length)
