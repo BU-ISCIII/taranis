@@ -522,7 +522,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         samples_inferred = []
         #allele_list_per_sample = []
         for sample_file in sample_dict_files:
-            print('sample file is: ', sample_file)
+            #print('sample file is: ', sample_file)
             #with open (sample_file,'rb') as sample_f :
             #    sample_dict = pickle.load(sample_f)
             #logger.debug('loaded in memory the sample file %s' , sample_file)
@@ -749,10 +749,6 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     if not core_name in plot_dict[sample_value] :
                         plot_dict[sample_value][core_name] = []
                     plot_dict[sample_value][core_name].append([qseqid,sseqid,bitscore,sstart, send, sseq])
-                    if int(sstart) == length_sseqid or int(send) == length_sseqid:
-                        print( 'PLOT Final')
-                    else:
-                        print ('PLOT inicio')
                     continue
                 else:
                     # print ('There is a deletion of ', gapopen,'gaps', 'or shorter mapping')
@@ -815,6 +811,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         index_delete = deletions_dict[core_name].index(new_sseq)
                         if new_sequence_lenght < query_length :
                             delete_allele = 'ASM_DELETE_' + core_name + '_' + str(index_delete)
+                            print(delete_allele)
                         elif new_sequence_lenght == query_length:
                             delete_allele = 'AEM_DELETE_' + core_name + '_' + str(index_delete)
                         else:
