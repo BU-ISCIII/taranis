@@ -57,7 +57,7 @@ def check_program_is_exec_version (program, version, logger):
         if version_str == "b''" :
             version_str = subprocess.getoutput( str (program + ' -version'))
 
-        tmp_re = re.search(r'.*: (\d.+)\.\d\+',version_str)
+        tmp_re = re.search(r'.*: (\d.+)\.\d*\+',version_str)
         present_version = float(tmp_re.group(1))
         #if not re.search(version, version_str):
         if present_version < float(version) :
@@ -732,7 +732,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             if int(s_length) < int(query_length) :
                 ## check if the blast alignment could be clasified as PLOT
                 seq_id_split = sseqid.split('_')
-                length_sseqid = seq_id_split[3]
+                #length_sseqid = seq_id_split[3]
+                length_sseqid = len(sseq)
                 if sstart == length_sseqid or send == length_sseqid:
                     samples_matrix_dict[sample_value].append('PLOT')
                     logger.info('PLOT found at sample %s, for gene  %s', sample_value, core_name)
