@@ -811,7 +811,6 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         index_delete = deletions_dict[core_name].index(new_sseq)
                         if new_sequence_lenght < query_length :
                             delete_allele = 'ASM_DELETE_' + core_name + '_' + str(index_delete)
-                            print(delete_allele)
                         elif new_sequence_lenght == query_length:
                             delete_allele = 'AEM_DELETE_' + core_name + '_' + str(index_delete)
                         else:
