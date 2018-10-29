@@ -522,7 +522,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         samples_inferred = []
         #allele_list_per_sample = []
         for sample_file in sample_dict_files:
-            #print('sample file is: ', sample_file)
+            print('sample file is: ', sample_file)
             #with open (sample_file,'rb') as sample_f :
             #    sample_dict = pickle.load(sample_f)
             #logger.debug('loaded in memory the sample file %s' , sample_file)
@@ -726,22 +726,33 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     break
             allele_sequence = allele_item.seq
 
-
+            # Retrieve the contig file for getting the contig sequence for the id found in Blast 
+            contig_file = os.path.join(inputdir,str(sample_value + '.fasta'))
+            records = list (SeqIO.parse(contig_file, "fasta"))
+            #accession_sequence = records[accession]
+            for record in records:
+                if record.id == sseqid :
+                    break
+            accession_sequence = record.seq
 
             #if int(s_length) < min(schema_variability[core_name]) :
             if int(s_length) < int(query_length) :
-                ## check if the blast alignment could be clasified as PLOT
-                seq_id_split = sseqid.split('_')
+                ## check if the blast alignment could be classified as PLOT
+                #seq_id_split = sseqid.split('_')
                 #length_sseqid = seq_id_split[3]
-                length_sseqid = len(sseq)
-                if sstart == length_sseqid or send == length_sseqid:
-                    samples_matrix_dict[sample_value].append('PLOT')
+                length_sseqid = len(accession_sequence)
+                if int(sstart) == length_sseqid or int(send) == length_sseqid or int(sstart) == 1 or int(send) == 1:
+                    samples_matrix_dict[sample_value].append('PLOT')                    
                     logger.info('PLOT found at sample %s, for gene  %s', sample_value, core_name)
                     if sample_value not in plot_dict :
                         plot_dict[sample_value] = {}
                     if not core_name in plot_dict[sample_value] :
                         plot_dict[sample_value][core_name] = []
                     plot_dict[sample_value][core_name].append([qseqid,sseqid,bitscore,sstart, send, sseq])
+                    if int(sstart) == length_sseqid or int(send) == length_sseqid:
+                        print( 'PLOT Final')
+                    else:
+                        print ('PLOT inicio')
                     continue
                 else:
                     # print ('There is a deletion of ', gapopen,'gaps', 'or shorter mapping')
@@ -755,11 +766,12 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     contig_file = os.path.join(inputdir,str(sample_value + '.fasta'))
                     records = list (SeqIO.parse(contig_file, "fasta"))
                     #accession_sequence = records[accession]
+                    '''
                     for record in records:
                         if record.id == sseqid :
                             break
                     accession_sequence = record.seq
-
+                    '''
                     if allele_sequence.endswith ('TGA') or  allele_sequence.startswith ('TCA') :
                         tga_stop_codon = True
                     else:
