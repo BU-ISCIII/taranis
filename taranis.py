@@ -29,16 +29,20 @@ from BCBio import GFF
 import subprocess
 #from subprocess import check_output
 import shutil
+from progressbar import ProgressBar
 
 def open_log(log_name):
     working_dir = os.getcwd()
     log_name=os.path.join(working_dir, log_name)
     #def create_log ():
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    #logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
+
     #create the file handler
     handler = logging.handlers.RotatingFileHandler(log_name, maxBytes=200000, backupCount=5)
-    handler.setLevel(logging.DEBUG)
+    #handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
 
     #create a Logging format
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -323,7 +327,7 @@ def check_sequence_order(allele_sequence, logger) :
     if allele_sequence[len(allele_sequence) -3: len(allele_sequence)] in start_codon_reverse :
         return 'reverse'
     return False
-
+'''
 def get_snp_2(sample, query) :
     snp_list = []
     for i in range(len(sample)):
@@ -333,8 +337,9 @@ def get_snp_2(sample, query) :
         except:
             snp_list.append([str(i+1), '-', sample[i]])
     return snp_list
-
-def get_snp (sample, query) :
+'''
+'''
+def get_snp_3 (sample, query) :
     prot_annotation = {'S': 'polar' ,'T': 'polar' ,'Y': 'polar' ,'Q': 'polar' ,'N': 'polar' ,'C': 'polar' ,'S': 'polar' ,
                         'F': 'nonpolar' ,'L': 'nonpolar','I': 'nonpolar','M': 'nonpolar','P': 'nonpolar','V': 'nonpolar','A': 'nonpolar','W': 'nonpolar','G': 'nonpolar',
                         'D' : 'acidic', 'E' :'acidic',
@@ -354,7 +359,7 @@ def get_snp (sample, query) :
     seq_sample = Seq.Seq(sample)
     seq_query = Seq.Seq(query)
 
-
+    
     for index in range (0, length -2, 3) :
         codon_seq = seq_sample[index : index + 3]
         codon_que = seq_query[index : index + 3]
@@ -368,11 +373,54 @@ def get_snp (sample, query) :
             else:
                 prot_que = '-'
             snp_list.append([str(index+1),str(codon_seq) + '/'+ str(codon_que), prot_seq + '/' + prot_que, prot_annotation[prot_seq] + ' / ' + prot_annotation[prot_que]])
-
-
-
-
+    
     return snp_list
+'''
+def get_snp (sample, query) :
+    prot_annotation = {'S': 'polar' ,'T': 'polar' ,'Y': 'polar' ,'Q': 'polar' ,'N': 'polar' ,'C': 'polar' ,'S': 'polar' ,
+                        'F': 'nonpolar' ,'L': 'nonpolar','I': 'nonpolar','M': 'nonpolar','P': 'nonpolar','V': 'nonpolar','A': 'nonpolar','W': 'nonpolar','G': 'nonpolar',
+                        'D' : 'acidic', 'E' :'acidic',
+                        'H': 'basic' , 'K': 'basic' , 'R' : 'basic',
+                        '-': '-----', '*' : 'Stop codon'}
+
+    snp_list = []
+    length = max(len(sample), len(query))
+    # normalize the lenght of the sample for the iteration
+    if len(sample) < length :
+        need_to_add = length - len(sample)
+        sample = sample + need_to_add * '-'
+    if len(query) < length :
+        need_to_add = length - len(query)
+        query = query + need_to_add * '-'
+    # convert to Seq class to translate to protein
+    seq_sample = Seq.Seq(sample)
+    seq_query = Seq.Seq(query)
+    
+    for index in range(length):
+        if seq_query[index] != seq_sample[index] :
+            triple_index = index - (index % 3)
+            codon_seq = seq_sample[triple_index : triple_index + 3]
+            codon_que = seq_query[triple_index : triple_index + 3]
+            if not '-' in str(codon_seq) :
+                prot_seq = str(codon_seq.translate())
+            else:
+                prot_seq = '-'
+                prot_que = str(seq_query[triple_index: ].translate())
+            if not '-' in str(codon_que) :
+                prot_que = str(codon_que.translate())
+            else:
+                prot_que = '-'
+                prot_seq = str(seq_sample[triple_index: ].translate())
+            snp_list.append([str(index+1),str(seq_sample[index]) + '/' + str(seq_query[index]), str(codon_seq) + '/'+ str(codon_que),
+                             # when one of the sequence ends but not the other we will translate the remain sequence to proteins
+                             # in that case we will only annotate the first protein. Using [0] as key of the dictionary  annotation
+                             prot_seq + '/' + prot_que, prot_annotation[prot_seq[0]] + ' / ' + prot_annotation[prot_que[0]]])
+            if '-' in str(codon_seq) or '-' in str(codon_que) :
+                break
+
+        
+    return snp_list
+
 
 def convert_to_protein (sequence) :
 
@@ -428,7 +476,7 @@ def create_summary (samples_matrix_dict, logger) :
     summary_heading_list = ['Exact match', 'INF', 'ASM_INSERT', 'ASM_DELETE','ALM_INSERT' ,'ALM_DELETE', 'LNF','NIPH','NIPHEM','PLOT','ERROR']
     summary_result_list.append('File\t' + '\t'.join(summary_heading_list))
     for key in sorted (samples_matrix_dict) :
-        summary_dict[key] = {'Exact match':0, 'INF':0, 'ASM_INSERT':0, 'ASM_DELETE':0, 'ALM_INSERT':0, 'ALM_DELETE':0, 'LNF':0, 'NIPH':0, 'NIPHEM':0, 'PLOT':0, 'ERROR':0}
+        summary_dict[key] = {'Exact match':0, 'INF':0, 'ASM_INSERT':0, 'ASM_DELETE':0, 'AEM_INSERT' :0, 'AEM_DELETE':0, 'ALM_INSERT':0, 'ALM_DELETE':0, 'LNF':0, 'NIPH':0, 'NIPHEM':0, 'PLOT':0, 'ERROR':0}
         for values in samples_matrix_dict[key] :
             if 'INF_' in values :
                 summary_dict[key]['INF'] += 1
@@ -436,10 +484,14 @@ def create_summary (samples_matrix_dict, logger) :
                 summary_dict[key]['ASM_INSERT'] += 1
             elif 'ASM_DELETE' in values :
                 summary_dict[key]['ASM_DELETE'] += 1
+            elif 'AEM_DELETE' in values :
+                summary_dict[key]['AEM_DELETE'] += 1
             elif 'ALM_INSERT' in values :
                 summary_dict[key]['ALM_INSERT'] += 1
             elif 'ALM_DELETE' in values :
                 summary_dict[key]['ALM_DELETE'] += 1
+            elif 'AEM_INSERT' in values :
+                summary_dict[key]['AEM_INSERT'] += 1
             elif 'LNF' in values :
                 summary_dict[key]['LNF'] += 1
             elif 'NIPH' in values :
@@ -471,10 +523,6 @@ def create_summary (samples_matrix_dict, logger) :
     return summary_result_list
 
 
-def loadingBar(count,total,size):
-    percent = float(count)/float(total)*100
-    sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent/10)*size + ' '*(10-int(percent/10))*size + ']')
-
 def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  sample_dict_files, blast_db_directory, inputdir, outputdir, cpus , percentlength, schema_variability, logger ):
     full_gene_list = []
     samples_matrix_dict = {} # to keep allele number
@@ -494,19 +542,20 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
     header_macthing_alleles_conting = ['Sample Name', 'Contig', 'Core Gene','start', 'stop', 'direction', 'codification']
     header_paralogs = ['Sample Name','Core Gene', 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
-    header_inferred = ['Sample Name','Core Gene', 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
+    header_inferred = ['Sample Name','Core Gene', 'Inferred Allele list']
     header_insertions = [ 'Core Gene', 'Sample Name' , 'Insertion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_deletions = [ 'Core Gene', 'Sample Name' , 'Deletion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_plot = ['Core Gene', 'Sample Name' , 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
-    header_snp = ['Sample Name','Core Gene', 'Position','Sequence Sample/Schema','Protein in Sample/Schema', 'Annotation Sample / Schema']
+    header_snp = ['Core Gene', 'Sample Name', 'Position', 'Mutation Sample/Schema', 'Codon Sample/Schema','Protein in Sample/Schema', 'Annotation Sample / Schema']
     header_protein = ['Sample Name','Core Gene', 'Protein in ' , 'Protein sequence']
     header_match_alignment = ['Sample Name','Core Gene','Alignment', 'Sequence']
     
     number_of_genes = len(core_gene_dict_files)
     print('Allele calling starts')
-    for core_file in core_gene_dict_files:
-        #loadingBar(count,total,size)
-        #print ( 'Analyzing core file : ', core_file)
+    pbar = ProgressBar ()
+    for core_file in pbar(core_gene_dict_files) :
+    #for core_file in core_gene_dict_files:
+
         full_gene_list.append(os.path.basename(core_file))
         logger.info('Processing core gene file %s ', core_file)
         core_name = os.path.basename(core_file)
@@ -712,6 +761,14 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 samples_matrix_dict[sample_value].append(inferred_allele)
                 inf_dict[sample_value][core_name].append([qseqid,sseqid,bitscore,sstart, send, sseq])
 
+                # Get the SNP for the new allele inferred
+                if not core_name in snp_dict :
+                    snp_dict[core_name] = {}
+                if not sample_value in snp_dict[core_name] :
+                    snp_dict[core_name][sample_value] = []
+                snp_dict[core_name][sample_value] = get_snp(sseq, qseq)
+                
+                
                 if not sseqid in matching_genes_dict[sample_value] :
                     matching_genes_dict[sample_value][sseqid] = []
                 if sstart > send :
@@ -805,8 +862,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     #        sample_gene_sequence = accession_sequence[int(send) -1: int(sstart) + bassed_added_end + 51]
                     stop_index = get_stop_codon_index(sample_gene_sequence, tga_stop_codon, int(qlen)- int(qstart))
                     if stop_index != False:
-                        new_sequence_lenght = stop_index +3
-                        new_sseq = str(sample_gene_sequence[0:new_sequence_lenght])
+                        new_sequence_length = stop_index +3
+                        new_sseq = str(sample_gene_sequence[0:new_sequence_length])
 
                         ### adding ASM allele to the asm_allele_matrix if it is not already include
                         if not core_name in deletions_dict :
@@ -815,9 +872,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             deletions_dict[core_name].append(new_sseq)
                         ### find the index of ASM  to include it in the sample matrix dict
                         index_delete = deletions_dict[core_name].index(new_sseq)
-                        if new_sequence_lenght < query_length :
+                        if new_sequence_length < query_length :
                             delete_allele = 'ASM_DELETE_' + core_name + '_' + str(index_delete)
-                        elif new_sequence_lenght == query_length:
+                        elif new_sequence_length == query_length:
                             delete_allele = 'AEM_DELETE_' + core_name + '_' + str(index_delete)
                         else:
                             delete_allele = 'ALM_DELETE_' + core_name + '_' + str(index_delete)
@@ -826,27 +883,27 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         if not sseqid in matching_genes_dict[sample_value] :
                             matching_genes_dict[sample_value][sseqid] = []
                         if sstart > send :
-                            matching_genes_dict[sample_value][sseqid].append([core_name, str(int(sstart)-new_sequence_lenght -1), sstart,'-', delete_allele])
+                            matching_genes_dict[sample_value][sseqid].append([core_name, str(int(sstart)-new_sequence_length -1), sstart,'-', delete_allele])
                         else:
-                            matching_genes_dict[sample_value][sseqid].append([core_name, sstart,str(int(sstart)+ new_sequence_lenght),'+', delete_allele])
+                            matching_genes_dict[sample_value][sseqid].append([core_name, sstart,str(int(sstart)+ new_sequence_length),'+', delete_allele])
 
                         ### add the deletion into deletion list
                         if not core_name in list_deletions :
                             list_deletions [core_name] = {}
                         if not sample_value in list_deletions[core_name] :
                             list_deletions[core_name][sample_value] = {}
-                        list_deletions[core_name][sample_value][delete_allele] = [qseqid, sseqid,  bitscore, str(query_length) , s_length, str(new_sequence_lenght), mismatch , gapopen, sstart, send,  new_sseq ]
+                        list_deletions[core_name][sample_value][delete_allele] = [qseqid, sseqid,  bitscore, str(query_length) , s_length, str(new_sequence_length), mismatch , gapopen, sstart, send,  new_sseq ]
 
                         if check_sequence_order(qseq, logger) == 'reverse' :
                             qseq = str(allele_sequence.reverse_complement())
                         else:
                             qseq = str(allele_sequence)
                         # get the SNP for the  delection
-                        if not core_name in snp_dict :
-                            snp_dict[core_name] = {}
-                        if not sample_value in snp_dict[core_name] :
-                            snp_dict[core_name][sample_value] = []
-                        snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
+                        #if not core_name in snp_dict :
+                        #    snp_dict[core_name] = {}
+                        #if not sample_value in snp_dict[core_name] :
+                        #    snp_dict[core_name][sample_value] = []
+                        #snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
 
 
                         # execute again blast with the reference query the previous query found to get the aligment format to get the SNPs
@@ -871,8 +928,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         samples_matrix_dict[sample_value].append('ERROR not stop codon when deletion')
 
             #if int(s_length) > int(query_length) :
-            elif int(s_length) > max(schema_variability[core_name]) :
-            #elif int(s_length) > int(query_length) :
+            #elif int(s_length) > max(schema_variability[core_name]) :
+            elif int(s_length) > int(query_length) :
                 #print ('there is a insertion of  ', gapopen ,' bases in the sequence')
                 #print ('qlen is: ',qlen, ' seq_len is : ', length,  'query_reference_length is : ', query_length)
                 #query_seq = Seq.Seq(qseq)
@@ -881,9 +938,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 stop_index = get_stop_codon_index(sseq, tga_stop_codon, qseq.find('-'))
 
                 if stop_index != False:
-                    new_sequence_lenght = stop_index +3
+                    new_sequence_length = stop_index +3
                     ### adding ASM allele to the asm_allele_matrix if it is not already include
-                    new_sseq = sseq[0:new_sequence_lenght]
+                    new_sseq = sseq[0:new_sequence_length]
 
                     if not core_name in insertions_dict :
                         insertions_dict[core_name] = []
@@ -891,11 +948,13 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         insertions_dict[core_name].append(new_sseq)
                     ### find the index of ASM  to include it in the sample matrix dict
                     index_insert = insertions_dict[core_name].index(new_sseq)
-                    #if new_sequence_lenght < query_length :
-                    if new_sequence_lenght < min(schema_variability[core_name]) :
+                    #if new_sequence_length < query_length :
+                    if new_sequence_length < min(schema_variability[core_name]) :
                         insert_allele = 'ASM_INSERT_' + core_name + '_' + str(index_insert)
-                    else:
+                    elif new_sequence_length in schema_variability[core_name] :
                         insert_allele = 'AEM_INSERT_' + core_name + '_' + str(index_insert)
+                    else:
+                        insert_allele = 'ALM_INSERT_' + core_name + '_' + str(index_insert)
                     samples_matrix_dict[sample_value].append(insert_allele)
                 else:
                     samples_matrix_dict[sample_value].append('ALM_INSERT_')
@@ -910,18 +969,18 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     list_insertions [core_name] = {}
                 if not sample_value in list_insertions[core_name] :
                     list_insertions[core_name][sample_value] = {}
-                list_insertions[core_name][sample_value][insert_allele] = [qseqid, sseqid,  bitscore, str(query_length) , s_length, str(new_sequence_lenght), mismatch , gapopen, sstart, send,  new_sseq ]
+                list_insertions[core_name][sample_value][insert_allele] = [qseqid, sseqid,  bitscore, str(query_length) , s_length, str(new_sequence_length), mismatch , gapopen, sstart, send,  new_sseq ]
 
                 if check_sequence_order(qseq, logger) == 'reverse' :
                     qseq = str(allele_sequence.reverse_complement())
                 else:
                     qseq = str(allele_sequence)
                 # get the SNP for the  delection
-                if not core_name in snp_dict :
-                    snp_dict[core_name] = {}
-                if not sample_value in snp_dict[core_name] :
-                    snp_dict[core_name][sample_value] = []
-                snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
+                #if not core_name in snp_dict :
+                #    snp_dict[core_name] = {}
+                #if not sample_value in snp_dict[core_name] :
+                #    snp_dict[core_name][sample_value] = []
+                #snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
 
                 '''
                 cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=3)
