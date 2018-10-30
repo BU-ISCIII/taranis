@@ -425,10 +425,10 @@ def get_aligments_for_deletions (sample_seq, query_seq):
 def create_summary (samples_matrix_dict, logger) :
     summary_dict = {}
     summary_result_list = []
-    summary_heading_list = ['Exact match', 'INF', 'ASM_INSERT', 'ASM_DELETE','ALM_INSERT' ,'ALM_DELETE', 'LNF','NIPH','NIPHEM','PLOT']
+    summary_heading_list = ['Exact match', 'INF', 'ASM_INSERT', 'ASM_DELETE','ALM_INSERT' ,'ALM_DELETE', 'LNF','NIPH','NIPHEM','PLOT','ERROR']
     summary_result_list.append('File\t' + '\t'.join(summary_heading_list))
     for key in sorted (samples_matrix_dict) :
-        summary_dict[key] = {'Exact match':0, 'INF':0, 'ASM_INSERT':0, 'ASM_DELETE':0, 'ALM_INSERT':0, 'ALM_DELETE':0, 'LNF':0, 'NIPH':0, 'NIPHEM':0, 'PLOT':0}
+        summary_dict[key] = {'Exact match':0, 'INF':0, 'ASM_INSERT':0, 'ASM_DELETE':0, 'ALM_INSERT':0, 'ALM_DELETE':0, 'LNF':0, 'NIPH':0, 'NIPHEM':0, 'PLOT':0, 'ERROR':0}
         for values in samples_matrix_dict[key] :
             if 'INF_' in values :
                 summary_dict[key]['INF'] += 1
@@ -448,6 +448,8 @@ def create_summary (samples_matrix_dict, logger) :
                 summary_dict[key]['NIPHEM'] += 1
             elif 'PLOT' in values :
                 summary_dict[key]['PLOT'] += 1
+            elif 'ERROR' in values :
+                summary_dict[key]['ERROR'] += 1
             else:
                 try:
                     number =int(values)
@@ -469,7 +471,9 @@ def create_summary (samples_matrix_dict, logger) :
     return summary_result_list
 
 
-
+def loadingBar(count,total,size):
+    percent = float(count)/float(total)*100
+    sys.stdout.write("\r" + str(int(count)).rjust(3,'0')+"/"+str(int(total)).rjust(3,'0') + ' [' + '='*int(percent/10)*size + ' '*(10-int(percent/10))*size + ']')
 
 def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  sample_dict_files, blast_db_directory, inputdir, outputdir, cpus , percentlength, schema_variability, logger ):
     full_gene_list = []
@@ -497,9 +501,12 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     header_snp = ['Sample Name','Core Gene', 'Position','Sequence Sample/Schema','Protein in Sample/Schema', 'Annotation Sample / Schema']
     header_protein = ['Sample Name','Core Gene', 'Protein in ' , 'Protein sequence']
     header_match_alignment = ['Sample Name','Core Gene','Alignment', 'Sequence']
-
+    
+    number_of_genes = len(core_gene_dict_files)
+    print('Allele calling starts')
     for core_file in core_gene_dict_files:
-        print ( 'Analyzing core file : ', core_file)
+        #loadingBar(count,total,size)
+        #print ( 'Analyzing core file : ', core_file)
         full_gene_list.append(os.path.basename(core_file))
         logger.info('Processing core gene file %s ', core_file)
         core_name = os.path.basename(core_file)
@@ -522,7 +529,6 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         samples_inferred = []
         #allele_list_per_sample = []
         for sample_file in sample_dict_files:
-            #print('sample file is: ', sample_file)
             #with open (sample_file,'rb') as sample_f :
             #    sample_dict = pickle.load(sample_f)
             #logger.debug('loaded in memory the sample file %s' , sample_file)
@@ -780,7 +786,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             sample_gene_sequence = accession_sequence[int(sstart) - 51 :  int(send)  ]
                             sample_gene_sequence = sample_gene_sequence.reverse_complement()
                         else:
-                                sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 51]
+                            sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 51]
                     else:
                         if int(sstart) > int (send):
                             sample_gene_sequence = accession_sequence[int(send) - 51 :  int(sstart)  ]
@@ -862,6 +868,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq )
                     else:
                         logger.error('ERROR : Stop codon was not found for the core %s and the sample %s', core_name, sample_value)
+                        samples_matrix_dict[sample_value].append('ERROR not stop codon when deletion')
 
             #if int(s_length) > int(query_length) :
             elif int(s_length) > max(schema_variability[core_name]) :
@@ -943,10 +950,10 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
 
 
             else:
-                samples_matrix_dict[sample_value].append('ERROR ')
+                samples_matrix_dict[sample_value].append('ERROR not stop codon when insertion')
 
                 print ('ERROR when looking the allele match for core gene ', core_name, 'at sample ', sample_value )
-
+    '''
     logger.debug ('matching genes =  %s', matching_genes_dict)
     logger.debug ('---------------------------------------------------')
     logger.debug ('sample matrix  = %s', samples_matrix_dict)
@@ -967,7 +974,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     logger.debug ('---------------------------------------------------')
     logger.debug ('list of proteins = %s' , protein_dict)
     logger.debug ('---------------------------------------------------')
-
+    '''
 
 
 
