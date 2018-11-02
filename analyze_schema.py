@@ -32,6 +32,7 @@ def check_arg(args=None):
     
     evaluate_parser = subparser.add_parser('evaluate', help = 'Evaluate the schema ')
     evaluate_parser.add_argument('-input_dir', help = 'Directory where are the schema files.')
+    evaluate_parser.add_argument('-alt', required = False, help = 'Set to Yes if alternative start codon should be considered. Set to No to accept only ATG start codon', default = False)
     
     compare_parser = subparser.add_parser('compare', help = 'Compare 2 schema')
     compare_parser.add_argument('-scheme1', help = 'Directory where are the schema files for the schema 1')
