@@ -327,55 +327,7 @@ def check_sequence_order(allele_sequence, logger) :
     if allele_sequence[len(allele_sequence) -3: len(allele_sequence)] in start_codon_reverse :
         return 'reverse'
     return False
-'''
-def get_snp_2(sample, query) :
-    snp_list = []
-    for i in range(len(sample)):
-        try:
-            if sample[i] != query[i] :
-                snp_list.append([str(i+1), query[i], sample[i]])
-        except:
-            snp_list.append([str(i+1), '-', sample[i]])
-    return snp_list
-'''
-'''
-def get_snp_3 (sample, query) :
-    prot_annotation = {'S': 'polar' ,'T': 'polar' ,'Y': 'polar' ,'Q': 'polar' ,'N': 'polar' ,'C': 'polar' ,'S': 'polar' ,
-                        'F': 'nonpolar' ,'L': 'nonpolar','I': 'nonpolar','M': 'nonpolar','P': 'nonpolar','V': 'nonpolar','A': 'nonpolar','W': 'nonpolar','G': 'nonpolar',
-                        'D' : 'acidic', 'E' :'acidic',
-                        'H': 'basic' , 'K': 'basic' , 'R' : 'basic',
-                        '-': '-----', '*' : 'Stop codon'}
 
-    snp_list = []
-    length = max(len(sample), len(query))
-    # normalize the lenght of the sample for the iteration
-    if len(sample) < length :
-        need_to_add = length - len(sample)
-        sample = sample + need_to_add * '-'
-    if len(query) < length :
-        need_to_add = length - len(query)
-        query = query + need_to_add * '-'
-    # convert to Seq class to translate to protein
-    seq_sample = Seq.Seq(sample)
-    seq_query = Seq.Seq(query)
-
-    
-    for index in range (0, length -2, 3) :
-        codon_seq = seq_sample[index : index + 3]
-        codon_que = seq_query[index : index + 3]
-        if codon_seq != codon_que :
-            if str(codon_seq) != '---' :
-                prot_seq = str(codon_seq.translate())
-            else:
-                prot_seq = '-'
-            if str(codon_que) != '---' :
-                prot_que = str(codon_que.translate())
-            else:
-                prot_que = '-'
-            snp_list.append([str(index+1),str(codon_seq) + '/'+ str(codon_que), prot_seq + '/' + prot_que, prot_annotation[prot_seq] + ' / ' + prot_annotation[prot_que]])
-    
-    return snp_list
-'''
 def get_snp (sample, query) :
     prot_annotation = {'S': 'polar' ,'T': 'polar' ,'Y': 'polar' ,'Q': 'polar' ,'N': 'polar' ,'C': 'polar' ,'S': 'polar' ,
                         'F': 'nonpolar' ,'L': 'nonpolar','I': 'nonpolar','M': 'nonpolar','P': 'nonpolar','V': 'nonpolar','A': 'nonpolar','W': 'nonpolar','G': 'nonpolar',
@@ -391,11 +343,7 @@ def get_snp (sample, query) :
     if len(sample) < length :
         need_to_add = length - len(sample)
         sample = sample + need_to_add * '-'
-    ''' 
-    if len(query) < length :
-        need_to_add = length - len(query)
-        query = query + need_to_add * '-'
-    '''
+
     # convert to Seq class to translate to protein
     seq_sample = Seq.Seq(sample)
     seq_query = Seq.Seq(query)
@@ -611,10 +559,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     values = line.split('\t')
 
                     s_length = values[4]
-
-                    #if int(s_length) in query_length_list :
                     if int(s_length) in schema_variability[core_name] :
-                    #if int(s_length) == int(query_length) :
                         contig_id = values[1]
                         gene_start = values[9]
                         gene_end = values[10]
@@ -661,7 +606,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     continue
 
                 elif len(allele_found) == 1 :
-                    ## look for possible paralogos by finding other alleles that identity is  > 90%
+                    ## look for possible paralogos by finding other alleles that identity is  equal to  90%
                     paralog_found ={}
                     allele_sequence = allele_found[contig_id_start][14]
                     cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 90, outfmt= blast_parameters, max_target_seqs=10, max_hsps=10,num_threads=3)
@@ -736,9 +681,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
 
                         continue
 
-            #print('blast len is 0  or not full length was matched')
+            
             cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 90, outfmt= blast_parameters, max_target_seqs=1, max_hsps=1,num_threads=1, query=reference_query)
-            #cline = NcbiblastnCommandline(db=Gene_Blast_DB_name, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1, query='/srv/project_wgmlst/seqSphere_listeria_cgMLST_test/targets/lmo0001.fasta')
+            
             out, err = cline()
             out_lines = out.splitlines( )
             bigger_bitscore = 0
@@ -752,22 +697,13 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     qseqid , sseqid , pident ,  qlen , s_length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend ,sseq , qseq = values
                     #print('q len seq is : ', len(qseq), ' s len seq is : ', len(sseq))
                     bigger_bitscore = float(bitscore)
-            #cline = NcbiblastnCommandline(db=Gene_Blast_DB_name, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1, query='/srv/project_wgmlst/seqSphere_listeria_cgMLST_test/targets/lmo0001.fasta')= values
-            #print ( 'number of matches is : ', len(out_lines))
-            #print ('qlen is: ',qlen, ' seq_len is : ', length , 'query_reference_length is : ', query_length)
-            #print('mistmatch is : ', mismatch, 'gaps is : ', gapopen)
-            #print('q start : ', qstart, ' q end : ', qend )
-            #print ('s start : ', sstart, ' s end', send)
-
-
+            
             if int(s_length) in schema_variability[core_name] :
 
-            #if int(s_length) == int(query_length) : # if equal then a new allele has been detected
                 logger.info('Found new allele for core gene %s ', core_name)
                 if not sample_value in inf_dict :
                     inf_dict[sample_value] = {}
-                #if not core_name in inf_dict[sample_value] :
-                #    inf_dict[sample_value] [core_name]= []
+
                 ### adding new allele to the  inferred allele list if it is not already included
                 if not core_name in inferred_alleles_dict :
                     inferred_alleles_dict[core_name] = []
@@ -780,8 +716,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 inf_dict[sample_value][core_name] = inferred_allele
 
                 # Get the SNP for the new allele inferred
-                #alleles_in_gene = list (SeqIO.parse(reference_query, "fasta"))
-                #reference_allele = str(alleles_in_gene[1].seq)
+
                 snp_information = get_snp(sseq, reference_allele_for_snp)
                 if len(snp_information) > 0 :
                     if not core_name in snp_dict :
@@ -798,12 +733,6 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     matching_genes_dict[sample_value][sseqid].append([core_name, sstart,send,'+',inferred_allele])
                 continue
 
-            #if int(s_length) / int(query_length) < ( 1- percentlength/100)  or int(s_length) / int(query_length) > (1 + percentlength/100) :
-            #    samples_matrix_dict[sample_value].append('LNF')
-            #    logger.info('Locus found at sample %s, for gene  %s', sample_value, core_name)
-
-            #    continue
-
             alleles_in_gene = list (SeqIO.parse(reference_query, "fasta"))
             for allele_item in alleles_in_gene :
                 if allele_item.id == qseqid :
@@ -813,17 +742,14 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             # Retrieve the contig file for getting the contig sequence for the id found in Blast 
             contig_file = os.path.join(inputdir,str(sample_value + '.fasta'))
             records = list (SeqIO.parse(contig_file, "fasta"))
-            #accession_sequence = records[accession]
+
             for record in records:
                 if record.id == sseqid :
                     break
             accession_sequence = record.seq
 
-            #if int(s_length) < min(schema_variability[core_name]) :
             if int(s_length) < int(query_length) :
                 ## check if the blast alignment could be classified as PLOT
-                #seq_id_split = sseqid.split('_')
-                #length_sseqid = seq_id_split[3]
                 length_sseqid = len(accession_sequence)
                 if int(sstart) == length_sseqid or int(send) == length_sseqid or int(sstart) == 1 or int(send) == 1:
                     samples_matrix_dict[sample_value].append('PLOT')                    
@@ -852,11 +778,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         tga_stop_codon = True
                     else:
                         tga_stop_codon = False
-                        #it is assume that reference query is in reverse complement.
-                        #tga_stop_codon = allele_sequence.startswith('TCA')
-                        #bassed_added_start = int(qlen) -len(qseq) - int(qstart)
+
                     if query_direction == 'reverse' :
-                        if int(send) > int (sstart): ## increasin the number of nucleotides to check if getting  longer protein
+                        if int(send) > int (sstart): ## increasing the number of nucleotides to check if getting  longer protein
                             sample_gene_sequence = accession_sequence[int(sstart) - 51 :  int(send)  ]
                             sample_gene_sequence = sample_gene_sequence.reverse_complement()
                         else:
@@ -867,16 +791,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             sample_gene_sequence = sample_gene_sequence.reverse_complement()
                         else:
                             sample_gene_sequence = accession_sequence[int(sstart) -1 : int(send)  + 51]
-                    #else:
-                    #    tga_stop_codon = allele_sequence.endswith ('TGA') or  allele_sequence.startswith ('TCA')
-                    #    bassed_added_end = int(qlen) -len(qseq)
-                    #    if query_direction == 'forward' :
-                            # increasing the number of nucleotides in the sequence to find the stop codon when becomes longer because of the deletion
-                    #        sample_gene_sequence = accession_sequence[int(send) - bassed_added_end - 51: int(sstart)  ]
-                    #        sample_gene_sequence = sample_gene_sequence.reverse_complement()
-                    #    else:
-                            # increasing the number of nucleotides in the sequence to find the stop codon when becomes longer because of the deletion
-                    #        sample_gene_sequence = accession_sequence[int(send) -1: int(sstart) + bassed_added_end + 51]
+                    
                     stop_index = get_stop_codon_index(sample_gene_sequence, tga_stop_codon, int(qlen)- int(qstart))
                     if stop_index != False:
                         new_sequence_length = stop_index +3
@@ -945,12 +860,8 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         else:
                             matching_genes_dict[sample_value][sseqid].append([core_name, sstart,send,'+', 'ERROR'])
 
-            #if int(s_length) > int(query_length) :
-            #elif int(s_length) > max(schema_variability[core_name]) :
             elif int(s_length) > int(query_length) :
-                #print ('there is a insertion of  ', gapopen ,' bases in the sequence')
-                #print ('qlen is: ',qlen, ' seq_len is : ', length,  'query_reference_length is : ', query_length)
-                #query_seq = Seq.Seq(qseq)
+
                 tga_stop_codon = qseq.endswith('TGA')
                 sseq = sseq.replace('-','')
                 stop_index = get_stop_codon_index(sseq, tga_stop_codon, qseq.find('-'))
@@ -1000,16 +911,6 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 #    snp_dict[core_name][sample_value] = []
                 #snp_dict[core_name][sample_value] = get_snp(new_sseq, qseq)
 
-                '''
-                cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=3)
-                out, err = cline(stdin = qseq)
-                psiblast_xml = StringIO(out)
-                blast_records = NCBIXML.parse(psiblast_xml)
-                for blast_record in blast_records:
-                    for alignment in blast_record.alignments:
-                        for match in alignment.hsps:
-                            match_alignment = [['sample', match.sbjct],['match', match.match], ['schema',match.query]]
-                '''
                 if not core_name in match_alignment_dict :
                     match_alignment_dict[core_name] = {}
                 if not sample_value in match_alignment_dict[core_name] :
