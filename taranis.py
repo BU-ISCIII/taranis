@@ -393,7 +393,7 @@ def nucleotide_to_protein_aligment (sample_seq, query_seq ) :
 
 def get_alignment_for_indels (blast_db_name, qseq) :
     #match_alignment =[]
-    cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=3)
+    cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 80, outfmt= 5, max_target_seqs=10, max_hsps=10,num_threads=1)
     out, err = cline(stdin = qseq)
     psiblast_xml = StringIO(out)
     blast_records = NCBIXML.parse(psiblast_xml)
