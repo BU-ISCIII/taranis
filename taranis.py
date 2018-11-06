@@ -89,7 +89,7 @@ def check_arg(args=None):
     parser.add_argument('-coregenedir', help = 'Directory where the core gene files are located ')
     parser.add_argument('-inputdir', help ='Directory where are located the sample fasta files')
     parser.add_argument('-outputdir', help = 'Directory where the result files will be stored')
-    parser.add_argument('-cpus', required= False, help = 'Number of CPUS to be used in the program. Default is 3.', default = 3)
+    parser.add_argument('-cpus', required= False, help = 'Number of CPUS to be used in the program. Default is 1.', default = 1)
     parser.add_argument('-updateschema' , required=False, help = 'Create a new schema with the new locus found. Default is True.', default = True)
     parser.add_argument('-percentlength', required=False, help = 'Allowed length percentage to be considered as ASM or ALM. Outside of this limit it is considered as LNF Default is 20.', default = 20)
     return parser.parse_args()
@@ -609,7 +609,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     ## look for possible paralogos by finding other alleles that identity is  equal to  90%
                     paralog_found ={}
                     allele_sequence = allele_found[contig_id_start][14]
-                    cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 90, outfmt= blast_parameters, max_target_seqs=10, max_hsps=10,num_threads=3)
+                    cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 90, outfmt= blast_parameters, max_target_seqs=10, max_hsps=10,num_threads=1)
                     out, err = cline(stdin = allele_sequence)
                     out_lines = out.splitlines( )
                     for line in out_lines :
