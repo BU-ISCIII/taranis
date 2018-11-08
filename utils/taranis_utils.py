@@ -2,7 +2,10 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+import re
 import glob
+import shutil
+import subprocess
 from Bio import SeqIO
 from Bio import Seq
 

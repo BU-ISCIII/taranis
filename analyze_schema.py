@@ -20,7 +20,7 @@ from io import StringIO
 #from Bio.Blast import NCBIXML
 #from BCBio import GFF
 from utils.taranis_utils import *
-
+'''
 def check_arg(args=None):
     
     parser = argparse.ArgumentParser(prog = 'analyze_schema.py', description="This program will analyze the schema that is in schemadir parameter or it will compare 2 schemas ")
@@ -39,7 +39,7 @@ def check_arg(args=None):
     compare_parser.add_argument('-scheme2', help = 'Directory where are the schema files for the schema 2')
     
     return parser.parse_args()
-   
+'''   
 def extract_info_schema (schema_files,  logger) :
     not_cds_dict = {}
     schema_sequence_dict ={}
@@ -448,6 +448,7 @@ def evaluate_schema (inputdir, outputdir, logger) :
     
     return True
 
+'''
 if __name__ == '__main__' :
     version = 'analyze_schema  version 0.0.1'
     if len(sys.argv) == 1 :
@@ -457,6 +458,8 @@ if __name__ == '__main__' :
         print( version, '\n')
         exit (0)
     arguments = check_arg(sys.argv[1:])
+'''
+def processing_evaluate_schema (arguments) :
     start_time = datetime.now()
     print('Start the execution at :', start_time )
     # open log file
@@ -487,4 +490,5 @@ if __name__ == '__main__' :
         pass # compare 2 schema
     end_time = datetime.now()
     print('completed execution at :', end_time )
+    return True
 
