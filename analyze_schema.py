@@ -24,7 +24,7 @@ from io import StringIO
 from progressbar import ProgressBar
 from utils.taranis_utils import *
   
-def extract_info_schema (schema_files,  logger) :
+def extract_info_schema (schema_files,  alt_codon_start, logger) :
     not_cds_dict = {}
     schema_sequence_dict ={}
     
@@ -61,9 +61,13 @@ def extract_info_schema (schema_files,  logger) :
                     reverse_alleles_dict[gene_name][allele_id] = schema_fasta_dict[allele_id]
                 
                 sequence = sequence.reverse_complement()
-            
+            if alt_codon_start == True and sequence.startswith('GTG') :
+                alt_table =2
+            else:
+                alt_table =1
             try:
-                protein = str(sequence.translate(cds=True))
+                protein = str(sequence.translate(cds=True, table =alt_table))
+                #protein = str(sequence.translate(cds=True))
                 protein_dict[gene_name][allele_id] = protein
                 coding_cds = 'Yes'
                 error_description = 'No error'
@@ -389,7 +393,7 @@ def summary_proteins (raw_proteins_per_genes, output_dir, logger) :
     
     return True
 
-def evaluate_schema (inputdir, outputdir, logger) :
+def evaluate_schema (inputdir, outputdir, alt_codon_start, logger) :
 
     header_allele_no_cds = ['Gene name', 'Allele id' , 'error description', 'sequence']
     header_reverse_alleles = ['Gene name', 'allele id' , 'sequence']
@@ -398,7 +402,7 @@ def evaluate_schema (inputdir, outputdir, logger) :
     header_schema_info = ['Gene name', 'Allele id' , 'length', 'Coding(Yes/No)' , 'Error description','direction']
     schema_files = get_fasta_file_list(inputdir, logger)
     logger.info('Extract the raw information for each gene in the schema')
-    allele_no_cds , reverse_alleles, raw_proteins_per_genes , schema_info , allele_duplicated = extract_info_schema (schema_files,  logger)
+    allele_no_cds , reverse_alleles, raw_proteins_per_genes , schema_info , allele_duplicated = extract_info_schema (schema_files, alt_codon_start, logger)
     
     print('saving data to ', outputdir )
     logger.info('Start dumping the raw information to files')
@@ -497,7 +501,7 @@ def processing_evaluate_schema (arguments) :
         else:
             print('Aborting the execution')
             exit(0)
-    evaluate_schema (arguments.inputdir, arguments.outputdir, logger)
+    evaluate_schema (arguments.inputdir, arguments.outputdir, arguments.alt,  logger)
     
     end_time = datetime.now()
     print('completed execution at :', end_time )
