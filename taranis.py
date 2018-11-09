@@ -21,7 +21,8 @@ def check_arg (args=None) :
     allele_calling_parser.add_argument('-percentlength', required=False, help = 'Allowed length percentage to be considered as ASM or ALM. Outside of this limit it is considered as LNF Default is 20.', default = 20)
     
     evaluate_parser = subparser.add_parser('evaluate_schema', help = 'Evaluate the schema ')
-    evaluate_parser.add_argument('-input_dir',required= True, help = 'Directory where are the schema files.')
+    evaluate_parser.add_argument('-inputdir',required= True, help = 'Directory where are the schema files.')
+    evaluate_parser.add_argument('-outputdir', required= True, help = 'Directory where the result files will be stored')
     evaluate_parser.add_argument('-alt', required = False, help = 'Set to Yes if alternative start codon should be considered. Set to No to accept only ATG start codon', default = False)
     
     compare_parser = subparser.add_parser('compare_schema', help = 'Compare 2 schema')

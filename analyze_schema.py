@@ -19,6 +19,7 @@ from Bio import Seq
 from io import StringIO
 #from Bio.Blast import NCBIXML
 #from BCBio import GFF
+from progressbar import ProgressBar
 from utils.taranis_utils import *
 '''
 def check_arg(args=None):
@@ -48,11 +49,12 @@ def extract_info_schema (schema_files,  logger) :
     reverse_alleles_dict = {}
     protein_dict = {}
     allele_duplicated = {}
-    for schema_file in schema_files :
+    pbar = ProgressBar ()
+    for schema_file in pbar (schema_files) :
         schema_fasta_dict ={}
         tmp_gene_name = os.path.basename(schema_file).split('.')
         gene_name = tmp_gene_name[0]
-        print('analyzing : ' ,gene_name)
+        #print('analyzing : ' ,gene_name)
         protein_dict[gene_name] = {}
         schema_info_dict[gene_name] = {}
         schema_sequence_dict[gene_name] = {}
@@ -387,7 +389,7 @@ def evaluate_schema (inputdir, outputdir, logger) :
     logger.info('Extract the raw information for each gene in the schema')
     allele_no_cds , reverse_alleles, raw_proteins_per_genes , schema_info , allele_duplicated = extract_info_schema (schema_files,  logger)
     
-    
+    print('saving data to ', outputdir )
     logger.info('Start dumping the raw information to files')
     logger.info('Saving alleles not coding to protein to file..')
     os.makedirs(os.path.join(outputdir, 'raw_info'))
@@ -467,27 +469,25 @@ def processing_evaluate_schema (arguments) :
     
 
     try:
-        os.makedirs(arguments.output_dir)
+        os.makedirs(arguments.outputdir)
     except:
         print('The output directory is not empty')
         choice_value = input('Enter yes to delete directory. Any other character to exit the program >>  ')
         if choice_value == 'yes' or choice_value == 'YES' :
             logger.info('Deleting the result  directory for a previous execution without cleaning up')
-            shutil.rmtree(arguments.output_dir)
+            shutil.rmtree(arguments.outputdir)
             try:
-                os.makedirs(arguments.output_dir)
-                logger.info ( 'Result folder %s  has been created again', arguments.output_dir)
+                os.makedirs(arguments.outputdir)
+                logger.info ( 'Result folder %s  has been created again', arguments.outputdir)
             except:
-                logger.info('Unable to create again the result directory %s', arguments.output_dir)
-                print('Cannot create result directory on ', arguments.output_dir)
+                logger.info('Unable to create again the result directory %s', arguments.outputdir)
+                print('Cannot create result directory on ', arguments.outputdir)
                 exit(0)
         else:
             print('Aborting the execution')
             exit(0)
-    if arguments.chosen_option =='evaluate' :
-        evaluate_schema (arguments.input_dir, arguments.output_dir, logger)
-    else:
-        pass # compare 2 schema
+    evaluate_schema (arguments.inputdir, arguments.outputdir, logger)
+    
     end_time = datetime.now()
     print('completed execution at :', end_time )
     return True

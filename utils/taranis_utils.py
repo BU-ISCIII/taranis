@@ -16,7 +16,7 @@ def open_log(log_name):
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     #create the file handler
-    handler = logging.handlers.RotatingFileHandler(log_name, maxBytes=200000, backupCount=5)
+    handler = logging.handlers.RotatingFileHandler(log_name, maxBytes=4000000, backupCount=5)
     handler.setLevel(logging.DEBUG)
 
     #create a Logging format
