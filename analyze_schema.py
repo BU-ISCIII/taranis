@@ -6,8 +6,10 @@ import sys
 import glob
 from datetime import datetime
 import statistics
-import matplotlib.pyplot as plt
-import numpy as np
+#import matplotlib.pyplot as plt
+import plotly.graph_objs as go
+import plotly.io as pio
+#import numpy as np
 #import logging
 #from logging.handlers import RotatingFileHandler
 from Bio import SeqIO
@@ -21,26 +23,7 @@ from io import StringIO
 #from BCBio import GFF
 from progressbar import ProgressBar
 from utils.taranis_utils import *
-'''
-def check_arg(args=None):
-    
-    parser = argparse.ArgumentParser(prog = 'analyze_schema.py', description="This program will analyze the schema that is in schemadir parameter or it will compare 2 schemas ")
-    #group = parser.add_mutually_exclusive_group()
-    #group.add_argument ('-a', help = 'Interactive locus download.')
-    #group.add_argument ('-b' , help = 'opcion b')
-    parser.add_argument('-output_dir', help = 'Directory where the result files will be stored')
-    subparser = parser.add_subparsers(help = 'analyze schema has 2 available options: (evaluate/compare) Evaluate 1 schema or compare 2 different schemas', dest = 'chosen_option')
-    
-    evaluate_parser = subparser.add_parser('evaluate', help = 'Evaluate the schema ')
-    evaluate_parser.add_argument('-input_dir', help = 'Directory where are the schema files.')
-    evaluate_parser.add_argument('-alt', required = False, help = 'Set to Yes if alternative start codon should be considered. Set to No to accept only ATG start codon', default = False)
-    
-    compare_parser = subparser.add_parser('compare', help = 'Compare 2 schema')
-    compare_parser.add_argument('-scheme1', help = 'Directory where are the schema files for the schema 1')
-    compare_parser.add_argument('-scheme2', help = 'Directory where are the schema files for the schema 2')
-    
-    return parser.parse_args()
-'''   
+  
 def extract_info_schema (schema_files,  logger) :
     not_cds_dict = {}
     schema_sequence_dict ={}
@@ -108,7 +91,7 @@ def extract_info_schema (schema_files,  logger) :
     return not_cds_dict , reverse_alleles_dict, protein_dict, schema_info_dict , allele_duplicated
 
 def create_bar_graphic (x_data, y_data, x_label, y_label, title , rotation, file_name) :
-    
+    '''
     index = np.arange(len(x_data))
     plt.bar(index, y_data)
     plt.xlabel(x_label, fontsize=5)
@@ -119,6 +102,34 @@ def create_bar_graphic (x_data, y_data, x_label, y_label, title , rotation, file
     #plt.show()
     plt.savefig(file_name)
     plt.close()
+    '''
+    
+    
+    trace0 = go.Bar(
+                #x=['Product A', 'Product B', 'Product C'],
+                #y=[20, 14, 23],
+                x = x_data,
+                y = y_data,
+                text = y_data,
+                
+                #text=['27% market share', '24% market share', '19% market share'],
+                textposition = 'auto',
+                marker=dict( color='rgb(158,202,225)',
+                    line=dict(
+                    color='rgb(8,48,107)',
+                    width=1.5, )
+                ),
+                opacity=0.6
+                )
+    
+    data = [trace0]
+    #import pdb; pdb.set_trace()
+    layout = go.Layout( title=title,
+                    xaxis = dict(title = x_label),
+                    yaxis = dict(title = y_label),
+                    )
+    fig = go.Figure(data=data, layout=layout)
+    pio.write_image(fig, file_name)
     return True
 
 def find_proteins_in_gene (raw_proteins_per_genes, logger) :
