@@ -362,11 +362,17 @@ def get_snp (sample, query) :
             else:
                 prot_seq = '-'
                 prot_que = str(seq_query[triple_index: ].translate())
-
-            snp_list.append([str(index+1),str(seq_sample[index]) + '/' + str(seq_query[index]), str(codon_seq) + '/'+ str(codon_que),
+            if prot_annotation[prot_que[0]] == prot_annotation[prot_seq[0]] :
+                missense_synonym = 'Synonymous'
+            elif prot_seq == '*' :
+                    missense_synonym = 'Nonsense'
+            else:
+                missense_synonym = 'Missense'
+            #snp_list.append([str(index+1),str(seq_sample[index]) + '/' + str(seq_query[index]), str(codon_seq) + '/'+ str(codon_que),
+            snp_list.append([str(index+1),str(seq_query[index]) + '/' + str(seq_sample[index]), str(codon_que) + '/'+ str(codon_seq),
                              # when one of the sequence ends but not the other we will translate the remain sequence to proteins
                              # in that case we will only annotate the first protein. Using [0] as key of the dictionary  annotation
-                             prot_seq + '/' + prot_que, prot_annotation[prot_seq[0]] + ' / ' + prot_annotation[prot_que[0]]])
+                             missense_synonym, prot_que + '/' + prot_seq, prot_annotation[prot_que[0]] + ' / ' + prot_annotation[prot_seq[0]]])
             if '-' in str(codon_seq) :
                 break
 
@@ -498,7 +504,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     header_insertions = [ 'Core Gene', 'Sample Name' , 'Insertion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_deletions = [ 'Core Gene', 'Sample Name' , 'Deletion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_plot = ['Core Gene', 'Sample Name' , 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
-    header_snp = ['Core Gene', 'Sample Name', 'Allele number', 'Position', 'Mutation Sample/Schema', 'Codon Sample/Schema','Protein in Sample/Schema', 'Annotation Sample / Schema']
+    header_snp = ['Core Gene', 'Sample Name', 'Allele number', 'Position', 'Mutation Schema/Sample', 'Codon Schema/Sample','Protein in Schema/Sample', 'Missense/Synonymous','Annotation Sample / Schema']
     header_protein = ['Sample Name','Core Gene', 'Protein in ' , 'Protein sequence']
     header_match_alignment = ['Sample Name','Core Gene','Alignment', 'Sequence']
     

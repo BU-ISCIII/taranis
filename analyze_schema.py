@@ -94,7 +94,7 @@ def extract_info_schema (schema_files,  alt_codon_start, logger) :
             
     return not_cds_dict , reverse_alleles_dict, protein_dict, schema_info_dict , allele_duplicated
 
-def create_bar_graphic (x_data, y_data, x_label, y_label, title , rotation, file_name) :
+def create_bar_graphic (x_data, y_data, x_label, x_prefix ,y_label, title , rotation, file_name) :
     '''
     index = np.arange(len(x_data))
     plt.bar(index, y_data)
@@ -129,7 +129,8 @@ def create_bar_graphic (x_data, y_data, x_label, y_label, title , rotation, file
     data = [trace0]
     #import pdb; pdb.set_trace()
     layout = go.Layout( title=title,
-                    xaxis = dict(title = x_label),
+                    xaxis = dict(title = x_label,
+                    tickformat = '%' +x_prefix),
                     yaxis = dict(title = y_label),
                     )
     fig = go.Figure(data=data, layout=layout)
@@ -239,7 +240,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
 
     length_graphic_file = os.path.join(output_dir, 'graphic_gene_length.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, gene_length_values, 'Gene length', 'Number of gene with the same length', 'Sequence length for genes defined in the schema ' , rotation,  length_graphic_file) 
+    x_prefix = ''
+    create_bar_graphic (x_axis_label, gene_length_values, 'Gene length', x_prefix ,'Number of gene with the same length', 'Sequence length for genes defined in the schema ' , rotation,  length_graphic_file) 
 
     #create_bar_graphic (set_of_length, number_of_set_length, 'length of gene', 'Number of gene with the same length', 'Length of the sequence for each gene defined in the schema ' , rotation,  length_graphic_file) 
     
@@ -258,7 +260,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
     x_axis_label = ['{0}%'.format(int(float(element)*100)) for element in index_variation]
     varation_length_graphic_file = os.path.join(output_dir, 'graphic_varation_length.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, value_varation, 'length variability of gene', 'Numbers of gene variability', 'Variability length of the sequence for each gene defined in the schema ' , rotation,  varation_length_graphic_file) 
+    x_prefix =''
+    create_bar_graphic (x_axis_label, value_varation, 'length variability of gene', x_prefix,  'Numbers of gene variability', 'Variability length of the sequence for each gene defined in the schema ' , rotation,  varation_length_graphic_file) 
     logger.info('Complete picture for variability length')
     
     # combine the number of times that an allele is not protein coding
@@ -299,7 +302,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
     
     percent_not_contig_graphic_file = os.path.join(output_dir, 'graphic_allele_percent_not_coding.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, percent_number, 'Percent of non coding CDS', 'Number of genes ', 'Alleles that are not coding CDS ( in % ) ' , rotation, percent_not_contig_graphic_file) 
+    x_prefix = ''
+    create_bar_graphic (x_axis_label, percent_number, 'Percent of non coding CDS', x_prefix, 'Number of genes ', 'Alleles that are not coding CDS ( in % ) ' , rotation, percent_not_contig_graphic_file) 
     
     
     # combine the number of times that the error codo arise when trying to conver to cds
@@ -328,7 +332,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
     #create the plot file for error types when trying to convert to cds
     error_type_graphic_file = os.path.join(output_dir, 'graphic_error_type_cds.png')
     rotation = 0
-    create_bar_graphic (error_name, error_value, 'Error type when converting to CDS', 'Number of errors', 'Type of errors that are generated when trying to convert to CDS ' , rotation , error_type_graphic_file) 
+    x_prefix = ''
+    create_bar_graphic (error_name, error_value, 'Error type when converting to CDS', x_prefix,  'Number of errors', 'Type of errors that are generated when trying to convert to CDS ' , rotation , error_type_graphic_file) 
     
     logger.info('Schema info has been completed processed ')
     
@@ -387,7 +392,8 @@ def summary_proteins (raw_proteins_per_genes, output_dir, logger) :
     x_axis_label = ['{0}%'.format(int(float(element)*100)) for element in percent_list]
     protein_percent_graphic_file = os.path.join(output_dir, 'graphic_protein_percent.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, percent_number, 'Percent of proteins ',
+    x_prefix =''
+    create_bar_graphic (x_axis_label, percent_number, 'Percent of proteins ', x_prefix ,
                         'Number of genes', 'Percent of Alleles that coding for the same protein (in %)'
                         , rotation, protein_percent_graphic_file)
     
