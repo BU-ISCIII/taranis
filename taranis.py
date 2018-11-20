@@ -21,8 +21,9 @@ def check_arg (args=None) :
     allele_calling_parser.add_argument('-percentlength', required=False, help = 'Allowed length percentage to be considered as ASM or ALM. Outside of this limit it is considered as LNF Default is 20.', default = 20)
     
     evaluate_parser = subparser.add_parser('evaluate_schema', help = 'Evaluate the schema ')
-    evaluate_parser.add_argument('-input_dir',required= True, help = 'Directory where are the schema files.')
-    evaluate_parser.add_argument('-alt', required = False, help = 'Set to Yes if alternative start codon should be considered. Set to No to accept only ATG start codon', default = False)
+    evaluate_parser.add_argument('-inputdir',required= True, help = 'Directory where are the schema files.')
+    evaluate_parser.add_argument('-outputdir', required= True, help = 'Directory where the result files will be stored')
+    evaluate_parser.add_argument('-alt', required = False, action = "store_true" , help = 'Set this parameter if alternative start codon should be considered. Do not include to accept only ATG as a start codon', default = False)
     
     compare_parser = subparser.add_parser('compare_schema', help = 'Compare 2 schema')
     compare_parser.add_argument('-scheme1', help = 'Directory where are the schema files for the schema 1')
@@ -47,7 +48,7 @@ if __name__ == '__main__' :
         print( 'Mandatory parameters are missing to execute the program. \n ' ,'Usage: "tara.py  -help " for more information \n')
         exit (0)
     arguments = check_arg(sys.argv[1:])
-    
+
     if arguments.chosen_action == 'allele_calling' :
         allele_calling.processing_allele_calling(arguments)
     elif arguments.chosen_action == 'evaluate_schema':

@@ -6,8 +6,10 @@ import sys
 import glob
 from datetime import datetime
 import statistics
-import matplotlib.pyplot as plt
-import numpy as np
+#import matplotlib.pyplot as plt
+import plotly.graph_objs as go
+import plotly.io as pio
+#import numpy as np
 #import logging
 #from logging.handlers import RotatingFileHandler
 from Bio import SeqIO
@@ -19,28 +21,10 @@ from Bio import Seq
 from io import StringIO
 #from Bio.Blast import NCBIXML
 #from BCBio import GFF
+from progressbar import ProgressBar
 from utils.taranis_utils import *
-'''
-def check_arg(args=None):
-    
-    parser = argparse.ArgumentParser(prog = 'analyze_schema.py', description="This program will analyze the schema that is in schemadir parameter or it will compare 2 schemas ")
-    #group = parser.add_mutually_exclusive_group()
-    #group.add_argument ('-a', help = 'Interactive locus download.')
-    #group.add_argument ('-b' , help = 'opcion b')
-    parser.add_argument('-output_dir', help = 'Directory where the result files will be stored')
-    subparser = parser.add_subparsers(help = 'analyze schema has 2 available options: (evaluate/compare) Evaluate 1 schema or compare 2 different schemas', dest = 'chosen_option')
-    
-    evaluate_parser = subparser.add_parser('evaluate', help = 'Evaluate the schema ')
-    evaluate_parser.add_argument('-input_dir', help = 'Directory where are the schema files.')
-    evaluate_parser.add_argument('-alt', required = False, help = 'Set to Yes if alternative start codon should be considered. Set to No to accept only ATG start codon', default = False)
-    
-    compare_parser = subparser.add_parser('compare', help = 'Compare 2 schema')
-    compare_parser.add_argument('-scheme1', help = 'Directory where are the schema files for the schema 1')
-    compare_parser.add_argument('-scheme2', help = 'Directory where are the schema files for the schema 2')
-    
-    return parser.parse_args()
-'''   
-def extract_info_schema (schema_files,  logger) :
+  
+def extract_info_schema (schema_files,  alt_codon_start, logger) :
     not_cds_dict = {}
     schema_sequence_dict ={}
     
@@ -48,11 +32,12 @@ def extract_info_schema (schema_files,  logger) :
     reverse_alleles_dict = {}
     protein_dict = {}
     allele_duplicated = {}
-    for schema_file in schema_files :
+    pbar = ProgressBar ()
+    for schema_file in pbar (schema_files) :
         schema_fasta_dict ={}
         tmp_gene_name = os.path.basename(schema_file).split('.')
         gene_name = tmp_gene_name[0]
-        print('analyzing : ' ,gene_name)
+        #print('analyzing : ' ,gene_name)
         protein_dict[gene_name] = {}
         schema_info_dict[gene_name] = {}
         schema_sequence_dict[gene_name] = {}
@@ -76,9 +61,13 @@ def extract_info_schema (schema_files,  logger) :
                     reverse_alleles_dict[gene_name][allele_id] = schema_fasta_dict[allele_id]
                 
                 sequence = sequence.reverse_complement()
-            
+            if alt_codon_start == True and sequence.startswith('GTG') :
+                alt_table =2
+            else:
+                alt_table =1
             try:
-                protein = str(sequence.translate(cds=True))
+                protein = str(sequence.translate(cds=True, table =alt_table))
+                #protein = str(sequence.translate(cds=True))
                 protein_dict[gene_name][allele_id] = protein
                 coding_cds = 'Yes'
                 error_description = 'No error'
@@ -105,8 +94,8 @@ def extract_info_schema (schema_files,  logger) :
             
     return not_cds_dict , reverse_alleles_dict, protein_dict, schema_info_dict , allele_duplicated
 
-def create_bar_graphic (x_data, y_data, x_label, y_label, title , rotation, file_name) :
-    
+def create_bar_graphic (x_data, y_data, x_label, x_prefix ,y_label, title , rotation, file_name) :
+    '''
     index = np.arange(len(x_data))
     plt.bar(index, y_data)
     plt.xlabel(x_label, fontsize=5)
@@ -117,6 +106,35 @@ def create_bar_graphic (x_data, y_data, x_label, y_label, title , rotation, file
     #plt.show()
     plt.savefig(file_name)
     plt.close()
+    '''
+    
+    
+    trace0 = go.Bar(
+                #x=['Product A', 'Product B', 'Product C'],
+                #y=[20, 14, 23],
+                x = x_data,
+                y = y_data,
+                text = y_data,
+                
+                #text=['27% market share', '24% market share', '19% market share'],
+                textposition = 'auto',
+                marker=dict( color='rgb(158,202,225)',
+                    line=dict(
+                    color='rgb(8,48,107)',
+                    width=1.5, )
+                ),
+                opacity=0.6
+                )
+    
+    data = [trace0]
+    #import pdb; pdb.set_trace()
+    layout = go.Layout( title=title,
+                    xaxis = dict(title = x_label,
+                    tickformat = '%' +x_prefix),
+                    yaxis = dict(title = y_label),
+                    )
+    fig = go.Figure(data=data, layout=layout)
+    pio.write_image(fig, file_name)
     return True
 
 def find_proteins_in_gene (raw_proteins_per_genes, logger) :
@@ -222,7 +240,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
 
     length_graphic_file = os.path.join(output_dir, 'graphic_gene_length.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, gene_length_values, 'Gene length', 'Number of gene with the same length', 'Sequence length for genes defined in the schema ' , rotation,  length_graphic_file) 
+    x_prefix = ''
+    create_bar_graphic (x_axis_label, gene_length_values, 'Gene length', x_prefix ,'Number of gene with the same length', 'Sequence length for genes defined in the schema ' , rotation,  length_graphic_file) 
 
     #create_bar_graphic (set_of_length, number_of_set_length, 'length of gene', 'Number of gene with the same length', 'Length of the sequence for each gene defined in the schema ' , rotation,  length_graphic_file) 
     
@@ -241,7 +260,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
     x_axis_label = ['{0}%'.format(int(float(element)*100)) for element in index_variation]
     varation_length_graphic_file = os.path.join(output_dir, 'graphic_varation_length.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, value_varation, 'length variability of gene', 'Numbers of gene variability', 'Variability length of the sequence for each gene defined in the schema ' , rotation,  varation_length_graphic_file) 
+    x_prefix =''
+    create_bar_graphic (x_axis_label, value_varation, 'length variability of gene', x_prefix,  'Numbers of gene variability', 'Variability length of the sequence for each gene defined in the schema ' , rotation,  varation_length_graphic_file) 
     logger.info('Complete picture for variability length')
     
     # combine the number of times that an allele is not protein coding
@@ -282,7 +302,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
     
     percent_not_contig_graphic_file = os.path.join(output_dir, 'graphic_allele_percent_not_coding.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, percent_number, 'Percent of non coding CDS', 'Number of genes ', 'Alleles that are not coding CDS ( in % ) ' , rotation, percent_not_contig_graphic_file) 
+    x_prefix = ''
+    create_bar_graphic (x_axis_label, percent_number, 'Percent of non coding CDS', x_prefix, 'Number of genes ', 'Alleles that are not coding CDS ( in % ) ' , rotation, percent_not_contig_graphic_file) 
     
     
     # combine the number of times that the error codo arise when trying to conver to cds
@@ -311,7 +332,8 @@ def summary_schema_info ( schema_info,  output_dir , logger) :
     #create the plot file for error types when trying to convert to cds
     error_type_graphic_file = os.path.join(output_dir, 'graphic_error_type_cds.png')
     rotation = 0
-    create_bar_graphic (error_name, error_value, 'Error type when converting to CDS', 'Number of errors', 'Type of errors that are generated when trying to convert to CDS ' , rotation , error_type_graphic_file) 
+    x_prefix = ''
+    create_bar_graphic (error_name, error_value, 'Error type when converting to CDS', x_prefix,  'Number of errors', 'Type of errors that are generated when trying to convert to CDS ' , rotation , error_type_graphic_file) 
     
     logger.info('Schema info has been completed processed ')
     
@@ -370,13 +392,14 @@ def summary_proteins (raw_proteins_per_genes, output_dir, logger) :
     x_axis_label = ['{0}%'.format(int(float(element)*100)) for element in percent_list]
     protein_percent_graphic_file = os.path.join(output_dir, 'graphic_protein_percent.png')
     rotation = 30
-    create_bar_graphic (x_axis_label, percent_number, 'Percent of proteins ',
+    x_prefix =''
+    create_bar_graphic (x_axis_label, percent_number, 'Percent of proteins ', x_prefix ,
                         'Number of genes', 'Percent of Alleles that coding for the same protein (in %)'
                         , rotation, protein_percent_graphic_file)
     
     return True
 
-def evaluate_schema (inputdir, outputdir, logger) :
+def evaluate_schema (inputdir, outputdir, alt_codon_start, logger) :
 
     header_allele_no_cds = ['Gene name', 'Allele id' , 'error description', 'sequence']
     header_reverse_alleles = ['Gene name', 'allele id' , 'sequence']
@@ -385,9 +408,9 @@ def evaluate_schema (inputdir, outputdir, logger) :
     header_schema_info = ['Gene name', 'Allele id' , 'length', 'Coding(Yes/No)' , 'Error description','direction']
     schema_files = get_fasta_file_list(inputdir, logger)
     logger.info('Extract the raw information for each gene in the schema')
-    allele_no_cds , reverse_alleles, raw_proteins_per_genes , schema_info , allele_duplicated = extract_info_schema (schema_files,  logger)
+    allele_no_cds , reverse_alleles, raw_proteins_per_genes , schema_info , allele_duplicated = extract_info_schema (schema_files, alt_codon_start, logger)
     
-    
+    print('saving data to ', outputdir )
     logger.info('Start dumping the raw information to files')
     logger.info('Saving alleles not coding to protein to file..')
     os.makedirs(os.path.join(outputdir, 'raw_info'))
@@ -467,27 +490,25 @@ def processing_evaluate_schema (arguments) :
     
 
     try:
-        os.makedirs(arguments.output_dir)
+        os.makedirs(arguments.outputdir)
     except:
         print('The output directory is not empty')
         choice_value = input('Enter yes to delete directory. Any other character to exit the program >>  ')
         if choice_value == 'yes' or choice_value == 'YES' :
             logger.info('Deleting the result  directory for a previous execution without cleaning up')
-            shutil.rmtree(arguments.output_dir)
+            shutil.rmtree(arguments.outputdir)
             try:
-                os.makedirs(arguments.output_dir)
-                logger.info ( 'Result folder %s  has been created again', arguments.output_dir)
+                os.makedirs(arguments.outputdir)
+                logger.info ( 'Result folder %s  has been created again', arguments.outputdir)
             except:
-                logger.info('Unable to create again the result directory %s', arguments.output_dir)
-                print('Cannot create result directory on ', arguments.output_dir)
+                logger.info('Unable to create again the result directory %s', arguments.outputdir)
+                print('Cannot create result directory on ', arguments.outputdir)
                 exit(0)
         else:
             print('Aborting the execution')
             exit(0)
-    if arguments.chosen_option =='evaluate' :
-        evaluate_schema (arguments.input_dir, arguments.output_dir, logger)
-    else:
-        pass # compare 2 schema
+    evaluate_schema (arguments.inputdir, arguments.outputdir, arguments.alt,  logger)
+    
     end_time = datetime.now()
     print('completed execution at :', end_time )
     return True
