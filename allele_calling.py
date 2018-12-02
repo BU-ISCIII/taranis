@@ -24,56 +24,11 @@ from io import StringIO
 from Bio.Blast import NCBIXML
 from BCBio import GFF
 
-#import subprocess
-#from subprocess import check_output
 import shutil
 from progressbar import ProgressBar
 
 from utils.taranis_utils import *
-'''
-def open_log(log_name):
-    working_dir = os.getcwd()
-    log_name=os.path.join(working_dir, log_name)
-    #def create_log ():
-    logger = logging.getLogger(__name__)
-    #logger.setLevel(logging.DEBUG)
-    logger.setLevel(logging.INFO)
 
-    #create the file handler
-    handler = logging.handlers.RotatingFileHandler(log_name, maxBytes=200000, backupCount=5)
-    #handler.setLevel(logging.DEBUG)
-    handler.setLevel(logging.INFO)
-
-    #create a Logging format
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    #add the handlers to the logger
-    logger.addHandler(handler)
-
-    return logger
-'''
-'''
-def check_program_is_exec_version (program, version, logger):
-    # The function will check if the program is installed in your system and if the version
-    # installed matched with the pre-requisites
-    if shutil.which(program) is not None :
-        # check version
-        version_str= str(subprocess.check_output([program , '-version']))
-        if version_str == "b''" :
-            version_str = subprocess.getoutput( str (program + ' -version'))
-
-        tmp_re = re.search(r'.*: (\d.+)\.\d*\+',version_str)
-        present_version = float(tmp_re.group(1))
-        #if not re.search(version, version_str):
-        if present_version < float(version) :
-            logger.info('%s program does not have the right version ', program)
-            print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
-            return False
-        return True
-    else:
-        logger.info('Cannot find %s installed on your system', program)
-        return False
-'''
 
 def check_prerequisites (logger):
     pre_requisite_list = [['blastp', '2.6'], ['makeblastdb' , '2.6']]
@@ -83,25 +38,7 @@ def check_prerequisites (logger):
             return False
     return True
 
-'''
-def check_arg(args=None):
 
-    parser = argparse.ArgumentParser(prog = 'taranis.py', description="This program will make the Allele Calling using a predefined core Schema.")
-
-    parser.add_argument('-coregenedir', help = 'Directory where the core gene files are located ')
-    parser.add_argument('-inputdir', help ='Directory where are located the sample fasta files')
-    parser.add_argument('-outputdir', help = 'Directory where the result files will be stored')
-    parser.add_argument('-cpus', required= False, help = 'Number of CPUS to be used in the program. Default is 1.', default = 1)
-    parser.add_argument('-updateschema' , required=False, help = 'Create a new schema with the new locus found. Default is True.', default = True)
-    parser.add_argument('-percentlength', required=False, help = 'Allowed length percentage to be considered as ASM or ALM. Outside of this limit it is considered as LNF Default is 20.', default = 20)
-    return parser.parse_args()
-'''
-'''
-def is_fasta_file (file_name):
-    with open (file_name, 'r') as fh:
-        fasta = SeqIO.parse(fh, 'fasta')
-        return any(fasta)
-'''
 def write_first_allele_seq(file_sequence, store_dir, logger):
     #with open (file_name, 'r' ) as fh :
     #seq_record = SeqIO.parse(open(file_name), "genbank").next()
@@ -170,30 +107,7 @@ def check_blast (reference_allele, sample_files, db_name, logger) :
                 for match in alignment.hsps:
                     alleleMatchid = int((blast_record.query_id.split("_"))[-1])
     return True
-'''
-def get_fasta_file_list (check_directory,  logger):
-    if not os.path.isdir(check_directory):
-        logger.info('directory %s does not exists', check_directory)
-        return False
-    filter_files = os.path.join(check_directory, '*.fasta')
-    list_filtered_files =  glob.glob(filter_files)
-    list_filtered_files.sort()
-    if len (list_filtered_files) == 0 :
-        logger.info('directory %s does not have any fasta file ', check_directory)
-        return False
-    valid_files = []
-    for file_name in list_filtered_files:
-        if is_fasta_file( file_name):
-            valid_files.append(file_name)
-        else:
-            logger.info('Ignoring file  %s .Does not have a fasta format', file_name)
-    if len(valid_files) == 0:
-        logger.info('There are not valid fasta files in the directory %s', check_directory)
-        logger.debug('Files in the directory are:  $s', list_filtered_files)
-        return False
-    else:
-        return valid_files
-'''
+
 def parsing_fasta_file_to_dict (fasta_file, logger):
     fasta_dict = {}
     for contig in SeqIO.parse(fasta_file, "fasta", generic_dna):
@@ -320,17 +234,7 @@ def get_stop_codon_index(seq, tga_stop_codon, indel_position) :
     # Stop condon not foun tn the sequence
     return False
 
-'''
-def check_sequence_order(allele_sequence, logger) :
-    start_codon_forward= ['ATG','ATA','ATT','GTG', 'TTG']
-    start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
-    # check forward direction
-    if allele_sequence[0:3] in start_codon_forward :
-        return 'forward'
-    if allele_sequence[len(allele_sequence) -3: len(allele_sequence)] in start_codon_reverse :
-        return 'reverse'
-    return False
-'''
+
 def get_snp (sample, query) :
     prot_annotation = {'S': 'polar' ,'T': 'polar' ,'Y': 'polar' ,'Q': 'polar' ,'N': 'polar' ,'C': 'polar' ,'S': 'polar' ,
                         'F': 'nonpolar' ,'L': 'nonpolar','I': 'nonpolar','M': 'nonpolar','P': 'nonpolar','V': 'nonpolar','A': 'nonpolar','W': 'nonpolar','G': 'nonpolar',
@@ -499,14 +403,14 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     match_alignment_dict = {}
     blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
     header_macthing_alleles_conting = ['Sample Name', 'Contig', 'Core Gene','start', 'stop', 'direction', 'codification']
-    header_paralogs = ['Sample Name','Core Gene', 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
-    header_inferred = ['Sample Name','Core Gene', 'Inferred Allele name']
+    header_paralogs = ['Core Gene','Sample Name', 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
+    header_inferred = ['Core Gene','Sample Name', 'Inferred Allele name']
     header_insertions = [ 'Core Gene', 'Sample Name' , 'Insertion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_deletions = [ 'Core Gene', 'Sample Name' , 'Deletion item' ,'Allele', 'Contig', 'Bitscore', 'Query length' , 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence' ]
     header_plot = ['Core Gene', 'Sample Name' , 'Allele','Contig','Bit Score', 'Start Seq', 'End Seq','Sequence']
     header_snp = ['Core Gene', 'Sample Name', 'Allele number', 'Position', 'Mutation Schema/Sample', 'Codon Schema/Sample','Protein in Schema/Sample', 'Missense/Synonymous','Annotation Sample / Schema']
-    header_protein = ['Sample Name','Core Gene', 'Protein in ' , 'Protein sequence']
-    header_match_alignment = ['Sample Name','Core Gene','Alignment', 'Sequence']
+    header_protein = ['Core Gene','Sample Name', 'Protein in ' , 'Protein sequence']
+    header_match_alignment = ['Core Gene','Sample Name','Alignment', 'Sequence']
     
     number_of_genes = len(core_gene_dict_files)
     print('Allele calling starts')
@@ -524,21 +428,12 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         # get the reference allele to be used to find the SNP
         core_first_allele_file = os.path.join(outputdir, 'tmp', 'cgMLST', 'first_alleles',core_name + '.fasta')
         reference_allele_for_snp = str(SeqIO.parse(core_first_allele_file, 'fasta').__next__().seq)
-        #ref_query_parse = list (SeqIO.parse(reference_query, "fasta"))
         query_length = len(reference_allele_for_snp)
-        #reference_allele_for_snp = str(ref_query_parse[0].seq)
-        #query_length_list =[]
-        '''
-        for allele in ref_query_parse :
-            allele_length =  len(allele.seq)
-            if not allele_length in query_length_list :
-                query_length_list.append(allele_length)
-        '''
-
-        #create new_allele_dict to infer
+        
+        #create new_allele_dict to inferred the new alleles
         new_allele_dict ={}
         samples_inferred = []
-        #allele_list_per_sample = []
+
         for sample_file in sample_dict_files:
             #with open (sample_file,'rb') as sample_f :
             #    sample_dict = pickle.load(sample_f)
@@ -946,28 +841,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     matching_genes_dict[sample_value][sseqid].append([core_name, sstart,send,'+', 'ERROR'])
 
                 print ('ERROR when looking the allele match for core gene ', core_name, 'at sample ', sample_value )
-    '''
-    logger.debug ('matching genes =  %s', matching_genes_dict)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('sample matrix  = %s', samples_matrix_dict)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('inferred alleles = %s', inferred_alleles_dict)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('inferred in the sequence  = %s' , inf_dict)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('insertions = %s',  insertions_dict)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('list of insertions = %s ', list_insertions)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('deletions = %s', deletions_dict)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('list of deletions = %s ', list_deletions)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('list of SNPs = %s', snp_dict)
-    logger.debug ('---------------------------------------------------')
-    logger.debug ('list of proteins = %s' , protein_dict)
-    logger.debug ('---------------------------------------------------')
-    '''
+
 
 
 
@@ -988,7 +862,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         for sample in sorted (paralog_dict) :
             for core in sorted (paralog_dict[sample]):
                 for paralog in paralog_dict[sample][core] :
-                    paralog_fh.write(sample + '\t' + core + '\t' + '\t'.join (paralog) + '\n')
+                    paralog_fh.write(core + '\t' + sample + '\t' + '\t'.join (paralog) + '\n')
 
     # saving inferred alleles to file
     logger.info('Saving inferred alleles information to file..')
@@ -998,7 +872,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         for sample in sorted (inf_dict) :
             for core in sorted (inf_dict[sample]) :
                 #   seq_in_inferred_allele = '\t'.join (inf_dict[sample])
-                infer_fh.write(sample + '\t' + core + '\t' + inf_dict[sample][core] + '\n')
+                infer_fh.write(core + '\t' + sample + '\t' + inf_dict[sample][core] + '\n')
     '''
     inf_file = os.path.join(outputdir, 'infe_l.tsv')
     with open (inf_file , 'w') as inf_fh :
@@ -1104,14 +978,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
 
 
     return True
-'''
-if __name__ == '__main__' :
-    version = ' Taranis  0.3.0'
-    if sys.argv[1] == '-v' or sys.argv[1] == '--version':
-        print( version, '\n')
-        exit (0)
-    arguments = check_arg(sys.argv[1:])
-'''    
+  
 def processing_allele_calling (arguments) :
     start_time = datetime.now()
     print('Start the execution at :', start_time )

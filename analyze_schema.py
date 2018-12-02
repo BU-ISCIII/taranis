@@ -23,7 +23,7 @@ from io import StringIO
 #from BCBio import GFF
 from progressbar import ProgressBar
 from utils.taranis_utils import *
-  
+
 def extract_info_schema (schema_files,  alt_codon_start, logger) :
     not_cds_dict = {}
     schema_sequence_dict ={}
