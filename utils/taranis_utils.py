@@ -1,31 +1,77 @@
 #!/usr/bin/env python3
 import logging
-from logging.handlers import RotatingFileHandler
+from logging.config import fileConfig
+#from logging.handlers import RotatingFileHandler
 import os
 import re
 import glob
 import shutil
-import subprocess
+#import subprocess
 from Bio import SeqIO
 from Bio import Seq
-
+from taranis_configuration import *
 def open_log(log_name):
-    working_dir = os.getcwd()
-    log_name=os.path.join(working_dir, log_name)
+    '''
+    Description:
+        This function open the log file with the configuration defined
+        on the config file (loging_config.ini)
+        The path for the logging config is defined on the application
+        configuration file.
+    Input:
+        log_name    # Is the name that will be written inside the logfile
+        LOGGIN_CONFIGURATION # is the constant value defined on the configuration
+                            file of the application
+    Return:
+        Error is return in case that config file does not exists
+        logger # containing the logging object
+    '''
+    #working_dir = os.getcwd()
+    
+
+    #fileConfig('/srv/taranis/logging_config.ini')
+    #log_name=os.path.join(working_dir, log_name)
     #def create_log ():
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    #logger = logging.getLogger(__name__)
+    #logger.setLevel(logging.DEBUG)
     #create the file handler
-    handler = logging.handlers.RotatingFileHandler(log_name, maxBytes=4000000, backupCount=5)
-    handler.setLevel(logging.DEBUG)
+    #handler = logging.handlers.RotatingFileHandler('pepe.log', maxBytes=4000000, backupCount=5)
+    #handler.setLevel(logging.DEBUG)
 
     #create a Logging format
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
+    #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    #handler.setFormatter(formatter)
     #add the handlers to the logger
-    logger.addHandler(handler)
-
+    #logger.addHandler(handler)
+    try:
+        logging.config.fileConfig(LOGGING_CONFIGURATION)
+        logger = logging.getLogger(log_name)
+        logger.info('--------------- LOG FILE -----------------')
+        logger.info('Log file has been created for process %s', log_name)
+    except:
+        print('------------- ERROR --------------')
+        print(' Unable to create the logging file')
+        print('Check in the logging configuration file')
+        print('that the path to store the log file exists')
+        print('------------------------------------------')
+        return 'Error'
     return logger
+
+def check_if_file_exists (filename, logger):
+    '''
+    Description:
+        This function will check if the file exists
+    Input:
+        filename    # Is the name of the file to be checked
+        logger      # is the logging object to logging information
+    Return:
+        Error is return in case that file does not exists
+        True  if file exists
+    '''
+    if not os.path.isfile(filename):
+        logger.info('File  %s , does not exists', filename)
+        return 'Error'
+    return True
+
 
 def check_program_is_exec_version (program, version, logger):
     # The function will check if the program is installed in your system and if the version
