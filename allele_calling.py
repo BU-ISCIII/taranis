@@ -12,7 +12,7 @@ from logging.handlers import RotatingFileHandler
 from datetime import datetime
 import glob
 import pickle
-#import tempfile
+
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Alphabet import generic_dna
@@ -554,7 +554,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             if not core_name in snp_dict :
                                 snp_dict[core_name] = {}
                             if not sample_value in snp_dict[core_name] :
-                                snp_dict[core_name][sample_value] = {}                       
+                                snp_dict[core_name][sample_value] = {}
                             snp_dict[core_name][sample_value][qseqid]= snp_information
                         continue
                     else:
@@ -656,7 +656,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 ## check if the blast alignment could be classified as PLOT
                 length_sseqid = len(accession_sequence)
                 if int(sstart) == length_sseqid or int(send) == length_sseqid or int(sstart) == 1 or int(send) == 1:
-                    samples_matrix_dict[sample_value].append('PLOT')                    
+                    samples_matrix_dict[sample_value].append('PLOT_' + str(qseqid))
                     logger.info('PLOT found at sample %s, for gene  %s', sample_value, core_name)
                     if sample_value not in plot_dict :
                         plot_dict[sample_value] = {}
@@ -685,18 +685,26 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
 
                     if query_direction == 'reverse' :
                         if int(send) > int (sstart): ## increasing the number of nucleotides to check if getting  longer protein
-                            sample_gene_sequence = accession_sequence[int(sstart) - 51 :  int(send)  ]
+                            #sample_gene_sequence = accession_sequence[int(sstart) - 51 :  int(send)  ]
+                            sample_gene_sequence = accession_sequence[int(sstart) - 81 :  int(send)  ]
                             sample_gene_sequence = sample_gene_sequence.reverse_complement()
                         else:
-                            sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 51]
+                            #sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 51]
+                            sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 81]
                     else:
                         if int(sstart) > int (send):
-                            sample_gene_sequence = accession_sequence[int(send) - 51 :  int(sstart)  ]
+                            
+                            #sample_gene_sequence = accession_sequence[int(send) - 51 :  int(sstart)  ]
+                            sample_gene_sequence = accession_sequence[int(send) - 81 :  int(sstart)  ]
                             sample_gene_sequence = sample_gene_sequence.reverse_complement()
                         else:
-                            sample_gene_sequence = accession_sequence[int(sstart) -1 : int(send)  + 51]
+                            if int(query_length) > int(s_length ):
+                                difference_q_s_length = int(query_length)- int(s_length)
+                            #sample_gene_sequence = accession_sequence[int(sstart) -1 : int(send)  + 51]
+                            sample_gene_sequence = accession_sequence[int(sstart) -1 : int(send)  + difference_q_s_length + 81]
                     
-                    stop_index = get_stop_codon_index(sample_gene_sequence, tga_stop_codon, int(qlen)- int(qstart))
+                    #stop_index = get_stop_codon_index(sample_gene_sequence, tga_stop_codon, int(qlen)- int(qstart))
+                    stop_index = get_stop_codon_index(sample_gene_sequence, tga_stop_codon, int(s_length)- int(qstart))
                     if stop_index != False:
                         new_sequence_length = stop_index +3
                         new_sseq = str(sample_gene_sequence[0:new_sequence_length])
@@ -709,11 +717,11 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         ### find the index of ASM  to include it in the sample matrix dict
                         index_delete = deletions_dict[core_name].index(new_sseq)
                         if new_sequence_length < query_length :
-                            delete_allele = 'ASM_DELETE_' + core_name + '_' + str(index_delete)
+                            delete_allele = 'ASM_DELETE_' + core_name + '_' + str(qseqid) + '_' + str(index_delete)
                         elif new_sequence_length == query_length:
-                            delete_allele = 'AEM_DELETE_' + core_name + '_' + str(index_delete)
+                            delete_allele = 'AEM_DELETE_' + core_name + '_' + str(qseqid) + '_' + str(index_delete)
                         else:
-                            delete_allele = 'ALM_DELETE_' + core_name + '_' + str(index_delete)
+                            delete_allele = 'ALM_DELETE_' + core_name + '_' + str(qseqid) + '_' + str(index_delete)
                         samples_matrix_dict[sample_value].append(delete_allele)
 
                         if not sseqid in matching_genes_dict[sample_value] :
@@ -755,6 +763,11 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             protein_dict[core_name][sample_value] = []
                         protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq )
                     else:
+                        import pdb; pdb.set_trace()
+                        #print(sample_gene_sequence)
+                        #print('\n')
+                        #print(accession_sequence)
+                        #print('\n\n')
                         logger.error('ERROR : Stop codon was not found for the core %s and the sample %s', core_name, sample_value)
                         samples_matrix_dict[sample_value].append('ERROR not stop codon when deletion')
                         if not sseqid in matching_genes_dict[sample_value] :
@@ -783,14 +796,16 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     index_insert = insertions_dict[core_name].index(new_sseq)
                     #if new_sequence_length < query_length :
                     if new_sequence_length < min(schema_variability[core_name]) :
-                        insert_allele = 'ASM_INSERT_' + core_name + '_' + str(index_insert)
+                        insert_allele = 'ASM_INSERT_' + core_name + '_' + str(qseqid) + '_' + str(index_insert)
                     elif new_sequence_length in schema_variability[core_name] :
-                        insert_allele = 'AEM_INSERT_' + core_name + '_' + str(index_insert)
+                        insert_allele = 'AEM_INSERT_' + core_name + '_' + str(qseqid) + '_' + str(index_insert)
                     else:
-                        insert_allele = 'ALM_INSERT_' + core_name + '_' + str(index_insert)
+                        insert_allele = 'ALM_INSERT_' + core_name + '_' + str(qseqid) + '_' + str(index_insert)
                     samples_matrix_dict[sample_value].append(insert_allele)
                 else:
                     samples_matrix_dict[sample_value].append('ALM_INSERT_')
+                    ##### puesto nuevo para evitar error en la linea 801 the insert_allele reference before setting
+                    insert_allele = 'ALM_INSERT_' + core_name + '_' +  'stop_not_found' #str(index_insert)
                 if not sseqid in matching_genes_dict[sample_value] :
                     matching_genes_dict[sample_value][sseqid] = []
                 if sstart > send :
@@ -847,7 +862,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
 
     print ('Saving results to files \n')
     result_file = os.path.join ( outputdir, 'result.tsv')
-    # saving the reult information to file
+    # saving the result information to file
     logger.info('Saving result information to file..')
     with open (result_file, 'w') as out_fh:
         out_fh.write ('Sample Name\t'+'\t'.join( full_gene_list) + '\n')
@@ -974,12 +989,37 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         for line in summary_result :
             summ_fh.write(line + '\n')
 
+    ### modify the result file to remove the PLOT_ string for creating the file to use in the tree diagram
+    logger.info('Saving result information for tree diagram')
+    tree_diagram_file = os.path.join ( outputdir, 'result_for_tree_diagram.tsv')
+    with open (result_file, 'r') as result_fh:
+        with open(tree_diagram_file, 'w') as td_fh:
+            for line in result_fh:
+                tree_line = line.replace('PLOT_','')
+                td_fh.write(tree_line)
 
-
+                
 
     return True
   
 def processing_allele_calling (arguments) :
+    '''
+    Description:
+        This is the main function for allele calling.
+        With the support of additional functions it will create the output files
+        with the summary report.
+    Input:
+        arguments   # Input arguments given on command line 
+    Functions:
+        
+    Variables:
+        run_metric_processed # True or False if there are some rows in
+                            StatsRunSummary for this run
+    Return:
+        experiment_name if the run is updated. Empty if not
+    '''
+    #logger = logging.getLogger(__name__)
+    #logger.debug ('Starting function check_run_metrics_processed')
     start_time = datetime.now()
     print('Start the execution at :', start_time )
     # open log file
@@ -990,7 +1030,7 @@ def processing_allele_calling (arguments) :
         print ('your system does not fulfill the pre-requistes to run the script ')
         exit(0)
     ##############################################
-    # Check that given directories contatin fasta files
+    # Check that given directories contain fasta files
     ##############################################
     print('Validating schema fasta files in ' , arguments.coregenedir , '\n')
     valid_core_gene_files = get_fasta_file_list(arguments.coregenedir, logger)

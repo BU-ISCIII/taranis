@@ -2,7 +2,7 @@
 #import analyze_schema
 import sys
 import argparse
-#import allele_calling
+import allele_calling
 #import analyze_schema
 import create_schema
 from taranis_configuration import *
@@ -108,12 +108,22 @@ if __name__ == '__main__' :
     arguments = check_arg(sys.argv[1:])
 
     if arguments.chosen_action == 'allele_calling' :
-        allele_calling.processing_allele_calling(arguments)
+        result = allele_calling.processing_allele_calling(arguments)
     elif arguments.chosen_action == 'evaluate_schema':
-        analyze_schema.processing_evaluate_schema(arguments)
+        result = analyze_schema.processing_evaluate_schema(arguments)
     elif arguments.chosen_action == 'compare_schema' :
-        processing_compare_schema(arguments)
+        result = processing_compare_schema(arguments)
     elif arguments.chosen_action == 'create_schema' :
-        processing_create_schema(arguments)
-    print('completed') 
+        result = processing_create_schema(arguments)
+    else:
+        print('not allow')
+        result = 'Error'
+    '''
+    if 'Error' in result :
+        print('Exiting the code with errors. ')
+        print('Check the log for more information')
+    else:
+    '''
+    print('completed')
+        
    

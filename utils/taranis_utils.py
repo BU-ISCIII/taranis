@@ -6,10 +6,13 @@ import os
 import re
 import glob
 import shutil
-#import subprocess
+import subprocess
 from Bio import SeqIO
 from Bio import Seq
+from openpyxl import load_workbook
+
 from taranis_configuration import *
+
 def open_log(log_name):
     '''
     Description:
@@ -49,12 +52,96 @@ def open_log(log_name):
         logger.info('Log file has been created for process %s', log_name)
     except:
         print('------------- ERROR --------------')
-        print(' Unable to create the logging file')
+        print('Unable to create the logging file')
         print('Check in the logging configuration file')
         print('that the path to store the log file exists')
         print('------------------------------------------')
         return 'Error'
     return logger
+
+def read_xls_file (in_file, logger):
+    '''
+    Description:
+        This function open the Excel file enter by the user in the xlsfile parameter
+        Once the excel is read the column information of the gene and protein is
+        stored on the gene_list that it is returned back
+    Input:
+        
+        logger      # Is the logging object
+        in_file     # It is the excel file which contains the information to parse
+        
+    Variables:
+        wb      # Contains the excel workbook object
+        ws      # Contains the working sheet object of the workbook
+        gene    # Used in the interaction row to get the gene name
+        protein # Used in the interaction row to get the protein name
+        gene_prot   # Used to get the tupla (gene/protein) for each or excel row
+        genes_prots_list  # Is a list containing tuplas of gene, protein
+    
+    Return:
+        'Error message' is returned in case excel file does not exists
+        genes_prots_list is returned as a successful execution 
+    '''
+    logger.debug('opening the excel file : %s', in_file)
+    try:
+        wb = load_workbook(in_file)
+        logger.info('Excel file has been read and starts processing it.')
+    except Exception as e:
+        logger.error('-----------------    ERROR   ------------------')
+        logger.error('Unable to open the excel file.  %s ', e )
+        logger.error('Showing traceback: ',  exc_info=True)
+        logger.error('-----------------    END ERROR   --------------')
+        #raise
+        return 'Error: Unable to open excel file'
+    # Only fetch the first working sheet
+    ws = wb[wb.sheetnames[0]]
+
+    genes_prots_list = []
+    ## Get the content block from A2 : B(latest row in the excel)
+    for row in ws.iter_rows(min_row=2, min_col=1, max_row=ws.max_row, max_col=2) :
+        gene_prot = []
+        for index in range(len(row)) :
+            gene_prot.append(row[index].value)
+        genes_prots_list.append(gene_prot)
+    logger.info('Exiting the function ---read_xls_file-- ')
+    logger.info('Returning back the gene/protein list' )
+    return genes_prots_list
+
+def download_fasta_locus (locus_list, output_dir, logger):
+    '''
+    Description:
+        This function will download the protein sequence.
+        Then it will be translated to nucleotide and saved
+        in the output directory specified by the users.
+    Input:
+        gene_list   
+        filename    # Is the name of the file to be checked
+        logger      # is the logging object to logging information
+    Return:
+        Error is return in case that file does not exists
+        True  if file exists
+    '''
+    download_counter = 0
+    for loci in locus_list :
+        tmp_split = loci.split('/')
+        loci_name = tmp_split[-1]
+        r = requests.get(loci + '/alleles_fasta')
+        if r.status_code != 200 :
+            logger.error('Unable to download the fasta file  for allele %s ', loci_name)
+            
+        else :
+            fasta_alleles = r.text
+            fasta_file =  os.path.join(output_dir, str(loci_name + '.fasta'))
+            with open (fasta_file , 'w') as fasta_fh :
+                fasta_fh.write(fasta_alleles)
+            download_counter += 1
+    if download_counter == len(locus_list) :
+        return True
+    else :
+        logger.info('All alleles have been successfully downloaded and saved on %s', output_dir)
+        return False
+
+
 
 def check_if_file_exists (filename, logger):
     '''
@@ -72,6 +159,31 @@ def check_if_file_exists (filename, logger):
         return 'Error'
     return True
 
+
+def junk ():
+    AA_codon = {
+            'C': ['TGT', 'TGC'], 
+            'A': ['GAT', 'GAC'], 
+            'S': ['TCT', 'TCG', 'TCA', 'TCC', 'AGC', 'AGT'], 
+            'G': ['CAA', 'CAG'], 
+            'M': ['ATG'], #Start
+            'A': ['AAC', 'AAT'], 
+            'P': ['CCT', 'CCG', 'CCA', 'CCC'], 
+            'L': ['AAG', 'AAA'], 
+            'Q': ['TAG', 'TGA', 'TAA'], #Stop
+            'T': ['ACC', 'ACA', 'ACG', 'ACT'], 
+            'P': ['TTT', 'TTC'], 
+            'A': ['GCA', 'GCC', 'GCG', 'GCT'], 
+            'G': ['GGT', 'GGG', 'GGA', 'GGC'], 
+            'I': ['ATC', 'ATA', 'ATT'], 
+            'L': ['TTA', 'TTG', 'CTC', 'CTT', 'CTG', 'CTA'], 
+            'H': ['CAT', 'CAC'], 
+            'A': ['CGA', 'CGC', 'CGG', 'CGT', 'AGG', 'AGA'], 
+            'T': ['TGG'], 
+            'V': ['GTA', 'GTC', 'GTG', 'GTT'], 
+            'G': ['GAG', 'GAA'], 
+            'T': ['TAT', 'TAC'] }
+    return True
 
 def check_program_is_exec_version (program, version, logger):
     # The function will check if the program is installed in your system and if the version
