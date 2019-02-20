@@ -82,7 +82,6 @@ def check_arg (args=None) :
     return parser.parse_args()
 
 
-
 def processing_evaluate_schema (arguments) :
     print ('evaluate_schema')
 
