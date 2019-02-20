@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #import analyze_schema
 import sys
 import argparse
@@ -13,30 +12,28 @@ def check_arg (args=None) :
     using the standard python package argparse. The package itself is handling
     the validation and the return errors messages
     Input:
-        args    # Contains the arguments from the command line 
+        args    # Contains the arguments from the command line
     Variables:
         allele_calling_parser   # It is used for the allele calling input parameters
         evaluate_schema_parser  # It is used for the schema evaluation input parameters
         compare_schema_parser   # It is used for schema comparison input parameters
         create_schema_parser    # It is used for create an schema input parameters
-        
     Return:
-        parser.parse_args()     # The variable contains the valid parameters 
+        parser.parse_args()     # The variable contains the valid parameters
     '''
-    
     parser = argparse.ArgumentParser(prog = 'tara.py',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
-                                     description= 'Taranis is a set of utilities related to cgMSLST ') 
+                                     description= 'Taranis is a set of utilities related to cgMSLST ')
 
     parser.add_argument('--version', action='version', version='%(prog)s 0.3.5')
-    
+
     subparser = parser.add_subparsers(help = 'allele calling /interactive/schema '
                                       + 'are the available actions to execute taranis',
                                       dest = 'chosen_action')
-    
+
     ### Input parameters for allele calling option
     allele_calling_parser = subparser.add_parser('allele_calling',
-                                    help = 'Allele calle way to downloads the  schema locus')
+                                    help = 'Allele calling way to downloads the  schema locus')
     allele_calling_parser.add_argument('-coregenedir', required= True,
                                     help = 'Directory where the core gene files are located ')
     allele_calling_parser.add_argument('-inputdir', required= True,
@@ -53,7 +50,7 @@ def check_arg (args=None) :
                                     help = 'Allowed length percentage to be considered as ASM or ALM. '
                                     + 'Outside of this limit it is considered as LNF Default is 20.',
                                     default = 20)
-    
+
     ### Input parameters for schema evaluation options
     evaluate_schema_parser = subparser.add_parser('evaluate_schema',
                                     help = 'Evaluate the schema.')
@@ -65,14 +62,14 @@ def check_arg (args=None) :
                                     help = 'Set this parameter if alternative start codon should be considered. '
                                     + 'Do not include to accept only ATG as a start codon.',
                                     default = False)
-    
+
     ### Input parameters for schema comparison options
     compare_schema_parser = subparser.add_parser('compare_schema', help = 'Compare 2 schema.')
     compare_schema_parser.add_argument('-scheme1',
                                        help = 'Directory where are the schema files for the schema 1.')
     compare_schema_parser.add_argument('-scheme2',
                                        help = 'Directory where are the schema files for the schema 2.')
-    
+
     ### Input parameters for schema creation options
     create_schema_parser = subparser.add_parser('create_schema', help = 'Create a schema.')
     create_schema_parser.add_argument('-xlsfile',
@@ -80,15 +77,15 @@ def check_arg (args=None) :
     create_schema_parser.add_argument('-outputdir', help = 'Directory where the core gene files '
                                       + 'will be stored. If directory exists it will be prompt for '
                                       + 'deletion confirmation.')
-    
-    
+
+
     return parser.parse_args()
 
 
 
 def processing_evaluate_schema (arguments) :
     print ('evaluate_schema')
-    
+
     return True
 
 def processing_compare_schema (arguments) :
@@ -125,5 +122,5 @@ if __name__ == '__main__' :
     else:
     '''
     print('completed')
-        
-   
+
+

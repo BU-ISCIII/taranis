@@ -592,8 +592,27 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
             out_lines = out.splitlines( )
             bigger_bitscore = 0
             if len (out_lines) == 0:
-                samples_matrix_dict[sample_value].append('LNF')
-                logger.info('Locus not found at sample %s, for gene  %s', sample_value, core_name)
+                # trying to get the allele number to avoid that a bad quality assembly impact on the tree diagram
+                cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 70, outfmt= blast_parameters, max_target_seqs=1, max_hsps=1,num_threads=1, query=reference_query)
+                out, err = cline()
+                out_lines = out.splitlines( )
+
+                if len (out_lines) > 0 :
+                    
+                    for line in out_lines :
+                        values = line.split('\t')
+                        
+                        if  float(values[8]) > bigger_bitscore:
+                            qseqid , sseqid , pident ,  qlen , s_length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend ,sseq , qseq = values
+                            #print('q len seq is : ', len(qseq), ' s len seq is : ', len(sseq))
+                            bigger_bitscore = float(bitscore)
+                    #import pdb; pdb.set_trace()
+                    percent = int(s_length)/ query_length
+                    samples_matrix_dict[sample_value].append('LNF_'+ str(qseqid))
+                    logger.info('Match Locus with very few bases %s at sample %s, for gene  %s', percent, sample_value, core_name)
+                else:
+                    samples_matrix_dict[sample_value].append('LNF')
+                    logger.info('Locus not found at sample %s, for gene  %s', sample_value, core_name)
                 continue
             for line in out_lines :
                 values = line.split('\t')
@@ -626,7 +645,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     if not core_name in snp_dict :
                         snp_dict[core_name] = {}
                     if not sample_value in snp_dict[core_name] :
-                        snp_dict[core_name][sample_value] = {}         
+                        snp_dict[core_name][sample_value] = {}
                     snp_dict[core_name][sample_value][qseqid]= snp_information
                 
                 if not sseqid in matching_genes_dict[sample_value] :
@@ -683,23 +702,28 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     else:
                         tga_stop_codon = False
 
+                    if int(query_length) > int(s_length):
+                        difference_q_s_length = int(query_length)- int(s_length)
+                    else:
+                        difference_q_s_length = 0
+                        
                     if query_direction == 'reverse' :
                         if int(send) > int (sstart): ## increasing the number of nucleotides to check if getting  longer protein
                             #sample_gene_sequence = accession_sequence[int(sstart) - 51 :  int(send)  ]
-                            sample_gene_sequence = accession_sequence[int(sstart) - 81 :  int(send)  ]
+                            sample_gene_sequence = accession_sequence[int(sstart) - difference_q_s_length - 81 :  int(send)  ]
                             sample_gene_sequence = sample_gene_sequence.reverse_complement()
                         else:
                             #sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 51]
-                            sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 81]
+                            sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart) + difference_q_s_length + 81]
+                            import pdb; pdb.set_trace()
                     else:
                         if int(sstart) > int (send):
                             
                             #sample_gene_sequence = accession_sequence[int(send) - 51 :  int(sstart)  ]
-                            sample_gene_sequence = accession_sequence[int(send) - 81 :  int(sstart)  ]
+                            sample_gene_sequence = accession_sequence[int(send) - difference_q_s_length - 81 :  int(sstart)  ]
                             sample_gene_sequence = sample_gene_sequence.reverse_complement()
                         else:
-                            if int(query_length) > int(s_length ):
-                                difference_q_s_length = int(query_length)- int(s_length)
+                            
                             #sample_gene_sequence = accession_sequence[int(sstart) -1 : int(send)  + 51]
                             sample_gene_sequence = accession_sequence[int(sstart) -1 : int(send)  + difference_q_s_length + 81]
                     
