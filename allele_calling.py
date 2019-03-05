@@ -481,10 +481,11 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         if len(allele_found) == 0 or not allele_is_subset :
                             contig_id_start = str(contig_id + '_'+ gene_start)
                             allele_found[contig_id_start] = values
-                        if  int(values[8]) > bigger_bitscore :
+                        #import pdb; pdb.set_trace()
+                        if  float(values[8]) > bigger_bitscore :
                             #qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend ,sseq , qseq= values
                             #bigger_bitscore = int(bitscore)
-                            bigger_bitscore = int(values[8])
+                            bigger_bitscore = float(values[8])
 
                 if len(allele_found) > 1:
                     # found paralogs in the sample for the core gene
@@ -828,7 +829,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                     samples_matrix_dict[sample_value].append(insert_allele)
                 else:
                     samples_matrix_dict[sample_value].append('ALM_INSERT_')
-                    ##### puesto nuevo para evitar error en la linea 801 the insert_allele reference before setting
+                    ##### Set to avoid error on line puesto nuevo para evitar error en la linea 801 the insert_allele reference before setting
                     insert_allele = 'ALM_INSERT_' + core_name + '_' +  'stop_not_found' #str(index_insert)
                 if not sseqid in matching_genes_dict[sample_value] :
                     matching_genes_dict[sample_value][sseqid] = []
