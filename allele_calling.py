@@ -207,7 +207,6 @@ def get_inferred_allele_number(core_dict, logger):
         int_keys.append(key)
     max_value = max(int_keys)
     digit_length = len(str(max_value))
-    # return any of the values ( 10000, 100000, 1000000 and so on ) according to the bigest allele number used
     return  True   #str 1 ( #'1'+ '0'*digit_length + 2)
 
 
@@ -716,7 +715,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                         else:
                             #sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart)  + 51]
                             sample_gene_sequence = accession_sequence[int(send) -1 : int(sstart) + difference_q_s_length + 81]
-                            import pdb; pdb.set_trace()
+                            # import pdb; pdb.set_trace()
                     else:
                         if int(sstart) > int (send):
                             
@@ -788,7 +787,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                             protein_dict[core_name][sample_value] = []
                         protein_dict[core_name][sample_value] = nucleotide_to_protein_aligment(new_sseq, qseq )
                     else:
-                        import pdb; pdb.set_trace()
+                        # import pdb; pdb.set_trace()
                         #print(sample_gene_sequence)
                         #print('\n')
                         #print(accession_sequence)
