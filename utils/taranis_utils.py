@@ -30,7 +30,7 @@ def open_log(log_name):
         logger # containing the logging object
     '''
     #working_dir = os.getcwd()
-    
+
 
     #fileConfig('/srv/taranis/logging_config.ini')
     #log_name=os.path.join(working_dir, log_name)
@@ -67,10 +67,8 @@ def read_xls_file (in_file, logger):
         Once the excel is read the column information of the gene and protein is
         stored on the gene_list that it is returned back
     Input:
-        
         logger      # Is the logging object
         in_file     # It is the excel file which contains the information to parse
-        
     Variables:
         wb      # Contains the excel workbook object
         ws      # Contains the working sheet object of the workbook
@@ -78,10 +76,9 @@ def read_xls_file (in_file, logger):
         protein # Used in the interaction row to get the protein name
         gene_prot   # Used to get the tupla (gene/protein) for each or excel row
         genes_prots_list  # Is a list containing tuplas of gene, protein
-    
     Return:
         'Error message' is returned in case excel file does not exists
-        genes_prots_list is returned as a successful execution 
+        genes_prots_list is returned as a successful execution
     '''
     logger.debug('opening the excel file : %s', in_file)
     try:
@@ -115,7 +112,7 @@ def download_fasta_locus (locus_list, output_dir, logger):
         Then it will be translated to nucleotide and saved
         in the output directory specified by the users.
     Input:
-        gene_list   
+        gene_list
         filename    # Is the name of the file to be checked
         logger      # is the logging object to logging information
     Return:
@@ -129,7 +126,7 @@ def download_fasta_locus (locus_list, output_dir, logger):
         r = requests.get(loci + '/alleles_fasta')
         if r.status_code != 200 :
             logger.error('Unable to download the fasta file  for allele %s ', loci_name)
-            
+
         else :
             fasta_alleles = r.text
             fasta_file =  os.path.join(output_dir, str(loci_name + '.fasta'))
@@ -163,26 +160,26 @@ def check_if_file_exists (filename, logger):
 
 def junk ():
     AA_codon = {
-            'C': ['TGT', 'TGC'], 
-            'A': ['GAT', 'GAC'], 
-            'S': ['TCT', 'TCG', 'TCA', 'TCC', 'AGC', 'AGT'], 
-            'G': ['CAA', 'CAG'], 
+            'C': ['TGT', 'TGC'],
+            'A': ['GAT', 'GAC'],
+            'S': ['TCT', 'TCG', 'TCA', 'TCC', 'AGC', 'AGT'],
+            'G': ['CAA', 'CAG'],
             'M': ['ATG'], #Start
-            'A': ['AAC', 'AAT'], 
-            'P': ['CCT', 'CCG', 'CCA', 'CCC'], 
-            'L': ['AAG', 'AAA'], 
+            'A': ['AAC', 'AAT'],
+            'P': ['CCT', 'CCG', 'CCA', 'CCC'],
+            'L': ['AAG', 'AAA'],
             'Q': ['TAG', 'TGA', 'TAA'], #Stop
-            'T': ['ACC', 'ACA', 'ACG', 'ACT'], 
-            'P': ['TTT', 'TTC'], 
-            'A': ['GCA', 'GCC', 'GCG', 'GCT'], 
-            'G': ['GGT', 'GGG', 'GGA', 'GGC'], 
-            'I': ['ATC', 'ATA', 'ATT'], 
-            'L': ['TTA', 'TTG', 'CTC', 'CTT', 'CTG', 'CTA'], 
-            'H': ['CAT', 'CAC'], 
-            'A': ['CGA', 'CGC', 'CGG', 'CGT', 'AGG', 'AGA'], 
-            'T': ['TGG'], 
-            'V': ['GTA', 'GTC', 'GTG', 'GTT'], 
-            'G': ['GAG', 'GAA'], 
+            'T': ['ACC', 'ACA', 'ACG', 'ACT'],
+            'P': ['TTT', 'TTC'],
+            'A': ['GCA', 'GCC', 'GCG', 'GCT'],
+            'G': ['GGT', 'GGG', 'GGA', 'GGC'],
+            'I': ['ATC', 'ATA', 'ATT'],
+            'L': ['TTA', 'TTG', 'CTC', 'CTT', 'CTG', 'CTA'],
+            'H': ['CAT', 'CAC'],
+            'A': ['CGA', 'CGC', 'CGG', 'CGT', 'AGG', 'AGA'],
+            'T': ['TGG'],
+            'V': ['GTA', 'GTC', 'GTG', 'GTT'],
+            'G': ['GAG', 'GAA'],
             'T': ['TAT', 'TAC'] }
     return True
 
@@ -245,23 +242,23 @@ def hamming_distance (pd_matrix):
     '''
     The function is used to find the hamming distance matrix
     Input:
-        pd_matrix    # Contains the panda dataFrame 
+        pd_matrix    # Contains the panda dataFrame
     Variables:
         unique_values   # contains the array with the unique values in the dataFrame
         U   # Is the boolean matrix of differences
-        H   # It is accumulative values of U 
+        H   # It is accumulative values of U
     Return:
        H where the number of columns have been subtracted
     '''
-    
+
     unique_values = pd.unique(pd_matrix[list(pd_matrix.keys())].values.ravel('K'))
     # Create binary matrix ('1' or '0' ) matching the input matrix vs the unique_values[0]
-    # astype(int) is used to transform the boolean matrix into integer 
+    # astype(int) is used to transform the boolean matrix into integer
     U = pd_matrix.eq(unique_values[0]).astype(int)
     # multiply the matrix with the transpose
     H = U.dot(U.T)
-    
-    # Repeat for each unique value 
+
+    # Repeat for each unique value
     for unique_val in range(1,len(unique_values)):
         U = pd_matrix.eq(unique_values[unique_val]).astype(int)
         # Add the value of the binary matrix with the previous stored values
@@ -274,22 +271,22 @@ def create_distance_matrix (input_dir, input_file):
     try:
         result_file = os.path.join(input_dir, input_file)
         pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
-    except Exception as e:  
+    except Exception as e:
         print('------------- ERROR --------------')
         print('Unable to open the matrix distance file')
         print('Check in the logging configuration file')
         print('------------------------------------------')
         return 'Error'
-    
+
     distance_matrix = hamming_distance (pd_matrix)
     out_file = os.path.join(input_dir, 'matrix_distance.tsv')
     try:
         distance_matrix.to_csv(out_file, sep = '\t')
-    except Exception as e: 
+    except Exception as e:
         print('------------- ERROR --------------')
         print('Unable to create the matrix distance file')
         print('Check in the logging configuration file')
         print('------------------------------------------')
         return 'Error'
-    
+
     return True
