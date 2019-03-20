@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import logging
-from logging.config import fileConfig
+#from logging.config import fileConfig
 #from logging.handlers import RotatingFileHandler
 import os
 import re
@@ -23,41 +23,35 @@ def open_log(log_name):
         configuration file.
     Input:
         log_name    # Is the name that will be written inside the logfile
-        LOGGIN_CONFIGURATION # is the constant value defined on the configuration
-                            file of the application
+    Variables:
+        log_folder  # directory extracted from log_name to create the folder
+        
     Return:
         Error is return in case that config file does not exists
         logger # containing the logging object
     '''
-    #working_dir = os.getcwd()
-
-
-    #fileConfig('/srv/taranis/logging_config.ini')
-    #log_name=os.path.join(working_dir, log_name)
-    #def create_log ():
-    #logger = logging.getLogger(__name__)
-    #logger.setLevel(logging.DEBUG)
-    #create the file handler
-    #handler = logging.handlers.RotatingFileHandler('pepe.log', maxBytes=4000000, backupCount=5)
-    #handler.setLevel(logging.DEBUG)
-
-    #create a Logging format
-    #formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    #handler.setFormatter(formatter)
-    #add the handlers to the logger
-    #logger.addHandler(handler)
+    logger = logging.getLogger(__name__) 
+    logging.basicConfig(filename=log_name, level=logging.DEBUG, filemode='w',
+                        format='%(asctime)s %(funcName)-12s %(levelname)-8s %(lineno)s %(message)s')
+    
+    handler = logging.StreamHandler()
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
     try:
-        logging.config.fileConfig(LOGGING_CONFIGURATION)
-        logger = logging.getLogger(log_name)
+        
+        log_folder = os.path.dirname(log_name)
+        if not os.path.isdir(log_folder) :
+            os.makedirs(log_folder)
+        
         logger.info('--------------- LOG FILE -----------------')
         logger.info('Log file has been created for process %s', log_name)
     except:
         print('------------- ERROR --------------')
         print('Unable to create the logging file')
-        print('Check in the logging configuration file')
-        print('that the path to store the log file exists')
+        print('check that ', log_folder , ' path has write permissions')
         print('------------------------------------------')
-        return 'Error'
+        raise 
+    
     return logger
 
 def read_xls_file (in_file, logger):

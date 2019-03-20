@@ -1049,8 +1049,9 @@ def processing_allele_calling (arguments) :
     start_time = datetime.now()
     print('Start the execution at :', start_time )
     # open log file
-    logger = open_log ('taranis_wgMLST.log')
-    print('Checking the pre-requisites./n')
+    taranis_log = os.path.join(arguments.outputdir, 'tmp/log', 'taranis_wgMLST.log')
+    logger = open_log (taranis_log)
+    print('Checking the pre-requisites.\n')
     # check additional programs are installed in your system
     if not check_prerequisites (logger):
         print ('your system does not fulfill the pre-requistes to run the script ')

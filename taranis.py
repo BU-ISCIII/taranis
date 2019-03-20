@@ -38,7 +38,7 @@ def check_arg (args=None) :
                                     help = 'Directory where the core gene files are located ')
     allele_calling_parser.add_argument('-i', '--inputdir', required= True,
                                     help ='Directory where are located the sample fasta files')
-    allele_calling_parser.add_argument('-o','--ouputdir', type=str, required= True,
+    allele_calling_parser.add_argument('-o','--outputdir', type=str, required= True,
                                     help = 'Directory where the result files will be stored')
     allele_calling_parser.add_argument('-cpus', required= False,
                                     help = 'Number of CPUS to be used in the program. Default is 1.',
