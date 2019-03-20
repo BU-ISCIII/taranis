@@ -23,7 +23,7 @@ from Bio.Blast.Applications import NcbiblastnCommandline
 from io import StringIO
 from Bio.Blast import NCBIXML
 from BCBio import GFF
-
+import pandas as pd
 import shutil
 from progressbar import ProgressBar
 
@@ -1025,7 +1025,9 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 
 
     return True
-  
+
+
+
 def processing_allele_calling (arguments) :
     '''
     Description:
@@ -1136,6 +1138,13 @@ def processing_allele_calling (arguments) :
     if not allele_call_nucleotides( core_gene_dict_files, reference_query_directory, sample_dict_files,  blast_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), int(arguments.percentlength) , schema_variability, logger):
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)
+    # Create the distance matrix
+    try:
+        
+        print ('Creating matrix distance\n')
+        create_distance_matrix(arguments.outputdir, 'result_for_tree_diagram.tsv')
+    except:
+        print('There was an error when creating distance matrix\n')
     end_time = datetime.now()
     print('completed execution at :', end_time )
     return True

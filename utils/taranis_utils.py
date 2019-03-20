@@ -10,6 +10,7 @@ import subprocess
 from Bio import SeqIO
 from Bio import Seq
 from openpyxl import load_workbook
+import pandas as pd
 
 from taranis_configuration import *
 
@@ -239,3 +240,56 @@ def check_sequence_order(allele_sequence, logger) :
     if allele_sequence[len(allele_sequence) -3: len(allele_sequence)] in start_codon_reverse :
         return 'reverse'
     return "Error"
+
+def hamming_distance (pd_matrix):
+    '''
+    The function is used to find the hamming distance matrix
+    Input:
+        pd_matrix    # Contains the panda dataFrame 
+    Variables:
+        unique_values   # contains the array with the unique values in the dataFrame
+        U   # Is the boolean matrix of differences
+        H   # It is accumulative values of U 
+    Return:
+       H where the number of columns have been subtracted
+    '''
+    
+    unique_values = pd.unique(pd_matrix[list(pd_matrix.keys())].values.ravel('K'))
+    # Create binary matrix ('1' or '0' ) matching the input matrix vs the unique_values[0]
+    # astype(int) is used to transform the boolean matrix into integer 
+    U = pd_matrix.eq(unique_values[0]).astype(int)
+    # multiply the matrix with the transpose
+    H = U.dot(U.T)
+    
+    # Repeat for each unique value 
+    for unique_val in range(1,len(unique_values)):
+        U = pd_matrix.eq(unique_values[unique_val]).astype(int)
+        # Add the value of the binary matrix with the previous stored values
+        H = H.add(U.dot(U.T))
+
+    return len(pd_matrix.columns) - H
+
+
+def create_distance_matrix (input_dir, input_file):
+    try:
+        result_file = os.path.join(input_dir, input_file)
+        pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
+    except Exception as e:  
+        print('------------- ERROR --------------')
+        print('Unable to open the matrix distance file')
+        print('Check in the logging configuration file')
+        print('------------------------------------------')
+        return 'Error'
+    
+    distance_matrix = hamming_distance (pd_matrix)
+    out_file = os.path.join(input_dir, 'matrix_distance.tsv')
+    try:
+        distance_matrix.to_csv(out_file, sep = '\t')
+    except Exception as e: 
+        print('------------- ERROR --------------')
+        print('Unable to create the matrix distance file')
+        print('Check in the logging configuration file')
+        print('------------------------------------------')
+        return 'Error'
+    
+    return True
