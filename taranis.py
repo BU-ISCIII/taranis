@@ -99,8 +99,9 @@ def processing_create_schema (arguments) :
 if __name__ == '__main__' :
     version = 'taranis version 0.2.2'
     if len(sys.argv) == 1 :
-        print( 'Mandatory parameters are missing to execute the program. \n ' ,'Usage: "tara.py  -help " for more information \n')
+        print( 'Mandatory parameters are missing to execute the program. \n ' ,'Usage: "taranis.py  -help " for more information \n')
         exit (0)
+    
     arguments = check_arg(sys.argv[1:])
 
     if arguments.chosen_action == 'allele_calling' :
