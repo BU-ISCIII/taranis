@@ -28,14 +28,20 @@ import shutil
 from progressbar import ProgressBar
 
 from utils.taranis_utils import *
+from taranis_configuration import *
 
 
-def check_prerequisites (logger):
-    pre_requisite_list = [['blastp', '2.6'], ['makeblastdb' , '2.6']]
+def check_prerequisites ():
+    logger = logging.getLogger(__name__)
+    logger.debug ('Starting function check_prerequisites')
+    pre_requisite_list = [['blastp', '3.6'], ['makeblastdb' , '2.6']]
     # check if blast is installed and has the minimum version
     for program, version in pre_requisite_list :
-        if not check_program_is_exec_version (program , version, logger):
+        if not check_program_is_exec_version (program , version):
+           
+            logger.debug ('End function check_prerequisites with error')
             return False
+    logger.debug ('End function check_prerequisites')
     return True
 
 
@@ -1036,6 +1042,9 @@ def processing_allele_calling (arguments) :
         with the summary report.
     Input:
         arguments   # Input arguments given on command line 
+    IMPORT:
+        LOGGING_NAME
+        LOGGING_FOLDER
     Functions:
         
     Variables:
@@ -1044,16 +1053,16 @@ def processing_allele_calling (arguments) :
     Return:
         experiment_name if the run is updated. Empty if not
     '''
-    #logger = logging.getLogger(__name__)
-    #logger.debug ('Starting function check_run_metrics_processed')
     start_time = datetime.now()
     print('Start the execution at :', start_time )
     # open log file
-    taranis_log = os.path.join(arguments.outputdir, 'tmp/log', 'taranis_wgMLST.log')
+    
+    taranis_log = os.path.join(arguments.outputdir, LOGGING_FOLDER, LOGGING_NAME)
     logger = open_log (taranis_log)
     print('Checking the pre-requisites.\n')
     # check additional programs are installed in your system
-    if not check_prerequisites (logger):
+    if not check_prerequisites ():
+    #if not check_prerequisites (logger):
         print ('your system does not fulfill the pre-requistes to run the script ')
         exit(0)
     ##############################################
@@ -1077,7 +1086,7 @@ def processing_allele_calling (arguments) :
         os.makedirs(tmp_core_gene_dir)
     except:
         logger.info('Deleting the temporary directory for a previous execution without cleaning up')
-        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
+        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp','cgMLST'))
         try:
             os.makedirs(tmp_core_gene_dir)
             logger.info ( 'Temporary folder %s  has been created again', tmp_core_gene_dir)

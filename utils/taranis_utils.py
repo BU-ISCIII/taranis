@@ -31,11 +31,10 @@ def open_log(log_name):
         logger # containing the logging object
     '''
     logger = logging.getLogger(__name__) 
-    logging.basicConfig(filename=log_name, level=logging.DEBUG, filemode='w',
-                        format='%(asctime)s %(funcName)-12s %(levelname)-8s %(lineno)s %(message)s')
+    logging.basicConfig(filename=log_name, format='%(asctime)s %(funcName)-12s %(levelname)-8s %(lineno)s %(message)s')
     
     handler = logging.StreamHandler()
-    logger.addHandler(handler)
+    #logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
     try:
         
@@ -53,6 +52,56 @@ def open_log(log_name):
         raise 
     
     return logger
+
+
+def logging_errors(string_text, showing_traceback , print_on_screen ):
+    '''
+    Description:
+        The function will log the error information to file.
+    Input:
+        logger # contains the logger object
+        string_text # information text to include in the log
+
+    Variables:
+        subject # text to include in the subject email
+    '''
+    logger = logging.getLogger(__name__)
+    logger.error('-----------------    ERROR   ------------------')
+    logger.error(string_text )
+    if showing_traceback :
+        logger.error('Showing traceback: ',  exc_info=True)
+    logger.error('-----------------    END ERROR   --------------')
+    if print_on_screen :
+        from datetime import datetime
+        print('********* ERROR **********')
+        print(string_text)
+        print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        print('When processing run . Check log for detail information')
+        print('******* END ERROR ********')
+    return ''
+    
+def logging_warnings(string_text, print_on_screen ):
+    '''
+    Description:
+        The function will log the error information to file.
+        Optional can send an email to inform about the issue
+    Input:
+        logger # contains the logger object
+        string_text # information text to include in the log
+    '''
+    logger = logging.getLogger(__name__)
+    logger.warning('-----------------    WARNING   ------------------')
+    logger.warning(string_text )
+    logger.warning('-----------------    END WARNING   --------------')
+    if print_on_screen :
+        from datetime import datetime
+        print('******* WARNING ********')
+        print(string_text)
+        print(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        print('When processing run . Check log for detail information')
+        print('**** END WARNING *******')
+    return ''
+
 
 def read_xls_file (in_file, logger):
     '''
@@ -177,16 +226,19 @@ def junk ():
             'T': ['TAT', 'TAC'] }
     return True
 
-def check_program_is_exec_version (program, version, logger):
+def check_program_is_exec_version (program, version):
     # The function will check if the program is installed in your system and if the version
     # installed matched with the pre-requisites
+    logger = logging.getLogger(__name__)
     if shutil.which(program) is not None :
         # check version
         version_str= str(subprocess.check_output([program , '-version']))
         if version_str == "b''" :
             version_str = subprocess.getoutput( str (program + ' -version'))
         if not re.search(version, version_str):
-            logger.info('%s program does not have the right version ', program)
+            string_message = 'Invalid version of  ' + program 
+            logging_errors(string_message, False, True)
+            #logger.info('%s program does not have the right version ', program)
             print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
             return False
         return True
