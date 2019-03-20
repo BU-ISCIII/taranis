@@ -21,7 +21,7 @@ def check_arg (args=None) :
     Return:
         parser.parse_args()     # The variable contains the valid parameters
     '''
-    parser = argparse.ArgumentParser(prog = 'tara.py',
+    parser = argparse.ArgumentParser(prog = 'taranis.py',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description= 'Taranis is a set of utilities related to cgMSLST ')
 
@@ -97,7 +97,7 @@ def processing_create_schema (arguments) :
     return True
 
 if __name__ == '__main__' :
-    version = 'tara version 0.2.1'
+    version = 'taranis version 0.2.2'
     if len(sys.argv) == 1 :
         print( 'Mandatory parameters are missing to execute the program. \n ' ,'Usage: "tara.py  -help " for more information \n')
         exit (0)
