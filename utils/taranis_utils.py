@@ -257,6 +257,58 @@ def check_if_file_exists (filename, logger):
     return True
 
 
+
+def create_blastdb (file_name, db_name,db_type, logger ):
+    f_name = os.path.basename(file_name).split('.')
+    db_dir = os.path.join(db_name,f_name[0])
+    output_blast_dir = os.path.join(db_dir, f_name[0])
+    if not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir)
+            logger.debug(' Created local blast directory for Core Gene %s', f_name[0])
+        except:
+            logger.info('Cannot create directory for local blast database on Core Gene file %s' , f_name[0])
+            print ('Error when creating the directory %s for blastdb. ', db_dir)
+            exit(0)
+
+        blast_command = ['makeblastdb' , '-in' , file_name , '-parse_seqids', '-dbtype',  db_type, '-out' , output_blast_dir]
+        blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if blast_result.stderr:
+            logger.error('cannot create blast db for %s ', f_name[0])
+            logger.error('makeblastdb returning error code %s', blast_result.stderr)
+            return False
+
+    else:
+        logger.info('Skeeping the blastdb creation for %s, as it is already exists', f_name[0])
+    return True
+
+def check_blast (reference_allele, sample_files, db_name, logger) :
+    for s_file in sample_files:
+        f_name = os.path.basename(s_file).split('.')
+        dir_name = os.path.dirname(s_file)
+        blast_dir = os.path.join(dir_name, db_name,f_name[0])
+        blast_db = os.path.join(blast_dir,f_name[0])
+        if not os.path.exists(blast_dir) :
+            logger.error('Blast db folder for sample %s does not exist', f_name)
+            return False
+        cline = NcbiblastnCommandline(db=blast_db, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1, query=reference_allele)
+        out, err = cline()
+
+        psiblast_xml = StringIO(out)
+        blast_records = NCBIXML.parse(psiblast_xml)
+
+        for blast_record in blast_records:
+            locationcontigs = []
+            for alignment in blast_record.alignments:
+                # select the best match
+                for match in alignment.hsps:
+                    alleleMatchid = int((blast_record.query_id.split("_"))[-1])
+    return True
+
+
+
+
+
 def junk ():
     '''
     Description:

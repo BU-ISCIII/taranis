@@ -32,60 +32,6 @@ from taranis_configuration import *
 
 
 
-
-
-
-
-
-def create_blastdb (file_name, db_name,db_type, logger ):
-    f_name = os.path.basename(file_name).split('.')
-    db_dir = os.path.join(db_name,f_name[0])
-    output_blast_dir = os.path.join(db_dir, f_name[0])
-    if not os.path.exists(db_dir):
-        try:
-            os.makedirs(db_dir)
-            logger.debug(' Created local blast directory for Core Gene %s', f_name[0])
-        except:
-            logger.info('Cannot create directory for local blast database on Core Gene file %s' , f_name[0])
-            print ('Error when creating the directory %s for blastdb. ', db_dir)
-            exit(0)
-
-        blast_command = ['makeblastdb' , '-in' , file_name , '-parse_seqids', '-dbtype',  db_type, '-out' , output_blast_dir]
-        blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        if blast_result.stderr:
-            logger.error('cannot create blast db for %s ', f_name[0])
-            logger.error('makeblastdb returning error code %s', blast_result.stderr)
-            return False
-
-    else:
-        logger.info('Skeeping the blastdb creation for %s, as it is already exists', f_name[0])
-    return True
-
-def check_blast (reference_allele, sample_files, db_name, logger) :
-    for s_file in sample_files:
-        f_name = os.path.basename(s_file).split('.')
-        dir_name = os.path.dirname(s_file)
-        blast_dir = os.path.join(dir_name, db_name,f_name[0])
-        blast_db = os.path.join(blast_dir,f_name[0])
-        if not os.path.exists(blast_dir) :
-            logger.error('Blast db folder for sample %s does not exist', f_name)
-            return False
-        cline = NcbiblastnCommandline(db=blast_db, evalue=0.001, outfmt=5, max_target_seqs=10, max_hsps=10,num_threads=1, query=reference_allele)
-        out, err = cline()
-
-        psiblast_xml = StringIO(out)
-        blast_records = NCBIXML.parse(psiblast_xml)
-
-        for blast_record in blast_records:
-            locationcontigs = []
-            for alignment in blast_record.alignments:
-                # select the best match
-                for match in alignment.hsps:
-                    alleleMatchid = int((blast_record.query_id.split("_"))[-1])
-    return True
-
-
-
 def prepare_core_gene(core_gene_file_list, store_dir, first_allele_store_dir):
     '''
     Description:
@@ -112,7 +58,7 @@ def prepare_core_gene(core_gene_file_list, store_dir, first_allele_store_dir):
         file_list , first_alleles_list , schema_variability, schema_statistics
     '''
     logger = logging.getLogger(__name__)
-    logger.debug('Starting the function validate_sample_sheet' )
+    logger.debug('Starting the function prepare_core_gene' )
     
     schema_variability = {}
     schema_statistics = {}
@@ -141,12 +87,36 @@ def prepare_core_gene(core_gene_file_list, store_dir, first_allele_store_dir):
         schema_statistics[f_name[0]]=[statistics.mode(alleles_len), min(alleles_len), max(alleles_len)]
 
     logger.info('Completed preparation  for core genes files')
-    logger.debug('End the function validate_sample_sheet' )
+    logger.debug('End the function prepare_core_gene' )
     return file_list , first_alleles_list , schema_variability, schema_statistics
 
-def prepare_samples( sample_file_list, store_dir, logger):
+def prepare_samples( sample_file_list, store_dir, blast_dir):
+    '''
+    Description:
+        The function get the sample files and saves them
+        in a dictionary at the temporary cgMLST folder
+    Input:
+        sample_file_list  # list of the sample fasta files 
+        store_dir       # temporary folder to store the first
+                        alleles of each fasta file
+        first_allele_store_dir # temporary folder to store the first allele
+    Functions:
+        parsing_fasta_file_to_dict  # located at utils.taranis_utils
+        write_first_allele_seq      # located at utils.taranis_utils
+    Variable:
+        fasta_file_parsed_dict  # fasta file converted to dictionary
+        f_name          # file name to store the fasta dictionary
+        file_list       # list with the full path of the sample fasta files in binary format
+        first_alleles_list #l ist with the full path of the first alleles files
+        schema_variability  # dictionary to keep the schema variability for each core gene
+        schema_statistics   # dictionary to keep the schema statistics for each core gene
+    Return:
+        True if all checking are successful False if any of the check fails
+        file_list , first_alleles_list , schema_variability, schema_statistics
+    '''
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting the function prepare_samples' )
     file_list = []
-    blast_dir = os.path.join(store_dir,'blastdb')
 
     for fasta_file in sample_file_list:
         # parsing fasta file and get in the dictionary the id and the sequence
@@ -158,10 +128,10 @@ def prepare_samples( sample_file_list, store_dir, logger):
             pickle.dump(fasta_file_parsed_dict, f)
 
         # create local blast db for each core gene fasta file
-        if not create_blastdb(fasta_file, blast_dir, 'nucl' ,logger):
+        if not create_blastdb(fasta_file, blast_dir, 'nucl' ):
             print('Error when creating the blastdb for core gene files. Check log file for more information. \n ')
             return False
-
+    logger.debug('End function prepare_samples' )
     return file_list
 
 
@@ -1114,8 +1084,9 @@ def processing_allele_calling (arguments) :
     #######################################################
     # Prepare the samples files
     #######################################################
-    
-    sample_dict_files = prepare_samples (valid_sample_files, tmp_samples_dir)
+    tmp_samples_dir = os.path.join(arguments.outputdir,'tmp','samples')
+    blast_dir = os.path.join(tmp_samples_dir,'blastdb')
+    sample_dict_files = prepare_samples (valid_sample_files, tmp_samples_dir, blast_dir)
     if not sample_dict_files :
         print('There is an error while processing the saving temporary files. Check the log file to get more information \n')
         logger.info('Deleting the temporary directory to clean up the temporary files created')
