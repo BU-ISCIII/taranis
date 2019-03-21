@@ -14,44 +14,47 @@ import pandas as pd
 
 from taranis_configuration import *
 
-def open_log(log_name):
+
+def check_program_is_exec_version (program, version):
     '''
     Description:
-        This function open the log file with the configuration defined
-        on the config file (loging_config.ini)
-        The path for the logging config is defined on the application
-        configuration file.
+        The function will check if the program is installed in your
+        system and if the version installed matched or it is higher
+        with pre-requisites
     Input:
-        log_name    # Is the name that will be written inside the logfile
-    Variables:
-        log_folder  # directory extracted from log_name to create the folder
-        
+        program    # Is the program name 
+        version    # version of the software that was tested
     Return:
-        Error is return in case that config file does not exists
-        logger # containing the logging object
+        False is return in case that version is below 
+        True  if equal version or higher
     '''
-    logger = logging.getLogger(__name__) 
-    logging.basicConfig(filename=log_name, format='%(asctime)s %(funcName)-12s %(levelname)-8s %(lineno)s %(message)s')
-    
-    handler = logging.StreamHandler()
-    #logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-    try:
-        
-        log_folder = os.path.dirname(log_name)
-        if not os.path.isdir(log_folder) :
-            os.makedirs(log_folder)
-        
-        logger.info('--------------- LOG FILE -----------------')
-        logger.info('Log file has been created for process %s', log_name)
-    except:
-        print('------------- ERROR --------------')
-        print('Unable to create the logging file')
-        print('check that ', log_folder , ' path has write permissions')
-        print('------------------------------------------')
-        raise 
-    
-    return logger
+    logger = logging.getLogger(__name__)
+    logger.debug ('Starting function check_program_is_exec_version')
+    if shutil.which(program) is not None :
+        # check version
+        version_str= str(subprocess.check_output([program , '-version']))
+        if version_str == "b''" :
+            version_str = subprocess.getoutput( str (program + ' -version'))
+        if not re.search(version, version_str):
+            v_str = re.search(".*:\s+(\d\.\d).*", version_str)
+            v_float = float(v_str.groups(1)[0])
+            if v_float > float(version) :
+                logger.info('Found a higher version in the system')
+                logger.debug ('End function check_program_is_exec_version')
+                return True
+            else:
+                string_message = 'Invalid version of  ' + program 
+                logging_errors(string_message, False, True)
+                #logger.info('%s program does not have the right version ', program)
+                print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
+                return False
+        logger.debug ('End function check_program_is_exec_version')
+        return True
+    else:
+        logger.info('Cannot find %s installed on your system', program)
+        logger.debug ('End function check_program_is_exec_version with error')
+        return False
+
 
 
 def logging_errors(string_text, showing_traceback , print_on_screen ):
@@ -59,7 +62,7 @@ def logging_errors(string_text, showing_traceback , print_on_screen ):
     Description:
         The function will log the error information to file.
     Input:
-        logger # contains the logger object
+        print_on_screen # Boolean to print warning on screen
         string_text # information text to include in the log
 
     Variables:
@@ -86,7 +89,7 @@ def logging_warnings(string_text, print_on_screen ):
         The function will log the error information to file.
         Optional can send an email to inform about the issue
     Input:
-        logger # contains the logger object
+        print_on_screen # Boolean to print warning on screen
         string_text # information text to include in the log
     '''
     logger = logging.getLogger(__name__)
@@ -123,6 +126,8 @@ def read_xls_file (in_file, logger):
         'Error message' is returned in case excel file does not exists
         genes_prots_list is returned as a successful execution
     '''
+    logger = logging.getLogger(__name__)
+    logger.debug ('Starting function read_xls_file')
     logger.debug('opening the excel file : %s', in_file)
     try:
         wb = load_workbook(in_file)
@@ -146,6 +151,7 @@ def read_xls_file (in_file, logger):
         genes_prots_list.append(gene_prot)
     logger.info('Exiting the function ---read_xls_file-- ')
     logger.info('Returning back the gene/protein list' )
+    logger.debug ('End function read_xls_file')
     return genes_prots_list
 
 def download_fasta_locus (locus_list, output_dir, logger):
@@ -202,6 +208,22 @@ def check_if_file_exists (filename, logger):
 
 
 def junk ():
+    '''
+    Description:
+        The function will check if the program is installed in your
+        system and if the version installed matched or it is higher
+        with pre-requisites
+    Input:
+        program    # Is the program name 
+        version    # version of the software that was tested
+    Return:
+        False is return in case that version is below 
+        True  if equal version or higher
+    '''
+    
+    
+    
+    
     AA_codon = {
             'C': ['TGT', 'TGC'],
             'A': ['GAT', 'GAC'],
@@ -226,60 +248,60 @@ def junk ():
             'T': ['TAT', 'TAC'] }
     return True
 
-def check_program_is_exec_version (program, version):
-    '''
-    Description:
-        The function will check if the program is installed in your
-        system and if the version installed matched or it is higher
-        with pre-requisites
-    Input:
-        program    # Is the program name 
-        version    # version of the software that was tested
-    Return:
-        False is return in case that version is below 
-        True  if equal version or higher
-    '''
-    logger = logging.getLogger(__name__)
-    logger.debug ('Starting function check_program_is_exec_version')
-    if shutil.which(program) is not None :
-        # check version
-        version_str= str(subprocess.check_output([program , '-version']))
-        if version_str == "b''" :
-            version_str = subprocess.getoutput( str (program + ' -version'))
-        if not re.search(version, version_str):
-            v_str = re.search(".*:\s+(\d\.\d).*", version_str)
-            v_float = float(v_str.groups(1)[0])
-            if v_float > float(version) :
-                logger.info('Found a higher version in the system')
-                logger.debug ('End function check_program_is_exec_version')
-                return True
-            else:
-                string_message = 'Invalid version of  ' + program 
-                logging_errors(string_message, False, True)
-                #logger.info('%s program does not have the right version ', program)
-                print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
-                return False
-        logger.debug ('End function check_program_is_exec_version')
-        return True
-    else:
-        logger.info('Cannot find %s installed on your system', program)
-        logger.debug ('End function check_program_is_exec_version with error')
-        return False
+
+
 
 def is_fasta_file (file_name):
+    '''
+    Description:
+        The function will check if file has the fasta format 
+    Input:
+        file_name    # file name to check
+    Return:
+        False in case that does not have a fasta format 
+        True  if file is fasta
+    '''
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting the function is_fasta_file' )
+    logger.info('Reading file %s', file_name)
     with open (file_name, 'r') as fh:
         fasta = SeqIO.parse(fh, 'fasta')
-        return any(fasta)
+    
+    logger.debug('End the function is_fasta_file' )
+    return any(fasta)
 
-def get_fasta_file_list (check_directory,  logger):
+def get_fasta_file_list (check_directory):
+    '''
+    Description:
+        The function will get the list of the fasta files in the
+        directory
+    Input:
+        check_directory    # Is the program name 
+    Functions:
+        valid_files     # located at this file
+    Variable:
+        list_filtered_files # list of files that has the extension fasta
+        valid_files     # list containing all fasta files in directory 
+    Return:
+        False if director does not exist or not fasta files in directory.
+        valid_files list with fasta files in the directory 
+    '''
+    
+    
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting the function get_fasta_file_list' )
     if not os.path.isdir(check_directory):
-        logger.info('directory %s does not exists', check_directory)
+        string_message = 'directory ' + check_directory + ' does not exists'
+        logging_errors(string_message, False, False)
+        logger.debug('End the function get_fasta_file_list with error' )
         return False
     filter_files = os.path.join(check_directory, '*.fasta')
     list_filtered_files =  glob.glob(filter_files)
     list_filtered_files.sort()
     if len (list_filtered_files) == 0 :
-        logger.info('directory %s does not have any fasta file ', check_directory)
+        string_message = 'directory ' + check_directory + ' does not have any fasta file'
+        logging_errors(string_message, False, True)
+        logger.debug('End the function get_fasta_file_list with error' )
         return False
     valid_files = []
     for file_name in list_filtered_files:
@@ -292,6 +314,7 @@ def get_fasta_file_list (check_directory,  logger):
         logger.debug('Files in the directory are:  $s', list_filtered_files)
         return False
     else:
+        logger.debug('Starting the function get_fasta_file_list' )
         return valid_files
 
 def check_sequence_order(allele_sequence, logger) :
@@ -334,6 +357,20 @@ def hamming_distance (pd_matrix):
 
 
 def create_distance_matrix (input_dir, input_file):
+    '''
+    Description:
+        The function will check if the program is installed in your
+        system and if the version installed matched or it is higher
+        with pre-requisites
+    Input:
+        program    # Is the program name 
+        version    # version of the software that was tested
+    Return:
+        False is return in case that version is below 
+        True  if equal version or higher
+    '''
+    
+    
     try:
         result_file = os.path.join(input_dir, input_file)
         pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
@@ -356,3 +393,43 @@ def create_distance_matrix (input_dir, input_file):
         return 'Error'
 
     return True
+
+def open_log(log_name):
+    '''
+    Description:
+        This function open the log file with the configuration defined
+        on the config file (loging_config.ini)
+        The path for the logging config is defined on the application
+        configuration file.
+    Input:
+        log_name    # Is the name that will be written inside the logfile
+    Variables:
+        log_folder  # directory extracted from log_name to create the folder
+        
+    Return:
+        Error is return in case that config file does not exists
+        logger # containing the logging object
+    '''
+    logger = logging.getLogger(__name__) 
+    logging.basicConfig(filename=log_name, format='%(asctime)s %(funcName)-12s %(levelname)-8s %(lineno)s %(message)s')
+    
+    handler = logging.StreamHandler()
+    #logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+    try:
+        
+        log_folder = os.path.dirname(log_name)
+        if not os.path.isdir(log_folder) :
+            os.makedirs(log_folder)
+        
+        logger.info('--------------- LOG FILE -----------------')
+        logger.info('Log file has been created for process %s', log_name)
+    except:
+        print('------------- ERROR --------------')
+        print('Unable to create the logging file')
+        print('check that ', log_folder , ' path has write permissions')
+        print('------------------------------------------')
+        raise 
+    
+    return logger
+

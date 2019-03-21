@@ -32,13 +32,25 @@ from taranis_configuration import *
 
 
 def check_prerequisites ():
+    '''
+    Description:
+        The function check if  the external software
+        has the right version 
+    Functions:
+        check_program_is_exec_version # located at utils.taranis_utils 
+    Variable:
+        pre_requisite_list  # tupla list containing software and version
+        experiment_name # contains the experiment name from the sample sheet
+        library_name  # contains the library name from the sample sheet
+    Return:
+        True if all checking are successful False if any of the check fails
+    '''
     logger = logging.getLogger(__name__)
     logger.debug ('Starting function check_prerequisites')
     pre_requisite_list = [['blastp', '2.5'], ['makeblastdb' , '2.6']]
     # check if blast is installed and has the minimum version
     for program, version in pre_requisite_list :
         if not check_program_is_exec_version (program , version):
-           
             logger.debug ('End function check_prerequisites with error')
             return False
     logger.debug ('End function check_prerequisites')
@@ -1046,6 +1058,8 @@ def processing_allele_calling (arguments) :
         LOGGING_NAME
         LOGGING_FOLDER
     Functions:
+        open_log # located at utils.taranis_utils
+        check_prerequisites # located at this file
         
     Variables:
         run_metric_processed # True or False if there are some rows in
@@ -1055,29 +1069,33 @@ def processing_allele_calling (arguments) :
     '''
     start_time = datetime.now()
     print('Start the execution at :', start_time )
+
     # open log file
-    
     taranis_log = os.path.join(arguments.outputdir, LOGGING_FOLDER, LOGGING_NAME)
     logger = open_log (taranis_log)
     print('Checking the pre-requisites.\n')
+
     # check additional programs are installed in your system
     if not check_prerequisites ():
-    #if not check_prerequisites (logger):
         print ('your system does not fulfill the pre-requistes to run the script ')
         exit(0)
+
     ##############################################
     # Check that given directories contain fasta files
     ##############################################
     print('Validating schema fasta files in ' , arguments.coregenedir , '\n')
-    valid_core_gene_files = get_fasta_file_list(arguments.coregenedir, logger)
+    valid_core_gene_files = get_fasta_file_list(arguments.coregenedir)
     if not valid_core_gene_files :
-        print ('There are not valid  fasta files in ',  arguments.coregenedir , ' directory. Check log file for more information ')
+        string_message = 'There are not valid  fasta files in ' +  arguments.coregenedir  + ' directory.'
+        logging_errors(string_message, False, True)
         exit(0)
     print('Validating sample fasta files in ' , arguments.inputdir , '\n')
-    valid_sample_files = get_fasta_file_list(arguments.inputdir, logger)
+    valid_sample_files = get_fasta_file_list(arguments.inputdir)
     if not valid_sample_files :
-        print ('There are not valid  fasta files in ',  arguments.inputdir , ' directory. Check log file for more information ')
+        string_message = 'There are not valid  fasta files in ' +  arguments.inputdir  + ' directory.'
+        logging_errors(string_message, False, True)
         exit(0)
+
     ###############################
     # Prepare the coreMLST schema .
     ###############################
@@ -1085,21 +1103,22 @@ def processing_allele_calling (arguments) :
     try:
         os.makedirs(tmp_core_gene_dir)
     except:
-        logger.info('Deleting the temporary directory for a previous execution without cleaning up')
+        string_message = 'Deleting the temporary directory for a previous execution without cleaning up'
+        logging_warnings(string_message, True)
         shutil.rmtree(os.path.join(arguments.outputdir, 'tmp','cgMLST'))
         try:
             os.makedirs(tmp_core_gene_dir)
             logger.info ( 'Temporary folder %s  has been created again', tmp_core_gene_dir)
         except:
-            logger.info('Unable to create again the temporary directory %s', tmp_core_gene_dir)
-            print('Cannot create temporary directory on ', tmp_core_gene_dir)
+            string_message = 'Unable to create again the temporary directory ' + tmp_core_gene_dir
+            logging_errors(string_message, False, True)
             exit(0)
 
     core_gene_dict_files , core_first_alleles_files, schema_variability , schema_statistics = prepare_core_gene (valid_core_gene_files , tmp_core_gene_dir , logger)
     if not core_gene_dict_files :
         print('There is an error while processing the schema preparation phase. Check the log file to get more information \n')
         logger.info('Deleting the temporary directory to clean up the temporary files created')
-        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
+        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp','cgMLST'))
         exit(0)
 
     #######################################################
@@ -1109,22 +1128,22 @@ def processing_allele_calling (arguments) :
     try:
         os.makedirs(tmp_samples_dir)
     except:
-        logger.info('Deleting the temporary directory for a previous execution without properly cleaning up')
+        string_message = 'Deleting the temporary directory for a previous execution without cleaning up'
+        logging_warnings(string_message, True)
         shutil.rmtree(tmp_samples_dir)
         try:
             os.makedirs(tmp_samples_dir)
             logger.info ( 'Temporary folder %s  has been created again', tmp_samples_dir)
         except:
-            logger.info('Unable to create again the temporary directory %s', tmp_samples_dir)
-            shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
-            logger.info('Cleaned up temporary directory ', )
-            print('Cannot create temporary directory on ', tmp_samples_dir, 'Check the log file to get more information \n')
+            string_message = 'Unable to create again the temporary directory ' + tmp_samples_dir
+            logging_errors(string_message, False, True)
+            shutil.rmtree(os.path.join(arguments.outputdir, 'tmp','samples'))
             exit(0)
     sample_dict_files = prepare_samples (valid_sample_files, tmp_samples_dir, logger)
     if not sample_dict_files :
         print('There is an error while processing the saving temporary files. Check the log file to get more information \n')
         logger.info('Deleting the temporary directory to clean up the temporary files created')
-        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
+        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp', 'cgMLST'))
         exit(0)
 
     ### core schema annotation  #########
