@@ -15,7 +15,7 @@ import pickle
 
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import generic_dna
+#from Bio.Alphabet import generic_dna
 from Bio import Seq
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
@@ -31,52 +31,10 @@ from utils.taranis_utils import *
 from taranis_configuration import *
 
 
-def check_prerequisites ():
-    '''
-    Description:
-        The function check if  the external software
-        has the right version 
-    Functions:
-        check_program_is_exec_version # located at utils.taranis_utils 
-    Variable:
-        pre_requisite_list  # tupla list containing software and version
-        experiment_name # contains the experiment name from the sample sheet
-        library_name  # contains the library name from the sample sheet
-    Return:
-        True if all checking are successful False if any of the check fails
-    '''
-    logger = logging.getLogger(__name__)
-    logger.debug ('Starting function check_prerequisites')
-    pre_requisite_list = [['blastp', '2.5'], ['makeblastdb' , '2.6']]
-    # check if blast is installed and has the minimum version
-    for program, version in pre_requisite_list :
-        if not check_program_is_exec_version (program , version):
-            logger.debug ('End function check_prerequisites with error')
-            return False
-    logger.debug ('End function check_prerequisites')
-    return True
 
 
-def write_first_allele_seq(file_sequence, store_dir, logger):
-    #with open (file_name, 'r' ) as fh :
-    #seq_record = SeqIO.parse(open(file_name), "genbank").next()
-    first_allele_directory = 'first_alleles'
-    # split file_sequence into directory and filename
-    f_name = os.path.basename(file_sequence)
-    full_path_first_allele = os.path.join(store_dir, first_allele_directory)
-    if not os.path.exists(full_path_first_allele):
-        try:
-            os.makedirs(full_path_first_allele)
-            logger.info('Directory %s has been created', full_path_first_allele)
-        except:
-            print ('Cannot create the directory ', full_path_first_allele)
-            logger.info('Directory %s cannot be created', full_path_first_allele)
-            exit (0)
-    first_record = SeqIO.parse(file_sequence, "fasta").__next__()
-    # build the fasta file name to store under first_allele_firectory
-    fasta_file = os.path.join(full_path_first_allele, f_name)
-    SeqIO.write(first_record, fasta_file, "fasta")
-    return fasta_file
+
+
 
 
 def create_blastdb (file_name, db_name,db_type, logger ):
@@ -126,38 +84,55 @@ def check_blast (reference_allele, sample_files, db_name, logger) :
                     alleleMatchid = int((blast_record.query_id.split("_"))[-1])
     return True
 
-def parsing_fasta_file_to_dict (fasta_file, logger):
-    fasta_dict = {}
-    for contig in SeqIO.parse(fasta_file, "fasta", generic_dna):
-            fasta_dict[contig.id] = str(contig.seq.upper())
-    logger.debug('file %s parsed to dictionary', fasta_file)
-    return fasta_dict
 
-def prepare_core_gene(core_gene_file_list, store_dir, logger):
-    #check if directory exists and files have fasta files
-    #valid_core_gene_files = get_fasta_file_list(core_gene_dir, logger)
-    #if not valid_core_gene_files :
-    #    return False
-    #logger.debug('Schema files to be processed are : %s', valid_core_gene_files)
-    #processing the files in the schema
+
+def prepare_core_gene(core_gene_file_list, store_dir, first_allele_store_dir):
+    '''
+    Description:
+        The function get the core gene fasta files and saves them
+        in a dictionary at the temporary cgMLST folder
+    Input:
+        core_gene_file_list  # list of the core gene fasta files 
+        store_dir       # temporary folder to store the first
+                        alleles of each fasta file
+        first_allele_store_dir # temporary folder to store the first allele
+    Functions:
+        parsing_fasta_file_to_dict  # located at utils.taranis_utils
+        write_first_allele_seq      # located at utils.taranis_utils
+    Variable:
+        fasta_file_parsed_dict  # fasta file converted to dictionary
+        f_name          # file name to store the fasta dictionary
+        first_allele_store_dir # folder to store the first core gene allele
+        file_list       # list with the full path of the fasta files in binary format
+        first_alleles_list #l ist with the full path of the first alleles files
+        schema_variability  # dictionary to keep the schema variability for each core gene
+        schema_statistics   # dictionary to keep the schema statistics for each core gene
+    Return:
+        True if all checking are successful False if any of the check fails
+        file_list , first_alleles_list , schema_variability, schema_statistics
+    '''
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting the function validate_sample_sheet' )
+    
     schema_variability = {}
     schema_statistics = {}
     file_list = []
     first_alleles_list =[]
-    blast_dir = os.path.join(store_dir,'blastdb')
+    
+    #blast_dir = os.path.join(store_dir,'blastdb')
     logger.info('start preparation  of core genes files')
     for fasta_file in core_gene_file_list:
-
         # parsing fasta file and get in the dictionary the id and the sequence
-        fasta_file_parsed_dict = parsing_fasta_file_to_dict(fasta_file, logger)
-        f_name = os.path.basename(fasta_file).split('.')
-        file_list.append(os.path.join(store_dir, f_name[0]))
-        # dump fasta file into pickle file
+        fasta_file_parsed_dict = parsing_fasta_file_to_dict(fasta_file)
+        f_name = os.path.basename(fasta_file).split('.')[0]
+        file_list.append(os.path.join(store_dir, f_name))
+        # dump latest fasta file into pickle file
         with open (file_list[-1],'wb') as f:
             pickle.dump(fasta_file_parsed_dict, f)
         # create the first allele for each core gene file
         #### used only for gene annotation
-        first_alleles_list.append(write_first_allele_seq(fasta_file, store_dir, logger))
+        
+        first_alleles_list.append(write_first_allele_seq(fasta_file, first_allele_store_dir))
         alleles_len = []
         for allele in fasta_file_parsed_dict :
             alleles_len.append(len(fasta_file_parsed_dict[allele]))
@@ -165,6 +140,8 @@ def prepare_core_gene(core_gene_file_list, store_dir, logger):
         schema_variability[f_name[0]]=list(set(alleles_len))
         schema_statistics[f_name[0]]=[statistics.mode(alleles_len), min(alleles_len), max(alleles_len)]
 
+    logger.info('Completed preparation  for core genes files')
+    logger.debug('End the function validate_sample_sheet' )
     return file_list , first_alleles_list , schema_variability, schema_statistics
 
 def prepare_samples( sample_file_list, store_dir, logger):
@@ -1059,9 +1036,15 @@ def processing_allele_calling (arguments) :
         LOGGING_FOLDER
     Functions:
         open_log # located at utils.taranis_utils
-        check_prerequisites # located at this file
+        check_prerequisites # located at utils.taranis_utils
+        
+        prepare_core_gene  # located at this file
+        
         
     Variables:
+    
+        pre_requisite_list      # tupla list contating software name and version
+        
         run_metric_processed # True or False if there are some rows in
                             StatsRunSummary for this run
     Return:
@@ -1070,20 +1053,27 @@ def processing_allele_calling (arguments) :
     start_time = datetime.now()
     print('Start the execution at :', start_time )
 
+    # check if output directory does not have previous data in tmp
+    if os.path.isdir(os.path.join(arguments.outputdir, 'tmp')):
+        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
+        print ('deleted temporary files used in previous run \n')
+
     # open log file
     taranis_log = os.path.join(arguments.outputdir, LOGGING_FOLDER, LOGGING_NAME)
     logger = open_log (taranis_log)
+    pre_requisite_list = [['blastp', '2.6'], ['makeblastdb' , '2.6']]
     print('Checking the pre-requisites.\n')
-
     # check additional programs are installed in your system
-    if not check_prerequisites ():
-        print ('your system does not fulfill the pre-requistes to run the script ')
+    if not check_prerequisites (pre_requisite_list):
+        print ('Exiting program \n')
         exit(0)
+    else:
+        print('OK.   checked pre-requisites')
 
     ##############################################
-    # Check that given directories contain fasta files
+    # Check that given directories have fasta files
     ##############################################
-    print('Validating schema fasta files in ' , arguments.coregenedir , '\n')
+    print('Validating core gene fasta files in ' , arguments.coregenedir , '\n')
     valid_core_gene_files = get_fasta_file_list(arguments.coregenedir)
     if not valid_core_gene_files :
         string_message = 'There are not valid  fasta files in ' +  arguments.coregenedir  + ' directory.'
@@ -1097,24 +1087,24 @@ def processing_allele_calling (arguments) :
         exit(0)
 
     ###############################
-    # Prepare the coreMLST schema .
+    # create tmp folders .
+    ###############################
+    tmp_for_core_gene = os.path.join(arguments.outputdir,'tmp','cgMLST', 'first_alleles')
+    tmp_for_samples = os.path.join(arguments.outputdir,'tmp','samples', 'blastdb')
+
+    try:
+        os.makedirs(tmp_for_core_gene)
+        os.makedirs(tmp_for_samples)
+    except:
+        string_message = 'Unable to create temporary directories'
+        logging_errors(string_message, True, True)
+        exit(0)
+    ###############################
+    # Prepare the core genes files.
     ###############################
     tmp_core_gene_dir = os.path.join(arguments.outputdir,'tmp','cgMLST')
-    try:
-        os.makedirs(tmp_core_gene_dir)
-    except:
-        string_message = 'Deleting the temporary directory for a previous execution without cleaning up'
-        logging_warnings(string_message, True)
-        shutil.rmtree(os.path.join(arguments.outputdir, 'tmp','cgMLST'))
-        try:
-            os.makedirs(tmp_core_gene_dir)
-            logger.info ( 'Temporary folder %s  has been created again', tmp_core_gene_dir)
-        except:
-            string_message = 'Unable to create again the temporary directory ' + tmp_core_gene_dir
-            logging_errors(string_message, False, True)
-            exit(0)
-
-    core_gene_dict_files , core_first_alleles_files, schema_variability , schema_statistics = prepare_core_gene (valid_core_gene_files , tmp_core_gene_dir , logger)
+    tmp_first_allele_dir = os.path.join(tmp_core_gene_dir, 'first_alleles')
+    core_gene_dict_files , core_first_alleles_files, schema_variability , schema_statistics = prepare_core_gene (valid_core_gene_files , tmp_core_gene_dir , tmp_first_allele_dir)
     if not core_gene_dict_files :
         print('There is an error while processing the schema preparation phase. Check the log file to get more information \n')
         logger.info('Deleting the temporary directory to clean up the temporary files created')
@@ -1124,22 +1114,8 @@ def processing_allele_calling (arguments) :
     #######################################################
     # Prepare the samples files
     #######################################################
-    tmp_samples_dir = os.path.join(arguments.outputdir,'tmp','samples')
-    try:
-        os.makedirs(tmp_samples_dir)
-    except:
-        string_message = 'Deleting the temporary directory for a previous execution without cleaning up'
-        logging_warnings(string_message, True)
-        shutil.rmtree(tmp_samples_dir)
-        try:
-            os.makedirs(tmp_samples_dir)
-            logger.info ( 'Temporary folder %s  has been created again', tmp_samples_dir)
-        except:
-            string_message = 'Unable to create again the temporary directory ' + tmp_samples_dir
-            logging_errors(string_message, False, True)
-            shutil.rmtree(os.path.join(arguments.outputdir, 'tmp','samples'))
-            exit(0)
-    sample_dict_files = prepare_samples (valid_sample_files, tmp_samples_dir, logger)
+    
+    sample_dict_files = prepare_samples (valid_sample_files, tmp_samples_dir)
     if not sample_dict_files :
         print('There is an error while processing the saving temporary files. Check the log file to get more information \n')
         logger.info('Deleting the temporary directory to clean up the temporary files created')
@@ -1164,7 +1140,9 @@ def processing_allele_calling (arguments) :
     ##########   Modified to get all alleles instead of the first one  #############
     reference_query_directory = arguments.coregenedir
     blast_db_directory = os.path.join(tmp_samples_dir,'blastdb')
-    if not allele_call_nucleotides( core_gene_dict_files, reference_query_directory, sample_dict_files,  blast_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), int(arguments.percentlength) , schema_variability, logger):
+    if not allele_call_nucleotides( core_gene_dict_files, reference_query_directory, sample_dict_files,
+                                   blast_db_directory, arguments.inputdir, arguments.outputdir,
+                                   int(arguments.cpus), int(arguments.percentlength) , schema_variability):
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)
     # Create the distance matrix

@@ -9,10 +9,39 @@ import shutil
 import subprocess
 from Bio import SeqIO
 from Bio import Seq
+from Bio.Alphabet import generic_dna
+
 from openpyxl import load_workbook
 import pandas as pd
 
 from taranis_configuration import *
+
+
+
+def check_prerequisites (pre_requisite_list):
+    '''
+    Description:
+        The function check if  the external software
+        has the right version 
+    Functions:
+        check_program_is_exec_version # located at utils.taranis_utils 
+    Variable:
+        pre_requisite_list  # tupla list containing software and version
+        experiment_name # contains the experiment name from the sample sheet
+        library_name  # contains the library name from the sample sheet
+    Return:
+        True if all checking are successful False if any of the check fails
+    '''
+    logger = logging.getLogger(__name__)
+    logger.debug ('Starting function check_prerequisites')
+    # check if software is installed and has the minimum version
+    for program, version in pre_requisite_list :
+        if not check_program_is_exec_version (program , version):
+            logger.debug ('End function check_prerequisites with error')
+            return False
+    logger.info('')
+    logger.debug ('End function check_prerequisites')
+    return True
 
 
 def check_program_is_exec_version (program, version):
@@ -43,10 +72,8 @@ def check_program_is_exec_version (program, version):
                 logger.debug ('End function check_program_is_exec_version')
                 return True
             else:
-                string_message = 'Invalid version of  ' + program 
+                string_message = program + ' require version ' + version + 'but get ' + version_str
                 logging_errors(string_message, False, True)
-                #logger.info('%s program does not have the right version ', program)
-                print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
                 return False
         logger.debug ('End function check_program_is_exec_version')
         return True
@@ -105,6 +132,29 @@ def logging_warnings(string_text, print_on_screen ):
         print('**** END WARNING *******')
     return ''
 
+
+def parsing_fasta_file_to_dict (fasta_file):
+    '''
+    Description:
+        The function get the fasta file and converts it to dictionary.
+    Input:
+        fasta_file  # fasta file to convert to dictionary
+    Import:
+        SeqIO.parse
+    Variable:
+        fasta_dict  # dictionary containing fasta file
+    Return:
+        fasta_dict 
+    '''
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting the function validate_sample_sheet' )
+    
+    fasta_dict = {}
+    logger.info('Converting  %s to dictionary', fasta_file)
+    for contig in SeqIO.parse(fasta_file, "fasta", generic_dna):
+        fasta_dict[contig.id] = str(contig.seq.upper())
+    logger.debug('End the function validate_sample_sheet' )
+    return fasta_dict
 
 def read_xls_file (in_file, logger):
     '''
@@ -432,4 +482,30 @@ def open_log(log_name):
         raise 
     
     return logger
+
+def write_first_allele_seq(fasta_file, full_path_first_allele):
+    '''
+    Description:
+        The function get the fasta file to save the first allele in
+        the first allele temporary directory 
+    Input:
+        fasta_file      # fasta file to be processed
+        full_path_first_allele  # full path for saving first allele
+    Import:
+        SeqIO
+    Variable:
+        f_name      # fasta file name without extension
+        fasta_file  # full path to store the file
+    Return:
+        fasta_file
+    '''
+    # split file_sequence into directory and filename
+    f_name = os.path.basename(fasta_file)
+
+    first_record = SeqIO.parse(file_sequence, "fasta").__next__()
+    # build the fasta file name to store under first_allele_firectory
+    fasta_file = os.path.join(full_path_first_allele, f_name)
+    SeqIO.write(first_record, fasta_file, "fasta")
+
+    return fasta_file
 
