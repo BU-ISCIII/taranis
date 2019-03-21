@@ -34,7 +34,7 @@ from taranis_configuration import *
 def check_prerequisites ():
     logger = logging.getLogger(__name__)
     logger.debug ('Starting function check_prerequisites')
-    pre_requisite_list = [['blastp', '3.6'], ['makeblastdb' , '2.6']]
+    pre_requisite_list = [['blastp', '2.5'], ['makeblastdb' , '2.6']]
     # check if blast is installed and has the minimum version
     for program, version in pre_requisite_list :
         if not check_program_is_exec_version (program , version):

@@ -227,23 +227,43 @@ def junk ():
     return True
 
 def check_program_is_exec_version (program, version):
-    # The function will check if the program is installed in your system and if the version
-    # installed matched with the pre-requisites
+    '''
+    Description:
+        The function will check if the program is installed in your
+        system and if the version installed matched or it is higher
+        with pre-requisites
+    Input:
+        program    # Is the program name 
+        version    # version of the software that was tested
+    Return:
+        False is return in case that version is below 
+        True  if equal version or higher
+    '''
     logger = logging.getLogger(__name__)
+    logger.debug ('Starting function check_program_is_exec_version')
     if shutil.which(program) is not None :
         # check version
         version_str= str(subprocess.check_output([program , '-version']))
         if version_str == "b''" :
             version_str = subprocess.getoutput( str (program + ' -version'))
         if not re.search(version, version_str):
-            string_message = 'Invalid version of  ' + program 
-            logging_errors(string_message, False, True)
-            #logger.info('%s program does not have the right version ', program)
-            print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
-            return False
+            v_str = re.search(".*:\s+(\d\.\d).*", version_str)
+            v_float = float(v_str.groups(1)[0])
+            if v_float > float(version) :
+                logger.info('Found a higher version in the system')
+                logger.debug ('End function check_program_is_exec_version')
+                return True
+            else:
+                string_message = 'Invalid version of  ' + program 
+                logging_errors(string_message, False, True)
+                #logger.info('%s program does not have the right version ', program)
+                print ('Exiting script \n, Version of ' , program, 'does not fulfill the requirements')
+                return False
+        logger.debug ('End function check_program_is_exec_version')
         return True
     else:
         logger.info('Cannot find %s installed on your system', program)
+        logger.debug ('End function check_program_is_exec_version with error')
         return False
 
 def is_fasta_file (file_name):
