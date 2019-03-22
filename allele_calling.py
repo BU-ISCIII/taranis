@@ -54,7 +54,6 @@ def prepare_core_gene(core_gene_file_list, store_dir, first_allele_store_dir):
         schema_variability  # dictionary to keep the schema variability for each core gene
         schema_statistics   # dictionary to keep the schema statistics for each core gene
     Return:
-        True if all checking are successful False if any of the check fails
         file_list , first_alleles_list , schema_variability, schema_statistics
     '''
     logger = logging.getLogger(__name__)
@@ -94,25 +93,23 @@ def prepare_samples( sample_file_list, store_dir, blast_dir):
     '''
     Description:
         The function get the sample files and saves them
-        in a dictionary at the temporary cgMLST folder
+        in a dictionary at the temporary cgMLST folder.
+        Creates the blast database for each sample
     Input:
         sample_file_list  # list of the sample fasta files 
         store_dir       # temporary folder to store the first
                         alleles of each fasta file
-        first_allele_store_dir # temporary folder to store the first allele
+        blast_dir       # emporary folder to store blastdb
     Functions:
         parsing_fasta_file_to_dict  # located at utils.taranis_utils
-        write_first_allele_seq      # located at utils.taranis_utils
+        create_blastdb              # located at utils.taranis_utils
     Variable:
         fasta_file_parsed_dict  # fasta file converted to dictionary
         f_name          # file name to store the fasta dictionary
         file_list       # list with the full path of the sample fasta files in binary format
-        first_alleles_list #l ist with the full path of the first alleles files
-        schema_variability  # dictionary to keep the schema variability for each core gene
-        schema_statistics   # dictionary to keep the schema statistics for each core gene
     Return:
-        True if all checking are successful False if any of the check fails
-        file_list , first_alleles_list , schema_variability, schema_statistics
+        False if error occurs wen creating blast database 
+        file_list 
     '''
     logger = logging.getLogger(__name__)
     logger.debug('Starting the function prepare_samples' )
@@ -129,7 +126,8 @@ def prepare_samples( sample_file_list, store_dir, blast_dir):
 
         # create local blast db for each core gene fasta file
         if not create_blastdb(fasta_file, blast_dir, 'nucl' ):
-            print('Error when creating the blastdb for core gene files. Check log file for more information. \n ')
+            string_message = 'Error when creating the blastdb for ' + fasta_file
+            logging_errors(string_message, False, True)
             return False
     logger.debug('End function prepare_samples' )
     return file_list
@@ -349,7 +347,62 @@ def create_summary (samples_matrix_dict, logger) :
     return summary_result_list
 
 
-def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  sample_dict_files, blast_db_directory, inputdir, outputdir, cpus , percentlength, schema_variability, logger ):
+def allele_call_nucleotides ( core_gene_dict_files, core_gene_directory, tmp_first_allele_dir,
+                        sample_dict_files, blast_db_directory, inputdir,
+                        outputdir, cpus , percentlength, schema_variability ):
+    '''
+    Description:
+        The function fetch each core gene in the schema to find out the allele that
+        match at 100% of identity in each sample file.
+        If not match is found then the best match alignment is used to classify as:
+        PLOT, ASM, ALM, NIPH or LNF 
+        The information is stored in dictionaries 
+    Input:
+        core_gene_dict_files   #
+        core_gene_directory
+        tmp_first_allele_dir    # temporary folder containing first allele of core gene
+        sample_dict_files
+        blast_db_directory
+        inputdir
+        outputdir
+        cpus
+        percentlength
+        schema_variability
+    IMPORT:
+        SeqIO
+        
+    Functions:
+        
+         # located at utils.taranis_utils
+         # located at utils.taranis_utils
+        
+        
+    Variables:
+    
+        full_gene_list = []
+        samples_matrix_dict # to keep allele number
+        matching_genes_dict # to keep start and stop positions
+        inferred_counter = 0
+        inferred_alleles_dict # to keep track of the new inferred alleles
+        inf_dict  # Store the inferred alleles found for each sample
+        paralog_dict = {}
+        insertions_dict = {}
+        deletions_dict = {}
+        list_insertions = {} # list all insertions together with Sample file and core gene
+        list_deletions = {} # list all deletions together with Sample file and core gene
+        plot_dict = {}
+        snp_dict = {}
+        protein_dict = {}
+        match_alignment_dict = {}
+        
+        
+        
+        
+    Return:
+        
+    '''
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting the function allele_call_nucleotides' )
     full_gene_list = []
     samples_matrix_dict = {} # to keep allele number
     matching_genes_dict = {} # to keep start and stop positions
@@ -378,6 +431,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
     
     number_of_genes = len(core_gene_dict_files)
     print('Allele calling starts')
+    logger.info('Start processing allele calling')
     pbar = ProgressBar ()
     for core_file in pbar(core_gene_dict_files) :
     #for core_file in core_gene_dict_files:
@@ -385,12 +439,12 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
         full_gene_list.append(os.path.basename(core_file))
         logger.info('Processing core gene file %s ', core_file)
         core_name = os.path.basename(core_file)
-        reference_query = os.path.join(reference_query_directory, str( core_name + '.fasta'))
+        reference_query = os.path.join(core_gene_directory, str( core_name + '.fasta'))
         with open (core_file, 'rb') as core_f:
             core_dict = pickle.load(core_f)
         logger.debug('load in memory the core file %s ', core_file)
-        # get the reference allele to be used to find the SNP
-        core_first_allele_file = os.path.join(outputdir, 'tmp', 'cgMLST', 'first_alleles',core_name + '.fasta')
+        # get the reference allele to be used to find  SNPs
+        core_first_allele_file = os.path.join(tmp_first_allele_dir ,core_name + '.fasta')
         reference_allele_for_snp = str(SeqIO.parse(core_first_allele_file, 'fasta').__next__().seq)
         query_length = len(reference_allele_for_snp)
         
@@ -846,7 +900,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
 
                 print ('ERROR when looking the allele match for core gene ', core_name, 'at sample ', sample_value )
 
-
+    logger.info('End processing allele calling')
 
 
     print ('Saving results to files \n')
@@ -988,7 +1042,7 @@ def allele_call_nucleotides ( core_gene_dict_files, reference_query_directory,  
                 td_fh.write(tree_line)
 
                 
-
+    logger.debug('End the function allele_call_nucleotides' )
     return True
 
 
@@ -1005,20 +1059,26 @@ def processing_allele_calling (arguments) :
         LOGGING_NAME
         LOGGING_FOLDER
     Functions:
-        open_log # located at utils.taranis_utils
+        
         check_prerequisites # located at utils.taranis_utils
-        
+        open_log # located at utils.taranis_utils
         prepare_core_gene  # located at this file
-        
+        prepare_samples    # located at this file
         
     Variables:
     
         pre_requisite_list      # tupla list contating software name and version
         
-        run_metric_processed # True or False if there are some rows in
-                            StatsRunSummary for this run
+        
+        tmp_for_core_gene   # used to create the temporary folders for core gene
+                                has the path tmp/cgMLST/first_alleles
+        tmp_for_samples     # used to create the temporary folders for samples
+                                has the path tmp/samples/blastdb
+        tmp_core_gene_dir   # has the path tmp/cgMLST
+        tmp_first_allele_dir # has the path tmp/cgMLST/first_alleles
+        
     Return:
-        experiment_name if the run is updated. Empty if not
+        
     '''
     start_time = datetime.now()
     print('Start the execution at :', start_time )
@@ -1107,12 +1167,11 @@ def processing_allele_calling (arguments) :
 
 
     '''
-    #reference_query_directory = os.path.join(tmp_core_gene_dir,'first_alleles')
-    ##########   Modified to get all alleles instead of the first one  #############
-    reference_query_directory = arguments.coregenedir
-    blast_db_directory = os.path.join(tmp_samples_dir,'blastdb')
-    if not allele_call_nucleotides( core_gene_dict_files, reference_query_directory, sample_dict_files,
-                                   blast_db_directory, arguments.inputdir, arguments.outputdir,
+
+    #blast_db_directory = os.path.join(tmp_samples_dir,'blastdb')
+    if not allele_call_nucleotides( core_gene_dict_files, arguments.coregenedir,
+                                   tmp_first_allele_dir, sample_dict_files,
+                                   blast_dir, arguments.inputdir, arguments.outputdir,
                                    int(arguments.cpus), int(arguments.percentlength) , schema_variability):
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)

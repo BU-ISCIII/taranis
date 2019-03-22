@@ -471,16 +471,16 @@ def create_distance_matrix (input_dir, input_file):
         False is return in case that version is below 
         True  if equal version or higher
     '''
-    
+    logger = logging.getLogger(__name__)
+    logger.debug('Starting the function create_distance_matrix' )
     
     try:
         result_file = os.path.join(input_dir, input_file)
         pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
     except Exception as e:
-        print('------------- ERROR --------------')
-        print('Unable to open the matrix distance file')
-        print('Check in the logging configuration file')
-        print('------------------------------------------')
+        string_message = 'Unable to open the matrix distance file'
+        logging_errors (string_message, False, True)
+        logger.debug('End the function create_distance_matrix with error' )
         return 'Error'
 
     distance_matrix = hamming_distance (pd_matrix)
@@ -488,12 +488,11 @@ def create_distance_matrix (input_dir, input_file):
     try:
         distance_matrix.to_csv(out_file, sep = '\t')
     except Exception as e:
-        print('------------- ERROR --------------')
-        print('Unable to create the matrix distance file')
-        print('Check in the logging configuration file')
-        print('------------------------------------------')
+        string_message = 'Unable to create the matrix distance file'
+        logging_errors (string_message, False, True)
+        logger.debug('End the function create_distance_matrix with error' )
         return 'Error'
-
+    logger.debug('End the function create_distance_matrix' )
     return True
 
 def open_log(log_name):
