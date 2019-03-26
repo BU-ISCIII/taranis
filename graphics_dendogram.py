@@ -1,7 +1,14 @@
 import pandas as pd
 import os
+from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
+
+import plotly.graph_objs as go
+import plotly.io as pio
+
+import plotly.figure_factory as ff
+
 
 from utils.taranis_utils import *
 from taranis_configuration import *
@@ -27,42 +34,26 @@ def create_dendogram_graphic (out_file, label_list, clustering_matrix, method, m
     '''
     logger = logging.getLogger(__name__)
     logger.debug('Starting the function create_graphic' )
+    import plotly.plotly as py
+    import plotly.figure_factory as ff
     
+    #fig = go.Figure()
+    import pdb; pdb.set_trace()
+    dendro = ff.create_dendrogram(clustering_matrix, labels=label_list)
+    dendro['layout'].update({'width':800, 'height':500})
+    plotly.offline.iplot(dendro, filename='simple_dendrogram')
+    py.iplot(dendro, filename='simple_dendrogram')
+    
+    try:
+        print()
+    except:
+        string_message = 'Unable to create ouput directory'
+        logging_errors(string_message, True, True)
+        return 'ERROR'
     
     logger.debug('End the function create_graphic' )
     return True
 
-def hamming_distance (pd_matrix):
-    '''
-    Description:
-        This function will perform the distance matrix for a given panda dataframe.
-    Input:
-        pd_matrix   # panda dataframe to calculate the hamming distance 
-    Variables:
-        H   # Distance matrix
-        U   # Binary matrix to used to calculate the distance
-        unique_values   # unique values to iterate for the distance algorithm
-    Return:
-        H   # matrix containg the hamming matrix
-    '''
-    logger = logging.getLogger(__name__)
-    logger.debug('Starting the function hamming_distance' )
-    unique_values = pd.unique(pd_matrix[list(pd_matrix.keys())].values.ravel('K'))
-    # Create binary matrix ('1' or '0' ) matching the input matrix vs the unique_values[0]
-    # astype(int) is used to transform the boolean matrix into integer
-    U = pd_matrix.eq(unique_values[0]).astype(int)
-    # multiply the matrix with the transpose
-    H = U.dot(U.T)
-    logger.info('Start distance calculation')
-    
-    # Repeat for each unique value
-    for unique_val in range(1,len(unique_values)):
-        U = pd_matrix.eq(unique_values[unique_val]).astype(int)
-        # Add the value of the binary matrix with the previous stored values
-        H = H.add(U.dot(U.T))
-    
-    logger.debug('End the function hamming_distance' )
-    return len(pd_matrix.columns) - H  #,  H #H.div(len(pd_matrix.columns))
 
 def create_dendogram_from_distance (arguments):
     '''
@@ -89,6 +80,20 @@ def create_dendogram_from_distance (arguments):
     '''
     start_time = datetime.now()
     print('Start the execution at :', start_time )
+    # create temporary folder to store the log
+    if os.path.isdir(os.path.join(arguments.outputdir,LOGGING_FOLDER)) :
+        print( 'Reusing the log folder for a previous execution \n')
+    else:
+        try:
+            os.makedirs(os.path.join(arguments.outputdir,LOGGING_FOLDER))
+        except :
+            print ('Unable to create folder log \n')
+            return 'ERROR'
+    
+    # open log file
+    taranis_log = os.path.join(arguments.outputdir, LOGGING_FOLDER, LOGGING_NAME)
+    logger = open_log (taranis_log)
+    
     # check if input files exists
     if not os.path.isfile(arguments.file_distance):
         print ('File ',arguments.file_distance, ' does not exist')
@@ -101,15 +106,12 @@ def create_dendogram_from_distance (arguments):
             logging_errors(string_message, True, True)
             return 'ERROR'
     
-    # open log file
-    taranis_log = os.path.join(arguments.outputdir, LOGGING_FOLDER, LOGGING_NAME)
-    logger = open_log (taranis_log)
     
+    logger.info('Opening the input file %s', arguments.file_distance)
     pd_matrix = pd.read_csv(arguments.file_distance, sep='\t', header=0, index_col=0)
-    distance_matrix = hamming_distance (pd_matrix)
-    logger.info('Saving the matrix distance ')
-    out_file = os.path.join(arguments.outputdir, 'matrix_distance.tsv')
-    matrix_for_distance.to_csv(out_file, sep = '\t')
+    result = create_distance_matrix (arguments.file_distance, arguments.outputdir)
+    if result == 'ERROR' :
+        return 'ERROR'
 
     #logger.info('Converting distance matrix to cluster')
     #clustering_matrix = linkage(distance_matrix)
