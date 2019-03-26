@@ -124,12 +124,14 @@ if __name__ == '__main__' :
     elif arguments.chosen_action == 'create_schema' :
         result = processing_create_schema(arguments)
     elif arguments.chosen_action == 'dendogram' :
-        result = graphics_cdendogram(arguments)
+        result = graphics_dendogram.create_dendogram_from_distance (arguments)
     else:
         import pdb; pdb.set_trace()
         print('not allowed option. Exiting the program')
         exit (0)
-
-    print('completed')
+    if 'ERROR' in result:
+        print('Unsuccessful execution')
+    else:
+        print('completed')
 
 
