@@ -109,8 +109,9 @@ def create_dendogram_from_distance (arguments):
     
     logger.info('Opening the input file %s', arguments.file_distance)
     pd_matrix = pd.read_csv(arguments.file_distance, sep='\t', header=0, index_col=0)
-    result = create_distance_matrix (arguments.file_distance, arguments.outputdir)
-    if result == 'ERROR' :
+    try:
+        distance_matrix = create_distance_matrix (arguments.file_distance, arguments.outputdir)
+    except Exception as e:
         return 'ERROR'
 
     #logger.info('Converting distance matrix to cluster')
@@ -119,7 +120,8 @@ def create_dendogram_from_distance (arguments):
     logger.info('Prepare graphic')
     out_file = os.path.join(arguments.outputdir, 'dendogram')
     label_list =  list(distance_matrix.index)
-    
+    method = 'complete'
+    metric = 'euclidean'
     try:
         create_dendogram_graphic (out_file, label_list, distance_matrix, method, metric)
     except:

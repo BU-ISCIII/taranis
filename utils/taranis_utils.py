@@ -468,10 +468,9 @@ def create_distance_matrix (input_file, output_dir):
     Description:
         The function will open the tsv,  result of the allele calling execution 
     Input:
-        input_file    # Is the program name 
+        input_file    # Is 
     Return:
-        False is return in case that version is below 
-        True  if equal version or higher
+        distance_matrix 
     '''
     logger = logging.getLogger(__name__)
     logger.debug('Starting the function create_distance_matrix' )
@@ -494,7 +493,7 @@ def create_distance_matrix (input_file, output_dir):
         logger.debug('End the function create_distance_matrix with error' )
         raise e
     logger.debug('End the function create_distance_matrix' )
-    return True
+    return distance_matrix
 
 def open_log(log_name):
     '''
