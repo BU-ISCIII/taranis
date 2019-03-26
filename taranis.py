@@ -4,6 +4,7 @@ import argparse
 import allele_calling
 #import analyze_schema
 import create_schema
+import graphics_dendogram
 from taranis_configuration import *
 
 def check_arg (args=None) :
@@ -79,7 +80,16 @@ def check_arg (args=None) :
                                       + 'will be stored. If directory exists it will be prompt for '
                                       + 'deletion confirmation.')
 
-
+    ### Input parameters for schema evaluation options
+    dendogram_graphics_parser = subparser.add_parser('dendogram',
+                                    help = 'Create dendogram graphics from distance matrix file.')
+    dendogram_graphics_parser.add_argument ('-f', '--file_distance', required=True,
+                                    help ='File name which contains the distance matrix, in tsv format')
+    dendogram_graphics_parser.add_argument ('-o', '--outputdir', required= True,
+                                    help ='Directory to store the graphics')
+    dendogram_graphics_parser.add_argument ('-e', '--exclude', required= False,  nargs='+',
+                                    help ='Select the samples that will be removed in the graphic creations')
+    
     return parser.parse_args()
 
 
@@ -113,7 +123,10 @@ if __name__ == '__main__' :
         result = processing_compare_schema(arguments)
     elif arguments.chosen_action == 'create_schema' :
         result = processing_create_schema(arguments)
+    elif arguments.chosen_action == 'dendogram' :
+        result = graphics_cdendogram(arguments)
     else:
+        import pdb; pdb.set_trace()
         print('not allowed option. Exiting the program')
         exit (0)
 
