@@ -463,25 +463,19 @@ def hamming_distance (pd_matrix):
     return len(pd_matrix.columns) - H  #,  H #H.div(len(pd_matrix.columns))
 
 
-def create_distance_matrix (input_file, output_dir):
+def create_distance_matrix (pd_matrix, output_dir):
     '''
     Description:
         The function will open the tsv,  result of the allele calling execution 
     Input:
-        input_file    # Is 
+        pd_matrix    # Is the pandas dataframe matrix 
     Return:
         distance_matrix 
     '''
     logger = logging.getLogger(__name__)
     logger.debug('Starting the function create_distance_matrix' )
     
-    try:
-        pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
-    except Exception as e:
-        string_message = 'Unable to open the matrix distance file'
-        logging_errors (string_message, False, True)
-        logger.debug('End the function create_distance_matrix with error' )
-        raise e
+    
 
     distance_matrix = hamming_distance (pd_matrix)
     out_file = os.path.join(output_dir, 'matrix_distance.tsv')

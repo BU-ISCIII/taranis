@@ -50,10 +50,10 @@ def create_dendogram_graphic (out_file, label_list, clustering_matrix, method, m
     
     try:
         pio.write_image(dendro, file=out_file, format = 'png')
-    except:
-        string_message = 'Unable to create ouput directory'
+    except Exception as e :
+        string_message = 'Unable to create ouput picture file'
         logging_errors(string_message, True, True)
-        return 'ERROR'
+        raise
     import pdb; pdb.set_trace()
     logger.debug('End the function create_graphic' )
     return True
@@ -111,10 +111,33 @@ def create_dendogram_from_distance (arguments):
             return 'ERROR'
     
     
+    
     logger.info('Opening the input file %s', arguments.file_distance)
-    pd_matrix = pd.read_csv(arguments.file_distance, sep='\t', header=0, index_col=0)
     try:
-        distance_matrix = create_distance_matrix (arguments.file_distance, arguments.outputdir)
+        pd_matrix = pd.read_csv(arguments.file_distance, sep='\t', header=0, index_col=0)
+    except Exception as e:
+        string_message = 'Unable to open the matrix distance file'
+        logging_errors (string_message, False, True)
+        logger.debug('End the function create_distance_matrix with error' )
+        return 'ERROR'
+    
+    
+    if arguments.exclude :
+        indexes = pd_matrix.index.tolist()
+        for be_excluded in arguments.exclude :
+            #if be_excluded in indexes :
+            try:
+                index_to_remove = indexes.index(be_excluded)
+                logger.info('Deleting index %s in panda matrix', be_excluded)
+                pd_matrix = pd_matrix.drop(pd_matrix.index[index_to_remove])
+            except ValueError as e:
+                import pdb; pdb.set_trace()
+                string_message = 'Index ' + be_excluded + ' does not found in file distance'
+                logging_errors (string_message, False, True)
+                return 'ERROR'
+    import pdb; pdb.set_trace()
+    try:
+        distance_matrix = create_distance_matrix (pd_matrix, arguments.outputdir)
     except Exception as e:
         return 'ERROR'
 
