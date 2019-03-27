@@ -474,8 +474,6 @@ def create_distance_matrix (pd_matrix, output_dir):
     '''
     logger = logging.getLogger(__name__)
     logger.debug('Starting the function create_distance_matrix' )
-    
-    
 
     distance_matrix = hamming_distance (pd_matrix)
     out_file = os.path.join(output_dir, 'matrix_distance.tsv')
