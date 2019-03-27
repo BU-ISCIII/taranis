@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
 
-import plotly.graph_objs as go
+#import plotly.graph_objs as go
 import plotly.io as pio
 
 import plotly.figure_factory as ff
@@ -34,23 +34,27 @@ def create_dendogram_graphic (out_file, label_list, clustering_matrix, method, m
     '''
     logger = logging.getLogger(__name__)
     logger.debug('Starting the function create_graphic' )
-    import plotly.plotly as py
-    import plotly.figure_factory as ff
-    
+    #import plotly.plotly as py
+    #import plotly.figure_factory as ff
+    #import plotly.graph_objs as go
+    #import plotly.io as pio
+    #import plotly
     #fig = go.Figure()
-    import pdb; pdb.set_trace()
+    
     dendro = ff.create_dendrogram(clustering_matrix, labels=label_list)
     dendro['layout'].update({'width':800, 'height':500})
-    plotly.offline.iplot(dendro, filename='simple_dendrogram')
-    py.iplot(dendro, filename='simple_dendrogram')
+    #plotly.offline.iplot(dendro, filename='simple_dendrogram')
+    #py.iplot(dendro, filename='simple_dendrogram')
+
+    
     
     try:
-        print()
+        pio.write_image(dendro, file=out_file, format = 'png')
     except:
         string_message = 'Unable to create ouput directory'
         logging_errors(string_message, True, True)
         return 'ERROR'
-    
+    import pdb; pdb.set_trace()
     logger.debug('End the function create_graphic' )
     return True
 
@@ -118,7 +122,7 @@ def create_dendogram_from_distance (arguments):
     #clustering_matrix = linkage(distance_matrix)
     
     logger.info('Prepare graphic')
-    out_file = os.path.join(arguments.outputdir, 'dendogram')
+    out_file = os.path.join(arguments.outputdir, 'dendogram.png')
     label_list =  list(distance_matrix.index)
     method = 'complete'
     metric = 'euclidean'
