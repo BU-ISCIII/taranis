@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
 import logging
-#from logging.config import fileConfig
-#from logging.handlers import RotatingFileHandler
+
 import os
 import re
 import glob
@@ -15,8 +13,6 @@ from openpyxl import load_workbook
 import pandas as pd
 
 from taranis_configuration import *
-
-
 
 def check_prerequisites (pre_requisite_list):
     '''

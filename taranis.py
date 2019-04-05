@@ -93,19 +93,15 @@ def check_arg (args=None) :
     return parser.parse_args()
 
 
-def processing_evaluate_schema (arguments) :
-    print ('evaluate_schema')
-
-    return True
 
 def processing_compare_schema (arguments) :
-    print ('compare_schema')
-    return True
+    print ('compare_schema \n', 'Not implemented yet')
+    return 'ERROR'
 
 def processing_create_schema (arguments) :
-    print ('create_schema')
-    create_schema.processing_create_schema(arguments)
-    return True
+    print ('create_schema \n', 'Not implemented yet')
+    #create_schema.processing_create_schema(arguments)
+    return 'ERROR'
 
 if __name__ == '__main__' :
     version = 'taranis version 0.3.5'
@@ -126,7 +122,6 @@ if __name__ == '__main__' :
     elif arguments.chosen_action == 'dendogram' :
         result = graphics_dendogram.create_dendogram_from_distance (arguments)
     else:
-        import pdb; pdb.set_trace()
         print('not allowed option. Exiting the program')
         exit (0)
     if 'ERROR' in result:
