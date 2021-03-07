@@ -60,7 +60,7 @@ def open_log(log_name):
         return 'Error'
     return logger
 
-def read_xls_file (in_file, logger):
+def read_xls_file (in_file, logger): ### No se está usando
     '''
     Description:
         This function open the Excel file enter by the user in the xlsfile parameter
@@ -105,7 +105,7 @@ def read_xls_file (in_file, logger):
     logger.info('Returning back the gene/protein list' )
     return genes_prots_list
 
-def download_fasta_locus (locus_list, output_dir, logger):
+def download_fasta_locus (locus_list, output_dir, logger): ### No se está usando
     '''
     Description:
         This function will download the protein sequence.
@@ -141,7 +141,7 @@ def download_fasta_locus (locus_list, output_dir, logger):
 
 
 
-def check_if_file_exists (filename, logger):
+def check_if_file_exists (filename, logger): ### No se está usando
     '''
     Description:
         This function will check if the file exists
@@ -158,7 +158,7 @@ def check_if_file_exists (filename, logger):
     return True
 
 
-def junk ():
+def junk (): ### No se está usando
     AA_codon = {
             'C': ['TGT', 'TGC'],
             'A': ['GAT', 'GAC'],
@@ -227,14 +227,30 @@ def get_fasta_file_list (check_directory,  logger):
         return False
     else:
         return valid_files
-
+"""
 def check_sequence_order(allele_sequence, logger) :
     start_codon_forward= ['ATG','ATA','ATT','GTG', 'TTG']
     start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
+    
     # check forward direction
     if allele_sequence[0:3] in start_codon_forward :
         return 'forward'
     if allele_sequence[len(allele_sequence) -3: len(allele_sequence)] in start_codon_reverse :
+        return 'reverse'
+    return "Error"
+"""
+
+def check_sequence_order(allele_sequence, logger): ### cambiando/modificando: introducido checkeo también del codón de stop, no solo el de inicio, ya que el alelo puede estar incompleto. En los casos en los que no tiene ni codón de inicio ni de final, va a devolver error.
+    start_codon_forward= ['ATG','ATA','ATT','GTG', 'TTG']
+    start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
+
+    stop_codons_forward = ['TAA', 'TAG','TGA']
+    stop_codons_reverse = ['ATT', 'ATC','ACT']
+    
+    # check direction
+    if allele_sequence[0:3] in start_codon_forward or allele_sequence[-3:] in stop_codons_forward: 
+        return 'forward'
+    if allele_sequence[-3:] in start_codon_reverse or allele_sequence[0:3] in stop_codons_reverse:
         return 'reverse'
     return "Error"
 

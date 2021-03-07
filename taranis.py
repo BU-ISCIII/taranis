@@ -38,6 +38,8 @@ def check_arg (args=None) :
                                     help = 'Directory where the core gene files are located ')
     allele_calling_parser.add_argument('-inputdir', required= True,
                                     help ='Directory where are located the sample fasta files')
+    allele_calling_parser.add_argument('-refgenome', required= True,
+                                    help = 'Reference genome file for genes prediction') ### cambiando/modificiando: introduciendo genoma de referencia para predicción de genes con prodigal
     allele_calling_parser.add_argument('-outputdir', required= True,
                                     help = 'Directory where the result files will be stored')
     allele_calling_parser.add_argument('-cpus', required= False,
@@ -47,9 +49,14 @@ def check_arg (args=None) :
                                     help = 'Create a new schema with the new locus found. Default is True.',
                                     default = True)
     allele_calling_parser.add_argument('-percentlength', required=False,
-                                    help = 'Allowed length percentage to be considered as ASM or ALM. '
-                                    + 'Outside of this limit it is considered as LNF Default is 20.',
-                                    default = 20)
+                                    help = 'Allowed length percentage to be considered as INF. '
+                                    + 'Outside of this limit it is considered as ASM or ALM. Default is SD.',
+                                    default = 'SD') ### cambiando/modificando: percentlength por defecto SD
+    allele_calling_parser.add_argument('-coverage', required=False,
+                                    help = 'Coverage threshold to exclude found sequences. '
+                                    + 'Outside of this limit it is considered LNF. Default is 50%.',
+                                    default = '50') ### cambiando/modificando: incluyendo -coverage como argumento. 50% por defecto de momento
+
 
     ### Input parameters for schema evaluation options
     evaluate_schema_parser = subparser.add_parser('evaluate_schema',
