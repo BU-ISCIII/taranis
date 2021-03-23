@@ -35,75 +35,83 @@ def check_arg (args=None) :
     ### Input parameters for allele calling option
     allele_calling_parser = subparser.add_parser('allele_calling',
                                     help = 'Allele calling way to downloads the  schema locus')
-    allele_calling_parser.add_argument('-coregenedir', required= True,
+    allele_calling_parser.add_argument('-coregenedir', required = True,
                                     help = 'Directory where the core gene files are located ')
-    allele_calling_parser.add_argument('-refalleles', required= True,
+    allele_calling_parser.add_argument('-refalleles', required = True,
                                     help = 'Directory where the core gene references files are located ') ### cambiando/modificando: añadiendo path a alelos de referencia de cada locus del esquema
-    allele_calling_parser.add_argument('-inputdir', required= True,
+    allele_calling_parser.add_argument('-inputdir', required = True,
                                     help ='Directory where are located the sample fasta files')
-    allele_calling_parser.add_argument('-refgenome', required= True,
+    allele_calling_parser.add_argument('-refgenome', required = True,
                                     help = 'Reference genome file for genes prediction') ### cambiando/modificiando: introduciendo genoma de referencia para predicción de genes con prodigal
-    allele_calling_parser.add_argument('-outputdir', required= True,
+    allele_calling_parser.add_argument('-outputdir', required = True,
                                     help = 'Directory where the result files will be stored')
-    allele_calling_parser.add_argument('-cpus', required= False,
+    allele_calling_parser.add_argument('-cpus', required = False,
                                     help = 'Number of CPUS to be used in the program. Default is 1.',
                                     default = 1)
-    allele_calling_parser.add_argument('-percentlength', required=False,
+    allele_calling_parser.add_argument('-percentlength', required = False,
                                     help = 'Allowed length percentage to be considered as INF. '
                                     + 'Outside of this limit it is considered as ASM or ALM. Default is SD.',
                                     default = 'SD') ### c/m: percentlength por defecto SD
-    allele_calling_parser.add_argument('-coverage', required=False,
+    allele_calling_parser.add_argument('-coverage', required = False,
                                     help = 'Coverage threshold to exclude found sequences. '
                                     + 'Outside of this limit it is considered LNF. Default is 50 %.',
                                     default = 50) ### c/m: incluyendo -coverage como argumento. 50% por defecto de momento
-    allele_calling_parser.add_argument('-evalue', required=False,
+    allele_calling_parser.add_argument('-evalue', required = False,
                                     help = 'E-value in BLAST searches. Default is 0.001. ',
                                     default = 0.001) ### c/m: introduciendo evalue como argumento
-    allele_calling_parser.add_argument('-perc_identity_ref', required=False,
+    allele_calling_parser.add_argument('-perc_identity_ref', required = False,
                                     help = 'Identity percent in BLAST searches using reference alleles for each locus detection in samples. Default is 90 %. ',
                                     default = 90) ### c/m: introduciendo perc_ident_ref como argumento
-    allele_calling_parser.add_argument('-perc_identity_loc', required=False,
+    allele_calling_parser.add_argument('-perc_identity_loc', required = False,
                                     help = 'Identity percent in BLAST searches using all alleles in each locus for allele identification in samples. Default is 90 %. ',
                                     default = 90) ### c/m: introduciendo perc_ident_loc como argumento
-    allele_calling_parser.add_argument('-reward', required=False,
+    allele_calling_parser.add_argument('-reward', required = False,
                                     help = 'Match reward in BLAST searches. Default is 1. ',
                                     default = 1) ### c/m: introduciendo reward como argumento    
-    allele_calling_parser.add_argument('-penalty', required=False,
+    allele_calling_parser.add_argument('-penalty', required = False,
                                     help = 'Mismatch penalty in BLAST searches. Default is -2. ',
                                     default = -2) ### c/m: introduciendo penalty como argumento
-    allele_calling_parser.add_argument('-gapopen', required=False,
+    allele_calling_parser.add_argument('-gapopen', required = False,
                                     help = 'Gap open penalty in BLAST searches. Default is 1. ',
                                     default = 1) ### c/m: introduciendo gapopen como argumento
-    allele_calling_parser.add_argument('-gapextend', required=False,
+    allele_calling_parser.add_argument('-gapextend', required = False,
                                     help = 'Gap extension penalty in BLAST searches. Default is 1. ',
                                     default = 1) ### c/m: introduciendo gapextend como argumento       
-    allele_calling_parser.add_argument('-max_target_seq', required=False,
+    allele_calling_parser.add_argument('-max_target_seq', required = False,
                                     help = 'max_target_seq in BLAST searches. Default is 10. ', ########## BUSCAR QUÉ ERA ESTO
                                     default = 10) ### c/m: introduciendo max_target_seq como argumento    
-    allele_calling_parser.add_argument('-max_hsps', required=False,
+    allele_calling_parser.add_argument('-max_hsps', required = False,
                                     help = 'max_hsps in BLAST searches. Default is 10. ', ########## BUSCAR QUÉ ERA ESTO
                                     default = 10) ### c/m: introduciendo max_hsps como argumento
-    allele_calling_parser.add_argument('-num_threads', required=False,
+    allele_calling_parser.add_argument('-num_threads', required = False,
                                     help = 'num_threads in BLAST searches. Default is 1. ',
                                     default = 1) ### c/m: introduciendo num_threads como argumento   
-    allele_calling_parser.add_argument('-flankingnts' , required=False,
+    allele_calling_parser.add_argument('-flankingnts' , required = False,
                                     help = 'Number of flanking nucleotides to add to each BLAST result obtained after locus detection in sample using reference allele for correct allele identification. Default is 100. ',
-                                    default = 100)  ### c/m: introduciendo flankingnts como argumento  
-    allele_calling_parser.add_argument('-updateschema' , required=False,
-                                    help = 'Add INF alleles found for each locus to the analysis schema. Default is True.',
+                                    default = 100)  ### c/m: introduciendo flankingnts como argumento 
+    allele_calling_parser.add_argument('-updateschema' , required = False,
+                                    help = 'Add INF alleles found for each locus to the core genes schema.' 
+                                    + 'True: add INF alleles to the analysis core genes schema.' 
+                                    + 'New: add INF alleles to a copy of the core genes schema preserving the analysis core genes schema.' 
+                                    + 'False: do not update the core gene schema adding new INF alleles found. '
+                                    + 'Default is True. ',
                                     default = True)                                          ### Dejar esto así?
-    allele_calling_parser.add_argument('-updatenewschema' , required=False,
-                                    help = 'Add INF alleles found for each locus to a new schema. Default is False.',
-                                    default = False)                                         ### Dejar esto así?
+
+    #allele_calling_parser.add_argument('-updateschema' , required=False,
+     #                               help = 'Add INF alleles found for each locus to the analysis schema. Default is True.',
+      #                              default = True)                                          ### Dejar esto así?
+    #allele_calling_parser.add_argument('-updatenewschema' , required=False,
+     #                               help = 'Add INF alleles found for each locus to a new schema. Default is False.',
+      #                              default = False)                                         ### Dejar esto así?
    
 
 
     ### Input parameters for schema evaluation options
     evaluate_schema_parser = subparser.add_parser('evaluate_schema',
                                     help = 'Evaluate the schema.')
-    evaluate_schema_parser.add_argument('-inputdir',required= True,
+    evaluate_schema_parser.add_argument('-inputdir',required = True,
                                     help = 'Directory where are the schema files.')
-    evaluate_schema_parser.add_argument('-outputdir', required= True,
+    evaluate_schema_parser.add_argument('-outputdir', required = True,
                                     help = 'Directory where the result files will be stored.')
     evaluate_schema_parser.add_argument('-alt', required = False, action = "store_true" ,
                                     help = 'Set this parameter if alternative start codon should be considered. '
@@ -127,29 +135,29 @@ def check_arg (args=None) :
 
     ### Input parameters for reference alleles options   ### introduciendo script para obtener alelos de referencia
     reference_alleles_parser = subparser.add_parser('reference_alleles', help = 'Obtain reference allele(s) for each locus.')
-    reference_alleles_parser.add_argument('-coregenedir', required= True,
+    reference_alleles_parser.add_argument('-coregenedir', required = True,
                                     help = 'Directory where the core gene files are located ')
-    reference_alleles_parser.add_argument('-outputdir', required= True,
+    reference_alleles_parser.add_argument('-outputdir', required = True,
                                     help = 'Directory where the result files will be stored')
-        allele_calling_parser.add_argument('-evalue', required=False,
+        allele_calling_parser.add_argument('-evalue', required = False,
                                     help = 'E-value in BLAST searches. ',
                                     default = 0.001) ### c/m: introduciendo evalue como argumento
-    reference_alleles_parser.add_argument('-perc_identity', required=False,
+    reference_alleles_parser.add_argument('-perc_identity', required = False,
                                     help = 'Identity percent in BLAST searches. ',
                                     default = 90) ### c/m: introduciendo perc_ident como argumento
-    reference_alleles_parser.add_argument('-reward', required=False,
+    reference_alleles_parser.add_argument('-reward', required = False,
                                     help = 'Match reward in BLAST searches. ',
                                     default = 1) ### c/m: introduciendo reward como argumento    
-    reference_alleles_parser.add_argument('-penalty', required=False,
+    reference_alleles_parser.add_argument('-penalty', required = False,
                                     help = 'Mismatch penalty in BLAST searches. ',
                                     default = -2) ### c/m: introduciendo penalty como argumento
-    reference_alleles_parser.add_argument('-gapopen', required=False,
+    reference_alleles_parser.add_argument('-gapopen', required = False,
                                     help = 'Gap open penalty in BLAST searches. ',
                                     default = 1) ### c/m: introduciendo gapopen como argumento
-    reference_alleles_parser.add_argument('-gapextend', required=False,
+    reference_alleles_parser.add_argument('-gapextend', required = False,
                                     help = 'Gap extension penalty in BLAST searches. ',
                                     default = 1) ### c/m: introduciendo gapextend como argumento       
-    reference_alleles_parser.add_argument('-num_threads', required=False,
+    reference_alleles_parser.add_argument('-num_threads', required = False,
                                     help = 'num_threads in BLAST searches. ',
                                     default = 1) ### c/m: introduciendo num_threads como argumento   
 

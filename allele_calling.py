@@ -2045,6 +2045,47 @@ def save_results (full_gene_list, samples_matrix_dict, exact_dict, paralog_dict,
     return True
 
 
+def update_schema (updateschema, schemadir, storedir, core_gene_list_files, inferred_alleles_dict, alleles_in_locus_dict, logger):
+    # updateschema --> puede ser new/true. Si es new se genera una copia del esquema existente
+    # schemadir --> directorio donde se encuentra el esquema del análisis
+    # storedir --> directorio donde guardar el nuevo esquema actualizado sin se toma como opción "new"
+    # inferred_alleles_dict: dict de alelos INF en cada locus obtenido en allele_call_nucleotides. # comentario en script actualize_schema function aparte sobre info adicional de cada secuencia INF nueva añadida al esquema
+    # alleles_in_locus_dict --> diccionario de alelos de cada locus. Introducido para obtener el número de alelos en cada locus para así poder seguir la numeración de los alelos INF incluidos a cada locus
+    
+
+    # lista de paths de los fastas de los distintos locus del schema, se puede obtener con la función get_fasta_file_list, o algo así. Pero si llamo a la función de actualización del esquema desde allele calling lo que tengo que hacer es pasarle la varaible core_gene_dict_files, que es la lista de paths
+    # si llamo a esta función desde processing allele calling le paso la misma lista (mismo nombre) 
+
+    # cuando se crea un nuevo esquema actualizado se genera el directorio con los fastas en la carpeta tmp cgMLST
+    # el path a este directorio cgMLST se indica en la funcion processing allele calling como     tmp_core_gene_dir = os.path.join(arguments.outputdir,'tmp','cgMLST')   , 
+    # meter tmp_core_gene_dir como argumento a allele calling, si no se le está metiendo ya, si llamo a update schema desde la función de allele calling
+    # si llamo a update schema desde la función de processin allele calling, le meto directamente  tmp_core_gene_dir desde processing allele calling
+
+    if updateschema == 'new':
+
+        no_updated_schemadir = schemadir ### guardo el path del esquema para copiar fastas a la nueva localización pero cambio su nombre ya que schemadir será el path de la nueva localización
+        schemadir_name = os.path.dirname(no_updated_schemadir) #os.path.dirname(path)    #Return the directory name of pathname path. This is the first element of the pair returned by passing path to the function split().
+        schemadir = os.path.join(storedir, schemadir_name + '_updated') 
+        shutil.copytree(no_updated_schemadir, schemadir)
+
+    #core_gene_list_files = get_fasta_file_list(schemadir, logger) ### esta lista a lo mejro se le puedemeter como argumento? para ahrorar el volver a calcularlo, que es otro for, creo
+
+    for core_file in core_gene_list_files:
+        core_name = os.path.basename(core_file)
+        logger.info('Updating core gene file %s adding new INF alleles', core_file)
+
+        inf_list = inferred_alleles_dict[core_name]
+    
+        allele_number = len(alleles_in_locus_dict[core_name])
+        with open (core_file, 'a') as core_fh:
+            for inf in inf_list:
+                allele_number += 1
+                core_fh.write('>' + str(allele_number) + ' # ' + 'INF by Taranis' + '\n' + inf + '\n' )
+
+    return True
+
+
+
 def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, inputdir, outputdir, cpus, percentlength, coverage, evalue, perc_identity_ref, perc_identity_loc, reward, penalty, gapopen, gapextend, max_target_seqs, max_hsps, num_threads, flankingnts, schema_variability, schema_statistics, schema_quality, annotation_core_dict, logger ): ### CAMBIANDO/MODIFICANDO: he añadido schema statistics para poder tomar la mean, stdev, etc. No sé si eliminar schema variability. He añadido prodigal_directory, prodigal_train_db_directory y schema_quality
     
     prodigal_report = [] # TEMPORAL. prodigal_report para checkear las secuencias obtenidas con prodigal vs blast y las posiciones sstart y send
@@ -2712,7 +2753,12 @@ def processing_allele_calling (arguments) :
     blast_results_seq_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_seq')  ### path a directorio donde guardar secuencias encontradas tras blast con alelo de referencia
     blast_results_db_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_db') ### path a directorio donde guardar db de secuencias encontradas tras blast con alelo de referencia
 
-    if not allele_call_nucleotides(core_gene_list_files, sample_list_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), float(arguments.perc_identity_ref), float(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, logger): ### CAMBIANDO/MODIFICANDO: He añadido schema_statistics, path a prodigal, prodigal training y schema_quality        
+    #if not allele_call_nucleotides(core_gene_list_files, sample_list_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), float(arguments.perc_identity_ref), float(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, logger): ### CAMBIANDO/MODIFICANDO: He añadido schema_statistics, path a prodigal, prodigal training y schema_quality        
+     #   print('There is an error while processing the allele calling. Check the log file to get more information \n')
+      #  exit(0)
+
+    inferred_alleles_dict = allele_call_nucleotides(core_gene_list_files, sample_list_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), float(arguments.perc_identity_ref), float(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, logger): ### CAMBIANDO/MODIFICANDO: He añadido schema_statistics, path a prodigal, prodigal training y schema_quality        
+    if not inferred_alleles_dict:
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)
 
@@ -2724,6 +2770,15 @@ def processing_allele_calling (arguments) :
         create_distance_matrix(arguments.outputdir, 'result_for_tree_diagram.tsv')
     except:
         print('There was an error when creating distance matrix\n')
+
+    #########################################################
+    ## Update core gene schema adding new inferred alleles ##
+    #########################################################
+    if str(arguments.updateshema) == 'True' or str(arguments.updateshema) == 'true' or str(arguments.updateschema) == 'New' or str(arguments.updateschema) == 'new':
+        if not update_schema (arguments.updateschema, arguments.coregenedir, tmp_core_gene_dir, core_gene_list_files, inferred_alleles_dict, alleles_in_locus_dict, logger): ### CAMBIANDO/MODIFICANDO: He añadido schema_statistics, path a prodigal, prodigal training y schema_quality        
+            print('There is an error adding new inferred alleles found to the core genes schema. Check the log file to get more information \n')
+            exit(0)
+
     end_time = datetime.now()
     print('completed execution at :', end_time )
 
