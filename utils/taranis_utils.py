@@ -183,6 +183,14 @@ def junk (): ### No se está usando
             'T': ['TAT', 'TAC'] }
     return True
 
+# movido de allele_calling.py a utils.py
+def check_prerequisites (pre_requisite_list, logger): 
+    # check if blast is installed and has the minimum version
+    for program, version in pre_requisite_list :
+        if not check_program_is_exec_version (program , version, logger):
+            return False
+    return True
+
 def check_program_is_exec_version (program, version, logger):
     # The function will check if the program is installed in your system and if the version
     # installed matched with the pre-requisites
@@ -199,6 +207,35 @@ def check_program_is_exec_version (program, version, logger):
     else:
         logger.info('Cannot find %s installed on your system', program)
         return False
+
+
+# movido de allele_calling.py a utils.py
+### create_blastdb sin indicar coregene al probar create_blastdb en get_prodigal_sequence
+def create_blastdb (file_name, db_name,db_type, logger ):
+    f_name = os.path.basename(file_name).split('.')
+    db_dir = os.path.join(db_name,f_name[0])
+    output_blast_dir = os.path.join(db_dir, f_name[0])
+    #print("output_blast_dir: ", output_blast_dir, '\n')
+
+    if not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir)
+            logger.debug(' Created local blast directory for %s', file_name)
+        except:
+            logger.info('Cannot create directory for local blast database on file %s' , file_name)
+            print ('Error when creating the directory %s for blastdb. ', db_dir)
+            exit(0)
+
+        blast_command = ['makeblastdb' , '-in' , file_name , '-parse_seqids', '-dbtype',  db_type, '-out' , output_blast_dir]
+        blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if blast_result.stderr:
+            logger.error('cannot create blast db for %s ', file_name)
+            logger.error('makeblastdb returning error code %s', blast_result.stderr)
+            return False
+    else:
+        logger.info('Skeeping the blastdb creation for %s, as it is already exists', file_name)
+    return True
+
 
 def is_fasta_file (file_name):
     with open (file_name, 'r') as fh:
@@ -240,12 +277,82 @@ def check_sequence_order(allele_sequence, logger) :
     return "Error"
 """
 
+### movido de allele_calling.py a utils.py
+
+### Reformando diccionario check_core_gene_quality
+### introduciendo path al fasta del locus para parsear en lugar de diccionario del locus generado previamente
+### Tengo que cambiar alleles_seqs_dict por el path del locus y así parsear con seqIO sacando las seqs y los ids
+def check_core_gene_quality(fasta_file_path, logger): ### MODIFICANDO/CAMBIANDO: Función check_core_gene_quality añadida para checkear calidad de los alelos de cada locus del esquema
+                                                        ### logger?
+
+    ### logger.info('check quality of locus %s', fasta_file)
+
+    #locus_alleles_seqs = list(alleles_seqs_dict.values()) # secuencias de los alelos del locus
+    #locus_alleles_ids = list(alleles_seqs_dict.keys()) # ids secuencias de los alelos del locus
+
+    #print("locus_alleles_seqs: ", locus_alleles_seqs, '\n') ### print, borrar
+    #print("locus_alleles_ids: ", locus_alleles_ids, '\n') ### print, borrar
+
+    start_codons_forward = ['ATG', 'ATA', 'ATT', 'GTG', 'TTG', 'CTG'] ### duda: tener en cuenta codones de inico no clásicos? (prodigal no los considera)
+    start_codons_reverse = ['CAT', 'TAT', 'AAT', 'CAC', 'CAA', 'CAG']
+
+    stop_codons_forward = ['TAA', 'TAG', 'TGA']
+    stop_codons_reverse = ['TTA', 'CTA', 'TCA']
+
+    locus_quality = {}
+  #  locus_quality["good_quality"] = []
+  #  locus_quality["bad_quality"] = {"no_start": [], "no_stop": [], "no_start_stop": [], "multiple_stop": []}
+
+    alleles_in_locus = list (SeqIO.parse(fasta_file_path, "fasta"))
+    for allele in alleles_in_locus :
+        #print("type allele.seq: ", type(allele.seq), '\n')
+        #print("primeras 3 bases de allele.seq: ", allele.seq[0:3], '\n')
+        #print("primeras 3 bases de str(allele.seq): ", str(allele.seq[0:3]), '\n')
+        #print("allele.seq.reverse_complement(): ", allele.seq.reverse_complement(), '\n')
+
+  #  for allele_index in range(len(locus_alleles_seqs)):
+        if allele.seq[0:3] in start_codons_forward or allele.seq[-3:] in start_codons_reverse:
+            if allele.seq[-3:] in stop_codons_forward or allele.seq[0:3] in stop_codons_reverse: ### si tiene codón de stop y codón de inicio
+            ### duda: Añadir condición de que sea múltiplo de 3 la secuencia para así saber que el stop y start que presenta el alelo entran dentro del marco de lectura de la secuencia?
+
+                ### Buscando codón de stop para checkear que el primer codón de stop de la secuencia se corresponde con el codón final de la secuencia, de modo que no presenta más de un codón stop
+                sequence_order = check_sequence_order(allele.seq, logger)
+                if sequence_order == "reverse":
+                    #allele_sequence = reverse_complement(str(allele.seq)) ####### utilizar Seq y reverse.complement y a continuación convertirlo a str
+                    allele_sequence = str(allele.seq.reverse_complement())
+                    #print("allele_sequence: ", allele_sequence, '\n')
+                else:
+                    allele_sequence = str(allele.seq)
+                stop_index = get_stop_codon_index(allele_sequence)
+
+                if stop_index < (len(allele_sequence) - 3): ### si tiene codón start y stop pero tiene más de un codón stop (-3 --> 1 por índice python y 2 por las 2 bases restantes del codón)
+                   # locus_quality["bad_quality"]["multiple_stop"].append(locus_alleles_ids[allele_index])
+                    locus_quality[str(allele.id)] = 'bad_quality: multiple_stop'
+                else: ### si tiene codón start y stop y un solo codón stop
+                  #  locus_quality["good_quality"].append(locus_alleles_ids[allele_index])
+                    locus_quality[str(allele.id)] = 'good_quality'
+
+            else: ### si tiene codón start pero no stop
+                #locus_quality["bad_quality"]["no_stop"].append(locus_alleles_ids[allele_index])
+                locus_quality[str(allele.id)] = 'bad_quality: no_stop'
+        else: ### Si no tiene start
+            if allele.seq[-3:] in stop_codons_forward or allele.seq[0:3] in stop_codons_reverse: ### si no tiene start pero sí stop
+                #locus_quality["bad_quality"]["no_start"].append(locus_alleles_ids[allele_index])
+                locus_quality[str(allele.id)] = 'bad_quality: no_start'
+            else: ### Si no tiene start ni stop
+                #locus_quality["bad_quality"]["no_start_stop"].append(locus_alleles_ids[allele_index])
+                locus_quality[str(allele.id)] = 'bad_quality: no_start_stop'
+
+    ### En la función prepare_core_gene el resultado de esta función para cada locus se guardará en el diccionario schema_quality y devolverá el diccionario como resultado de llamar a la función prepare_core_gene, al igual que devuelve schema_statistics, etc
+    ### Se le introducirá este diccionario como argumento a la función allele_call_nucleotides, y no es necesario guardarlo como archivo, ya que se le introduce directamente cogiéndolo del output de llamar a prepare_core_gene (al igual que schema_statistics, etc)
+    return locus_quality
+
 def check_sequence_order(allele_sequence, logger): ### cambiando/modificando: introducido checkeo también del codón de stop, no solo el de inicio, ya que el alelo puede estar incompleto. En los casos en los que no tiene ni codón de inicio ni de final, va a devolver error.
     start_codon_forward= ['ATG','ATA','ATT','GTG', 'TTG']
     start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
 
     stop_codons_forward = ['TAA', 'TAG','TGA']
-    stop_codons_reverse = ['ATT', 'ATC','ACT']
+    stop_codons_reverse = ['TTA', 'CTA','TCA']
     
     # check direction
     if allele_sequence[0:3] in start_codon_forward or allele_sequence[-3:] in stop_codons_forward: 
@@ -253,6 +360,20 @@ def check_sequence_order(allele_sequence, logger): ### cambiando/modificando: in
     if allele_sequence[-3:] in start_codon_reverse or allele_sequence[0:3] in stop_codons_reverse:
         return 'reverse'
     return "Error"
+
+# movido de allele_calling.py a utils.py
+def get_stop_codon_index(seq) : ### CAMBIANDO: He eliminado la parte de checkeo de TGA, he eliminado indel_position porque se le metía algo distinto para deletion e insertion y estoy aunando el proceso de buscar codón de stop
+    stop_codons = ['TAA', 'TAG','TGA']
+    seq_len = len(seq)
+    index = 0
+    for index in range (0, seq_len -2, 3) :
+    #while index < seq_len - 2:
+        codon = seq[index : index + 3]
+        if codon in stop_codons :
+            return index
+        #index +=3
+    # Stop condon not found inn the sequence
+    return False
 
 def hamming_distance (pd_matrix):
     '''
@@ -288,6 +409,8 @@ def create_distance_matrix (input_dir, input_file):
         result_file = os.path.join(input_dir, input_file)
         pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
     except Exception as e:
+        print("Entrando en primera excepción, no se ha podido generar la matriz con pandas", '\n')
+
         print('------------- ERROR --------------')
         print('Unable to open the matrix distance file')
         print('Check in the logging configuration file')
@@ -299,6 +422,9 @@ def create_distance_matrix (input_dir, input_file):
     try:
         distance_matrix.to_csv(out_file, sep = '\t')
     except Exception as e:
+        print("Entrando en segunda excepción, no se ha podido obtener la distancia de hamming", '\n')
+
+
         print('------------- ERROR --------------')
         print('Unable to create the matrix distance file')
         print('Check in the logging configuration file')
