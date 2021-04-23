@@ -1,8 +1,7 @@
-#import analyze_schema
 import sys
 import argparse
 import allele_calling
-#import analyze_schema
+import analyze_schema
 import create_schema
 import reference_alleles
 from taranis_configuration import *
@@ -16,7 +15,7 @@ def check_arg (args=None) :
         args    # Contains the arguments from the command line
     Variables:
         allele_calling_parser   # It is used for the allele calling input parameters
-        evaluate_schema_parser  # It is used for the schema evaluation input parameters
+        analyze_schema_parser  # It is used for the schema evaluation input parameters
         compare_schema_parser   # It is used for schema comparison input parameters
         create_schema_parser    # It is used for create an schema input parameters
     Return:
@@ -28,95 +27,166 @@ def check_arg (args=None) :
 
     parser.add_argument('--version', action='version', version='%(prog)s 0.3.5')
 
-    subparser = parser.add_subparsers(help = 'allele calling /interactive/schema '
+    subparser = parser.add_subparsers(help = 'analyze_schema, reference_alleles, allele_calling'
                                       + 'are the available actions to execute taranis',
                                       dest = 'chosen_action')
 
+
+    ### Input parameters for analyze schema option
+    analyze_schema_parser = subparser.add_parser('analyze_schema',
+                                    help = 'Analyze the schema.')
+    analyze_schema_parser.add_argument('-inputdir',required = True,
+                                    help = 'Directory where are the schema files.')
+    analyze_schema_parser.add_argument('-outputdir', required = True,
+                                    help = 'Directory where the result files will be stored.')
+    analyze_schema_parser.add_argument('-removesubsets', required = False,
+                                    help = 'Remove allele subsequences from the schema.'
+                                    + 'True: Remove subsets.'
+                                    + 'False: Do not remove subsets.'
+                                    + 'Default is False.',
+                                    default = False)    
+    analyze_schema_parser.add_argument('-removeduplicates', required = False,
+                                    help = 'Remove duplicated alleles from the schema.'
+                                    + 'True: Remove duplicates.'
+                                    + 'False: Do not remove duplicates.'
+                                    + 'Default is False.',
+                                    default = False) 
+    analyze_schema_parser.add_argument('-removenocds', required = False,
+                                    help = 'Remove no CDS alleles from the schema.'
+                                    + 'True: Remove no CDS alleles.'
+                                    + 'False: Do not remove no CDS alleles.'
+                                    + 'Default is False.',
+                                    default = False) 
+    analyze_schema_parser.add_argument('-newschema', required = False,
+                                    help = 'Filter a copy of the core genes schema preserving the analysis core genes schema.' 
+                                            #Create an analysis core genes schema copy for filtering alleles when this option is selected.'
+                                    + 'True: Create a copy of the core genes schema for filtering.'
+                                    + 'False: Do not create a copy of the core genes schema for filtering.'
+                                    + 'Default is False.',
+                                    default = False) 
+    analyze_schema_parser.add_argument('-genus' , required = False,
+                                    help = 'Genus name for Prokka schema genes annotation. Defualt is Genus. ',
+                                    default = 'Genus') 
+    analyze_schema_parser.add_argument('-species' , required = False,
+                                    help = 'Species name for Prokka schema genes annotation. Defualt is species. ',
+                                    default = 'species') 
+    analyze_schema_parser.add_argument('-usegenus' , required = False,
+                                    help = 'Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Defualt is False. ',
+                                    default = 'False')
+    analyze_schema_parser.add_argument('-cpus', required = False,
+                                    help = 'Number of CPUS to be used in the program. Default is 1.',
+                                    default = 1)                                
+
+
+    ### Input parameters for reference alleles options  
+    reference_alleles_parser = subparser.add_parser('reference_alleles', help = 'Obtain reference allele(s) for each locus.')
+    reference_alleles_parser.add_argument('-coregenedir', required = True,
+                                    help = 'Directory where the core gene files are located. ')
+    reference_alleles_parser.add_argument('-outputdir', required = True,
+                                    help = 'Directory where the result files will be stored. ')
+    reference_alleles_parser.add_argument('-evalue', required = False,
+                                    help = 'E-value in BLAST searches. Default is 0.001.',
+                                    default = 0.001) 
+    reference_alleles_parser.add_argument('-perc_identity', required = False,
+                                    help = 'Identity percent in BLAST searches. Default is 90 %. ',
+                                    default = 90) 
+    reference_alleles_parser.add_argument('-reward', required = False,
+                                    help = 'Match reward in BLAST searches. Default is 1. ',
+                                    default = 1)     
+    reference_alleles_parser.add_argument('-penalty', required = False,
+                                    help = 'Mismatch penalty in BLAST searches. Default is -2. ',
+                                    default = -2) 
+    reference_alleles_parser.add_argument('-gapopen', required = False,
+                                    help = 'Gap open penalty in BLAST searches. Default is 1. ',
+                                    default = 1) 
+    reference_alleles_parser.add_argument('-gapextend', required = False,
+                                    help = 'Gap extension penalty in BLAST searches. Default is 1. ',
+                                    default = 1)        
+    reference_alleles_parser.add_argument('-num_threads', required = False,
+                                    help = 'num_threads in BLAST searches. Default is 1. ',
+                                    default = 1)    
+    reference_alleles_parser.add_argument('-cpus', required = False,
+                                    help = 'Number of CPUS to be used in the program. Default is 1.',
+                                    default = 1)
+
+
     ### Input parameters for allele calling option
     allele_calling_parser = subparser.add_parser('allele_calling',
-                                    help = 'Allele calling way to downloads the  schema locus')
+                                    help = 'Gene by gene allele calling') 
     allele_calling_parser.add_argument('-coregenedir', required = True,
                                     help = 'Directory where the core gene files are located ')
     allele_calling_parser.add_argument('-refalleles', required = True,
-                                    help = 'Directory where the core gene references files are located ') ### cambiando/modificando: añadiendo path a alelos de referencia de cada locus del esquema
+                                    help = 'Directory where the core gene references files are located ') 
     allele_calling_parser.add_argument('-inputdir', required = True,
                                     help ='Directory where are located the sample fasta files')
     allele_calling_parser.add_argument('-refgenome', required = True,
-                                    help = 'Reference genome file for genes prediction') ### cambiando/modificiando: introduciendo genoma de referencia para predicción de genes con prodigal
+                                    help = 'Reference genome file for genes prediction') 
     allele_calling_parser.add_argument('-outputdir', required = True,
                                     help = 'Directory where the result files will be stored')
-    allele_calling_parser.add_argument('-cpus', required = False,
-                                    help = 'Number of CPUS to be used in the program. Default is 1.',
-                                    default = 1)
     allele_calling_parser.add_argument('-percentlength', required = False,
                                     help = 'Allowed length percentage to be considered as INF. '
                                     + 'Outside of this limit it is considered as ASM or ALM. Default is SD.',
-                                    default = 'SD') ### c/m: percentlength por defecto SD
+                                    default = 'SD') 
     allele_calling_parser.add_argument('-coverage', required = False,
                                     help = 'Coverage threshold to exclude found sequences. '
                                     + 'Outside of this limit it is considered LNF. Default is 50 %.',
-                                    default = 50) ### c/m: incluyendo -coverage como argumento. 50% por defecto de momento
+                                    default = 50) 
     allele_calling_parser.add_argument('-evalue', required = False,
                                     help = 'E-value in BLAST searches. Default is 0.001. ',
-                                    default = 0.001) ### c/m: introduciendo evalue como argumento
+                                    default = 0.001) 
     allele_calling_parser.add_argument('-perc_identity_ref', required = False,
-                                    help = 'Identity percent in BLAST searches using reference alleles for each locus detection in samples. Default is 90 %. ',
-                                    default = 90) ### c/m: introduciendo perc_ident_ref como argumento
+                                    help = 'Identity percentage in BLAST searches using reference alleles for each locus detection in samples. Default is 90 %. ',
+                                    default = 90) 
     allele_calling_parser.add_argument('-perc_identity_loc', required = False,
-                                    help = 'Identity percent in BLAST searches using all alleles in each locus for allele identification in samples. Default is 90 %. ',
-                                    default = 90) ### c/m: introduciendo perc_ident_loc como argumento
+                                    help = 'Identity percentage in BLAST searches using all alleles in each locus for allele identification in samples. Default is 90 %. ',
+                                    default = 90) 
     allele_calling_parser.add_argument('-reward', required = False,
                                     help = 'Match reward in BLAST searches. Default is 1. ',
-                                    default = 1) ### c/m: introduciendo reward como argumento    
+                                    default = 1)     
     allele_calling_parser.add_argument('-penalty', required = False,
                                     help = 'Mismatch penalty in BLAST searches. Default is -2. ',
-                                    default = -2) ### c/m: introduciendo penalty como argumento
+                                    default = -2) 
     allele_calling_parser.add_argument('-gapopen', required = False,
                                     help = 'Gap open penalty in BLAST searches. Default is 1. ',
-                                    default = 1) ### c/m: introduciendo gapopen como argumento
+                                    default = 1) 
     allele_calling_parser.add_argument('-gapextend', required = False,
                                     help = 'Gap extension penalty in BLAST searches. Default is 1. ',
-                                    default = 1) ### c/m: introduciendo gapextend como argumento       
-    allele_calling_parser.add_argument('-max_target_seq', required = False,
-                                    help = 'max_target_seq in BLAST searches. Default is 10. ', ########## BUSCAR QUÉ ERA ESTO
-                                    default = 10) ### c/m: introduciendo max_target_seq como argumento    
+                                    default = 1)        
+    allele_calling_parser.add_argument('-max_target_seqs', required = False,
+                                    help = 'max_target_seqs in BLAST searches. Default is 10. ', 
+                                    default = 10)     
     allele_calling_parser.add_argument('-max_hsps', required = False,
-                                    help = 'max_hsps in BLAST searches. Default is 10. ', ########## BUSCAR QUÉ ERA ESTO
-                                    default = 10) ### c/m: introduciendo max_hsps como argumento
+                                    help = 'max_hsps in BLAST searches. Default is 10. ',
+                                    default = 10) 
     allele_calling_parser.add_argument('-num_threads', required = False,
                                     help = 'num_threads in BLAST searches. Default is 1. ',
-                                    default = 1) ### c/m: introduciendo num_threads como argumento   
+                                    default = 1)    
     allele_calling_parser.add_argument('-flankingnts' , required = False,
                                     help = 'Number of flanking nucleotides to add to each BLAST result obtained after locus detection in sample using reference allele for correct allele identification. Default is 100. ',
-                                    default = 100)  ### c/m: introduciendo flankingnts como argumento 
+                                    default = 100)
     allele_calling_parser.add_argument('-updateschema' , required = False,
-                                    help = 'Add INF alleles found for each locus to the core genes schema.' 
-                                    + 'True: add INF alleles to the analysis core genes schema.' 
-                                    + 'New: add INF alleles to a copy of the core genes schema preserving the analysis core genes schema.' 
-                                    + 'False: do not update the core gene schema adding new INF alleles found. '
+                                    help = 'Add INF alleles found for each locus to the core genes schema. ' 
+                                    + 'True: Add INF alleles to the analysis core genes schema. ' 
+                                    + 'New: Add INF alleles to a copy of the core genes schema preserving the analysis core genes schema. ' 
+                                    + 'False: Do not update the core gene schema adding new INF alleles found. '
                                     + 'Default is True. ',
-                                    default = True)                                          ### Dejar esto así?
+                                    default = True)
+    allele_calling_parser.add_argument('-profile' , required = False,
+                                    help = 'ST profile file based on core genes schema file to get ST for each sample. Default is empty and Taranis does not calculate samples ST. ',
+                                    default = '') 
+    allele_calling_parser.add_argument('-cpus', required = False,
+                                    help = 'Number of CPUS to be used in the program. Default is 1.',
+                                    default = 1)
+    allele_calling_parser.add_argument('-genus' , required = False,
+                                    help = 'Genus name for Prokka schema genes annotation. Defualt is Genus. ',
+                                    default = 'Genus') 
+    allele_calling_parser.add_argument('-species' , required = False,
+                                    help = 'Species name for Prokka schema genes annotation. Defualt is species. ',
+                                    default = 'species') 
+    allele_calling_parser.add_argument('-usegenus' , required = False,
+                                    help = 'Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Defualt is False. ',
+                                    default = 'False')
 
-    #allele_calling_parser.add_argument('-updateschema' , required=False,
-     #                               help = 'Add INF alleles found for each locus to the analysis schema. Default is True.',
-      #                              default = True)                                          ### Dejar esto así?
-    #allele_calling_parser.add_argument('-updatenewschema' , required=False,
-     #                               help = 'Add INF alleles found for each locus to a new schema. Default is False.',
-      #                              default = False)                                         ### Dejar esto así?
-   
-
-
-    ### Input parameters for schema evaluation options
-    evaluate_schema_parser = subparser.add_parser('evaluate_schema',
-                                    help = 'Evaluate the schema.')
-    evaluate_schema_parser.add_argument('-inputdir',required = True,
-                                    help = 'Directory where are the schema files.')
-    evaluate_schema_parser.add_argument('-outputdir', required = True,
-                                    help = 'Directory where the result files will be stored.')
-    evaluate_schema_parser.add_argument('-alt', required = False, action = "store_true" ,
-                                    help = 'Set this parameter if alternative start codon should be considered. '
-                                    + 'Do not include to accept only ATG as a start codon.',
-                                    default = False)
 
     ### Input parameters for schema comparison options
     compare_schema_parser = subparser.add_parser('compare_schema', help = 'Compare 2 schema.')
@@ -124,6 +194,7 @@ def check_arg (args=None) :
                                        help = 'Directory where are the schema files for the schema 1.')
     compare_schema_parser.add_argument('-scheme2',
                                        help = 'Directory where are the schema files for the schema 2.')
+
 
     ### Input parameters for schema creation options
     create_schema_parser = subparser.add_parser('create_schema', help = 'Create a schema.')
@@ -133,41 +204,13 @@ def check_arg (args=None) :
                                       + 'will be stored. If directory exists it will be prompt for '
                                       + 'deletion confirmation.')
 
-    ### Input parameters for reference alleles options   ### introduciendo script para obtener alelos de referencia
-    reference_alleles_parser = subparser.add_parser('reference_alleles', help = 'Obtain reference allele(s) for each locus.')
-    reference_alleles_parser.add_argument('-coregenedir', required = True,
-                                    help = 'Directory where the core gene files are located ')
-    reference_alleles_parser.add_argument('-outputdir', required = True,
-                                    help = 'Directory where the result files will be stored')
-        allele_calling_parser.add_argument('-evalue', required = False,
-                                    help = 'E-value in BLAST searches. ',
-                                    default = 0.001) ### c/m: introduciendo evalue como argumento
-    reference_alleles_parser.add_argument('-perc_identity', required = False,
-                                    help = 'Identity percent in BLAST searches. ',
-                                    default = 90) ### c/m: introduciendo perc_ident como argumento
-    reference_alleles_parser.add_argument('-reward', required = False,
-                                    help = 'Match reward in BLAST searches. ',
-                                    default = 1) ### c/m: introduciendo reward como argumento    
-    reference_alleles_parser.add_argument('-penalty', required = False,
-                                    help = 'Mismatch penalty in BLAST searches. ',
-                                    default = -2) ### c/m: introduciendo penalty como argumento
-    reference_alleles_parser.add_argument('-gapopen', required = False,
-                                    help = 'Gap open penalty in BLAST searches. ',
-                                    default = 1) ### c/m: introduciendo gapopen como argumento
-    reference_alleles_parser.add_argument('-gapextend', required = False,
-                                    help = 'Gap extension penalty in BLAST searches. ',
-                                    default = 1) ### c/m: introduciendo gapextend como argumento       
-    reference_alleles_parser.add_argument('-num_threads', required = False,
-                                    help = 'num_threads in BLAST searches. ',
-                                    default = 1) ### c/m: introduciendo num_threads como argumento   
-
     return parser.parse_args()
 
 
-def processing_evaluate_schema (arguments) :
-    print ('evaluate_schema')
+#def processing_analyze_schema (arguments) :
+ #   print ('analyze_schema')
 
-    return True
+  #  return True
 
 def processing_compare_schema (arguments) :
     print ('compare_schema')
@@ -188,13 +231,13 @@ if __name__ == '__main__' :
 
     if arguments.chosen_action == 'allele_calling' :
         result = allele_calling.processing_allele_calling(arguments)
-    elif arguments.chosen_action == 'evaluate_schema':
-        result = analyze_schema.processing_evaluate_schema(arguments)
+    elif arguments.chosen_action == 'analyze_schema':
+        result = analyze_schema.processing_analyze_schema(arguments)
     elif arguments.chosen_action == 'compare_schema' :
         result = processing_compare_schema(arguments)
     elif arguments.chosen_action == 'create_schema' :
         result = processing_create_schema(arguments)
-    elif arguments.chosen_action == 'reference_alleles' : ### añadiendo script para obtener alelos de referencia
+    elif arguments.chosen_action == 'reference_alleles' :
         result = reference_alleles.processing_reference_alleles(arguments)
     else:
         print('not allow')
