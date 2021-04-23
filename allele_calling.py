@@ -180,8 +180,8 @@ def prodigal_prediction(file_name, prodigal_dir, prodigal_train_dir, logger):
     f_name = os.path.basename(file_name).split('.')[0]
     prodigal_dir_sample = os.path.join(prodigal_dir,f_name)
 
-    #output_prodigal_coord = os.path.join(prodigal_dir_sample, f_name + '_coord.gff')
-    #output_prodigal_prot = os.path.join(prodigal_dir_sample, f_name + '_prot.faa')
+    output_prodigal_coord = os.path.join(prodigal_dir_sample, f_name + '_coord.gff') ## no
+    output_prodigal_prot = os.path.join(prodigal_dir_sample, f_name + '_prot.faa') ## no
     output_prodigal_dna = os.path.join(prodigal_dir_sample, f_name + '_dna.faa')
 
     if not os.path.exists(prodigal_dir_sample):
@@ -1943,7 +1943,7 @@ def processing_allele_calling (arguments) :
             print('Cannot create temporary directory on ', tmp_core_gene_dir)
             exit(0)
 
-    alleles_in_locus_dict, annotation_core_dict, schema_variability, schema_statistics, schema_quality = prepare_core_gene (valid_core_gene_files, tmp_core_gene_dir, arguments.refalleles, arguments.outputdir, arguments.genus, arguments.species, str(arguments.usegenus).lower(), logger)
+    alleles_in_locus_dict, annotation_core_dict, schema_variability, schema_statistics, schema_quality = prepare_core_gene (valid_core_gene_files, tmp_core_gene_dir, arguments.refalleles, arguments.genus, arguments.species, str(arguments.usegenus).lower(), logger)
     #alleles_in_locus_dict, annotation_core_dict, schema_variability, schema_statistics, schema_quality = prepare_core_gene (valid_core_gene_files, tmp_core_gene_dir, arguments.refalleles, arguments.outputdir, logger)
     if not alleles_in_locus_dict:
         print('There is an error while processing the schema preparation phase. Check the log file to get more information \n')
