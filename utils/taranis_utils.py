@@ -14,6 +14,7 @@ import pandas as pd
 
 from taranis_configuration import *
 
+
 def open_log(log_name):
     '''
     Description:
@@ -60,7 +61,8 @@ def open_log(log_name):
         return 'Error'
     return logger
 
-def read_xls_file (in_file, logger):
+
+def read_xls_file (in_file, logger): ## N
     '''
     Description:
         This function open the Excel file enter by the user in the xlsfile parameter
@@ -105,7 +107,8 @@ def read_xls_file (in_file, logger):
     logger.info('Returning back the gene/protein list' )
     return genes_prots_list
 
-def download_fasta_locus (locus_list, output_dir, logger):
+
+def download_fasta_locus (locus_list, output_dir, logger): ## N
     '''
     Description:
         This function will download the protein sequence.
@@ -140,8 +143,7 @@ def download_fasta_locus (locus_list, output_dir, logger):
         return False
 
 
-
-def check_if_file_exists (filename, logger):
+def check_if_file_exists (filename, logger): ## N
     '''
     Description:
         This function will check if the file exists
@@ -158,7 +160,7 @@ def check_if_file_exists (filename, logger):
     return True
 
 
-def junk ():
+def junk (): ## N
     AA_codon = {
             'C': ['TGT', 'TGC'],
             'A': ['GAT', 'GAC'],
@@ -183,6 +185,15 @@ def junk ():
             'T': ['TAT', 'TAC'] }
     return True
 
+
+def check_prerequisites (pre_requisite_list, logger): 
+    # check if blast is installed and has the minimum version
+    for program, version in pre_requisite_list :
+        if not check_program_is_exec_version (program , version, logger):
+            return False
+    return True
+
+
 def check_program_is_exec_version (program, version, logger):
     # The function will check if the program is installed in your system and if the version
     # installed matched with the pre-requisites
@@ -200,10 +211,37 @@ def check_program_is_exec_version (program, version, logger):
         logger.info('Cannot find %s installed on your system', program)
         return False
 
+
+def create_blastdb (file_name, db_name,db_type, logger ):
+    f_name = os.path.basename(file_name).split('.')
+    db_dir = os.path.join(db_name,f_name[0])
+    output_blast_dir = os.path.join(db_dir, f_name[0])
+
+    if not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir)
+            logger.debug(' Created local blast directory for %s', file_name)
+        except:
+            logger.info('Cannot create directory for local blast database on file %s' , file_name)
+            print ('Error when creating the directory %s for blastdb. ', db_dir)
+            exit(0)
+
+        blast_command = ['makeblastdb' , '-in' , file_name , '-parse_seqids', '-dbtype',  db_type, '-out' , output_blast_dir]
+        blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if blast_result.stderr:
+            logger.error('cannot create blast db for %s ', file_name)
+            logger.error('makeblastdb returning error code %s', blast_result.stderr)
+            return False
+    else:
+        logger.info('Skeeping the blastdb creation for %s, as it is already exists', file_name)
+    return True
+
+
 def is_fasta_file (file_name):
     with open (file_name, 'r') as fh:
         fasta = SeqIO.parse(fh, 'fasta')
         return any(fasta)
+
 
 def get_fasta_file_list (check_directory,  logger):
     if not os.path.isdir(check_directory):
@@ -228,15 +266,124 @@ def get_fasta_file_list (check_directory,  logger):
     else:
         return valid_files
 
-def check_sequence_order(allele_sequence, logger) :
+
+def check_core_gene_quality(fasta_file_path, logger):
+                                        ### logger?
+
+    ### logger.info('check quality of locus %s', fasta_file)
+
+    start_codons_forward = ['ATG', 'ATA', 'ATT', 'GTG', 'TTG', 'CTG'] ### duda: tener en cuenta codones de inico no clásicos? (prodigal no los considera)
+    start_codons_reverse = ['CAT', 'TAT', 'AAT', 'CAC', 'CAA', 'CAG']
+
+    stop_codons_forward = ['TAA', 'TAG', 'TGA']
+    stop_codons_reverse = ['TTA', 'CTA', 'TCA']
+
+    locus_quality = {}
+
+    alleles_in_locus = list (SeqIO.parse(fasta_file_path, "fasta"))
+    for allele in alleles_in_locus :
+
+        if allele.seq[0:3] in start_codons_forward or allele.seq[-3:] in start_codons_reverse:
+            if allele.seq[-3:] in stop_codons_forward or allele.seq[0:3] in stop_codons_reverse: ### si tiene codón de stop y codón de inicio
+                ### Buscando codón de stop para checkear que el primer codón de stop de la secuencia se corresponde con el codón final de la secuencia, de modo que no presenta más de un codón stop
+                sequence_order = check_sequence_order(allele.seq, logger)
+                if sequence_order == "reverse":
+                    allele_sequence = str(allele.seq.reverse_complement())
+                else:
+                    allele_sequence = str(allele.seq)
+                stop_index = get_stop_codon_index(allele_sequence)
+
+                if stop_index < (len(allele_sequence) - 3): ### si tiene codón start y stop pero tiene más de un codón stop (-3 --> 1 por índice python y 2 por las 2 bases restantes del codón)
+                    locus_quality[str(allele.id)] = 'bad_quality: multiple_stop'
+                else: ### si tiene codón start y stop y un solo codón stop
+                    locus_quality[str(allele.id)] = 'good_quality'
+            else: ### si tiene codón start pero no stop
+                locus_quality[str(allele.id)] = 'bad_quality: no_stop'
+        else: ### Si no tiene start
+            if allele.seq[-3:] in stop_codons_forward or allele.seq[0:3] in stop_codons_reverse: ### si no tiene start pero sí stop
+                locus_quality[str(allele.id)] = 'bad_quality: no_start'
+            else: ### Si no tiene start ni stop
+                locus_quality[str(allele.id)] = 'bad_quality: no_start_stop'
+
+    return locus_quality
+
+
+def check_sequence_order(allele_sequence, logger): 
     start_codon_forward= ['ATG','ATA','ATT','GTG', 'TTG']
     start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
-    # check forward direction
-    if allele_sequence[0:3] in start_codon_forward :
+
+    stop_codons_forward = ['TAA', 'TAG','TGA']
+    stop_codons_reverse = ['TTA', 'CTA','TCA']
+    
+    # check direction
+    if allele_sequence[0:3] in start_codon_forward or allele_sequence[-3:] in stop_codons_forward: 
         return 'forward'
-    if allele_sequence[len(allele_sequence) -3: len(allele_sequence)] in start_codon_reverse :
+    if allele_sequence[-3:] in start_codon_reverse or allele_sequence[0:3] in stop_codons_reverse:
         return 'reverse'
     return "Error"
+
+
+def get_stop_codon_index(seq) :
+    stop_codons = ['TAA', 'TAG','TGA']
+    seq_len = len(seq)
+    index = 0
+    for index in range (0, seq_len -2, 3) :
+    #while index < seq_len - 2:
+        codon = seq[index : index + 3]
+        if codon in stop_codons :
+            return index
+        #index +=3
+    # Stop condon not found inn the sequence
+    return False
+
+
+### (tsv para algunos locus? Utils para analyze schema?)
+def get_gene_annotation (annotation_file, annotation_dir, genus, species, usegenus, logger) :
+    
+    name_file = os.path.basename(annotation_file).split('.')
+    annotation_dir = os.path.join (annotation_dir, 'annotation', name_file[0])
+    
+    if usegenus == 'true':
+        annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
+                                            '--genus', genus, '--species', species, '--usegenus', 
+                                            '--gcode', '11', '--prefix', name_file[0], '--quiet'])
+
+    elif usegenus == 'false':
+        annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
+                                            '--genus', genus, '--species', species, 
+                                            '--gcode', '11', '--prefix', name_file[0], '--quiet'])
+    
+    annot_tsv = []
+    tsv_path = os.path.join (annotation_dir, name_file[0] + '.tsv')
+
+    try:
+        with open(tsv_path) as tsvfile:
+            tsvreader = csv.reader(tsvfile, delimiter="\t")
+            for line in tsvreader:
+                annot_tsv.append(line)
+
+        if len(annot_tsv) > 1:
+            try:
+                if '_' in annot_tsv[1][2]:
+                    gene_annot = annot_tsv[1][2].split('_')[0]
+                else:
+                    gene_annot = annot_tsv[1][2]
+            except:
+                gene_annot = 'Not found by Prokka'
+            
+            try: 
+                product_annot = annot_tsv[1][4]
+            except:
+                product_annot = 'Not found by Prokka'
+        else:
+            gene_annot = 'Not found by Prokka'
+            product_annot = 'Not found by Prokka'
+    except:
+        gene_annot = 'Not found by Prokka'
+        product_annot = 'Not found by Prokka'
+
+    return gene_annot, product_annot
+
 
 def hamming_distance (pd_matrix):
     '''
@@ -272,6 +419,7 @@ def create_distance_matrix (input_dir, input_file):
         result_file = os.path.join(input_dir, input_file)
         pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
     except Exception as e:
+
         print('------------- ERROR --------------')
         print('Unable to open the matrix distance file')
         print('Check in the logging configuration file')
@@ -283,6 +431,7 @@ def create_distance_matrix (input_dir, input_file):
     try:
         distance_matrix.to_csv(out_file, sep = '\t')
     except Exception as e:
+
         print('------------- ERROR --------------')
         print('Unable to create the matrix distance file')
         print('Check in the logging configuration file')
