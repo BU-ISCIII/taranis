@@ -247,9 +247,21 @@ def get_fasta_file_list (check_directory,  logger):
     if not os.path.isdir(check_directory):
         logger.info('directory %s does not exists', check_directory)
         return False
-    filter_files = os.path.join(check_directory, '*.fasta')
-    list_filtered_files =  glob.glob(filter_files)
+    
+    fasta_format = ['*.fasta', '*.fa', '*.fna', '*.ffn', '*.frn']
+    list_filtered_files = []
+    for extension in fasta_format:
+        filter_files = os.path.join(check_directory, extension)
+        print("filter_files: ", filter_files, '\n') # borrar
+        sublist_filtered_files =  glob.glob(filter_files)
+        print("sublist_filtered_files: ", sublist_filtered_files, '\n') # borrar
+        for fasta_file in sublist_filtered_files:
+            list_filtered_files.append(fasta_file)
+            print("list_filtered_files: ", list_filtered_files, '\n') # borrar
+    
     list_filtered_files.sort()
+    print("list_filtered_files.sort(): ", list_filtered_files.sort(), '\n') # borrar
+    print("len (list_filtered_files: ", len (list_filtered_files), '\n') # borrar
     if len (list_filtered_files) == 0 :
         logger.info('directory %s does not have any fasta file ', check_directory)
         return False
