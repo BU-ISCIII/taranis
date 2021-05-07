@@ -773,13 +773,13 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
     if tag == 'ASM':
         count_dict[sample_name]['total'] += 1
         for mut_type in count_dict[sample_name]:
-            if mut_type in add_info:
+            if mut_type in add_info.lower():
                 count_dict[sample_name][mut_type] += 1
     
     elif tag == 'ALM':
         count_dict[sample_name]['total'] += 1
         for mut_type in count_dict[sample_name]:
-            if mut_type in add_info:
+            if mut_typIntroducing results interactive piecharts creatione in add_info.lower():
                 count_dict[sample_name][mut_type] += 1   
 
     if not sseqid in matching_genes_dict[sample_name] :
@@ -1382,9 +1382,8 @@ def save_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, pa
 
 
 def save_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
-                ### logger
 
-    ## Create result plots directory ##
+    ## Create result plots directory
     plots_dir = os.path.join(outputdir,'plots')
     try:
         os.makedirs(plots_dir)
@@ -1403,6 +1402,7 @@ def save_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm,
         sample_name = os.path.basename(sample_file).split('.')[0]
 
         ## Obtain interactive piechart
+        logger.info('Creating interactive results piecharts')
         create_sunburst_plot (outputdir, sample_name, count_exact[sample_name], count_inf[sample_name], count_asm[sample_name], count_alm[sample_name], count_lnf[sample_name], count_tpr[sample_name], count_plot[sample_name], count_niph[sample_name], count_niphem[sample_name])
 
     return True
