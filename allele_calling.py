@@ -1102,70 +1102,222 @@ def get_inferred_allele_number(core_dict, logger): ## N
 # Get ST profile for each samples based on allele calling results #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * #
 
-## (Revisar)
-def get_ST_profile(profile_csv_path, exact_dict, core_gene_list_files):
-    
+def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_list_files, sample_list_files, logger):
+                    ## logger
     csv_read = []
     ST_profiles_dict = {}
     samples_profiles_dict = {}
+    analysis_profiles_dict = {}
+    inf_ST = {}
+    count_st = {}
 
     with open(profile_csv_path) as csvfile:
         csvreader = csv.reader(csvfile, delimiter="\t")
         for line in csvreader:
             csv_read.append(line)
-
-    profile_header = csv_read[0][1:len(core_gene_list_files) + 1]
+    
+    profile_header = csv_read[0][1:len(core_gene_list_files) + 1] 
 
     for ST_index in range(1, len(csv_read)):
-       # if ST_index == 0:
-        #    profile_header = csv_read[ST_index][1:len(core_gene_list_files) + 1]
-       # else:
-        ST_profiles_dict[csv_read[ST_index][0]] = {}  
+        ST_profiles_dict[csv_read[ST_index][0]] = {} 
         for core_index in range(len(profile_header)):
-            ST_profiles_dict[csv_read[ST_index][0]][profile_header[core_index]] = csv_read[ST_index][core_index]
+            ST_profiles_dict[csv_read[ST_index][0]][profile_header[core_index]] = csv_read[ST_index][core_index + 1]
 
-    for sample_name in exact_dict:
+
+    for sample_file in sample_list_files:
+        sample_name = os.path.basename(sample_file).split('.')[0]
+
+        st_counter = 0
         for ST in ST_profiles_dict:
             core_counter = 0
-            for core_name in profile_header: # for core_name in ST_profiles_dict[ST]:
-                if core_name in exact_dict[sample_name]:
+            for core_name in profile_header:
+                allele_in_ST = ST_profiles_dict[ST][core_name]
 
-                    allele_in_sample = exact_dict[sample_name][core_name][2]
-                    allele_in_ST = ST_profiles_dict[ST][core_name]
+                if sample_name in exact_dict:
+                    if core_name in exact_dict[sample_name]:
+                        allele_in_sample = exact_dict[sample_name][core_name][2]
 
-                    if not '_' in allele_in_ST:
-                        if '_' in allele_in_sample:
-                            allele_in_sample = allele_in_sample.split('_')[1]
+                        if not '_' in allele_in_ST:
+                            if '_' in allele_in_sample:
+                                allele_in_sample = allele_in_sample.split('_')[1]                    
 
-                    #if exact_dict[sample_name][core_name][2] == ST_profiles_dict[ST][core_name]: ## si el locus en cuestión se encuentra entre los exact matches y coincide con el alelo del profile en cuestión, se continua comparando los siguientes locus
-                    if allele_in_sample == allele_in_ST:
-                        core_counter += 1
-                       # next
-                    else: 
-                        break
-                else:
-                    #if ST_profiles_dict[ST][core_name] == 'N':
-                    if allele_in_ST == 'N':
-                        core_counter += 1
-                        #next
+                        if st_counter == 0:
+                            if sample_name not in analysis_profiles_dict:
+                                analysis_profiles_dict[sample_name] = {}
+                            analysis_profiles_dict[sample_name][core_name] = allele_in_sample
+
+                        if allele_in_sample == allele_in_ST:
+                            core_counter += 1
+   
+                elif sample_name in inf_dict:
+                    if core_name in inf_dict[sample_name]:
+                        if st_counter == 0:
+                            allele_in_sample = inf_dict[sample_name][core_name][2]
+                            if sample_name not in analysis_profiles_dict:
+                                analysis_profiles_dict[sample_name] = {}
+                            analysis_profiles_dict[sample_name][core_name] = allele_in_sample
                     else:
-                        break
-            
+                        if st_counter == 0:
+                            allele_in_sample = 'N'
+                            if sample_name not in analysis_profiles_dict:
+                                analysis_profiles_dict[sample_name] = {}
+                            analysis_profiles_dict[sample_name][core_name] = allele_in_sample
+                
+                if allele_in_ST == 'N':
+                    core_counter += 1
+
+            st_counter += 1
             if core_counter == len(profile_header):
                 samples_profiles_dict[sample_name] = ST
+
+                if "Known" not in count_st:
+                    count_st["Known"] = {}
+                if ST not in count_st["Known"]:
+                    count_st["Known"][ST] = 0
+                count_st["Known"][ST] += 1 
+
                 break
 
         if sample_name not in samples_profiles_dict:
-            samples_profiles_dict[sample_name] = '-'    
+            if len(analysis_profiles_dict[sample_name]) == len(profile_header):
+                if analysis_profile_dict[sample_name] not in ST_profiles_dict.values():
+                    new_st_id = str(len(ST_profiles_dict) + 1)
+                    ST_profiles_dict[new_st_id  + "_INF"] = analysis_profile_dict[sample_name]
+                    inf_ST[new_st_id] = analysis_profile_dict[sample_name]
 
-    return samples_profiles_dict
+                    if "New" not in count_st:
+                        count_st["New"] = {}
+                    if new_st_id not in count_st["New"]:
+                        count_st["New"][new_st_id] = 0
+                    count_st["New"][new_st_id] += 1
+
+            else:
+                samples_profiles_dict[sample_name] = '-'
+
+                if "Empty" not in count_st:
+                    count_st["Empty"] = {}
+                if "-" not in count_st:
+                    count_st["Empty"]["-"] = 0
+                count_st["Empty"]["-"] += 1
+
+    ## Create ST profile results report
+    save_st_profile_results (outputdir, samples_profiles_dict, logger)
+
+    ## Obtain interactive piechart
+    logger.info('Creating interactive ST results piechart')
+    create_sunburst_plot_st (outputdir, count_st, logger)
+
+    return True, inf_ST
+
+
+# · * · * · * · * · * · *  #  
+# Create ST results report #
+# · * · * · * · * · * · *  #
+
+def save_st_profile_results (outputdir, samples_profiles_dict, logger):
+
+    header_stprofile = ['Sample Name', 'ST']
+    
+    if samples_profiles_dict != '':
+        ## Saving ST profile to file
+        logger.info('Saving ST profile information to file..')
+        stprofile_file =  os.path.join(outputdir, 'stprofile.tsv')
+        with open (stprofile_file , 'w') as st_fh :
+            st_fh.write('\t'.join(header_stprofile)+ '\n')
+            for sample in sorted(samples_profiles_dict): 
+                st_fh.write(sample + '\t' + samples_profiles_dict[sample] + '\n')
+    
+    return True
+
+
+def create_sunburst_plot_st (outputdir, count_st, logger):
+                            ### logger
+
+    counts = []
+    st_ids = ["ST"]
+    st_labels = ["ST"]
+    st_parents = [""]
+
+    total_samples = 0
+
+    for st_type in count_st:
+        total_st_type_count = sum(count_st[st_type].values())
+
+        counts.append(total_st_type_count)
+
+        st_ids.append(st_type)
+        st_labels.append(st_type)
+        st_parents.append("ST")
+
+        total_samples += total_st_type_count
+
+        for st in count_st[st_type]:
+            counts.append(count_st[st_type][st])
+            st_ids.append(st + " - " + st_type)
+            st_labels.append(st)
+            st_parents.append(st_type)
+
+    counts.insert(0, total_samples)
+
+    fig=go.Figure(go.Sunburst(
+    ids=[st_ids
+    ],
+    labels= [st_labels
+    ],
+    parents=[st_parents
+    ], 
+    values=counts,
+    branchvalues="total",
+    ))
+
+    fig.update_layout(margin = dict(t=0, l=0, r=0, b=0))
+
+    plotsdir = os.path.join(outputdir, 'plots', 'samples_st.html') 
+
+    fig.write_html(plotsdir)
+
+    return True
+
+
+# · * · * · * · * · * · * · * · * · * · * ·  #  
+# Update ST profile file adding new ST found #
+# · * · * · * · * · * · * · * · * · * · * ·  #
+
+def update_st_profile (updateprofile, profile_csv_path, outputdir, inf_ST, core_gene_list_files, logger):
+
+    ## Create a copy of ST profile file if updateprofile = 'new'
+    if updateprofile == 'new':    
+        no_updated_profile_csv_path = profile_csv_path
+        profile_csv_path_name = os.path.basename(no_updated_profile_csv_path).split('.')[0]
+        profile_csv_path = os.path.join(outputdir, profile_csv_path_name + '_updated' + '.csv') 
+        shutil.copyfile(no_updated_profile_csv_path, profile_csv_path)
+        logger.info('Copying ST profile file to update profiles')
+        
+    ## Update ST profile file
+    logger.info('Updating ST profile file adding new INF ST')
+
+    with open (profile_csv_path, 'r') as csvfile:                                                
+        csvreader = csv.reader(csvfile, delimiter="\t")
+        for line in csvreader:
+            profile_header = line[0][1:len(core_gene_list_files) + 1]
+            break
+
+    with open (profile_csv_path, 'a') as profile_fh:
+        for ST in inf_ST:
+            locus_ST_list = []
+            locus_ST_list.append(ST)
+            for locus in profile_header:
+                locus_ST_list.append(inf_ST[ST][locus])
+            profile_fh.write ('\t'.join(locus_ST_list)+ '\n')
+
+    return True
 
 
 # · * · * · * · * · * · * · * · * · * · #  
 # Create allele calling results reports #
 # · * · * · * · * · * · * · * · * · * · #
 
-def save_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, samples_profiles_dict, logger):
+def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, samples_profiles_dict, logger):
     header_matching_alleles_contig = ['Sample Name', 'Contig', 'Core Gene', 'Start', 'Stop', 'Direction', 'Codification']
     header_exact = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Query length', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
     header_paralogs = ['Core Gene','Sample Name', 'Gene Annotation', 'Product Annotation', 'Paralog Tag', 'ID %', 'Allele', 'Allele Quality', 'Contig', 'Bit Score', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
@@ -1381,7 +1533,7 @@ def save_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, pa
 
 
 
-def save_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
+def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
 
     ## Create result plots directory
     plots_dir = os.path.join(outputdir,'plots')
@@ -1403,13 +1555,13 @@ def save_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm,
 
         ## Obtain interactive piechart
         logger.info('Creating interactive results piecharts')
-        create_sunburst_plot (outputdir, sample_name, count_exact[sample_name], count_inf[sample_name], count_asm[sample_name], count_alm[sample_name], count_lnf[sample_name], count_tpr[sample_name], count_plot[sample_name], count_niph[sample_name], count_niphem[sample_name])
+        create_sunburst_allele_call (outputdir, sample_name, count_exact[sample_name], count_inf[sample_name], count_asm[sample_name], count_alm[sample_name], count_lnf[sample_name], count_tpr[sample_name], count_plot[sample_name], count_niph[sample_name], count_niphem[sample_name])
 
     return True
 
 
 
-def create_sunburst_plot (outputdir, sample_name, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
+def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
                             ### logger
 
     total_locus = count_exact['total'] + count_inf['total'] + count_asm['total'] + count_alm['total'] + count_lnf['total'] + count_tpr['total'] + count_plot['total'] \
@@ -2087,29 +2239,20 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                 else:
                                     matching_genes_dict[sample_name][sseqid].append([core_name, sstart,send,'+', 'ERROR'])
  
-
-    ## Get ST profile for each sample
-    
-    if profile_csv_path != '':
-        samples_profiles_dict = get_ST_profile(profile_csv_path, exact_dict, core_gene_list_files)
-    else:
-        samples_profiles_dict = ''
-
-
     ## Save results and create reports
 
-    if not save_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, samples_profiles_dict, logger):
+    if not save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, samples_profiles_dict, logger):
         print('There is an error while saving the allele calling results. Check the log file to get more information \n')
        # exit(0)
 
 
     ## Saving sample results plots
 
-    if not save_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
+    if not save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
         print('There is an error while saving the allele calling results plots. Check the log file to get more information \n')
 
 
-    return True, inferred_alleles_dict
+    return True, inferred_alleles_dict, inf_dict, exact_dict
 
 
 # * * * * * * * * * * * * * * * * * * *  #
@@ -2229,19 +2372,11 @@ def processing_allele_calling (arguments) :
     blast_results_seq_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_seq')  ### path a directorio donde guardar secuencias encontradas tras blast con alelo de referencia
     blast_results_db_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_db') ### path a directorio donde guardar db de secuencias encontradas tras blast con alelo de referencia
 
-    complete_allele_call, inferred_alleles_dict = allele_call_nucleotides(valid_core_gene_files, valid_sample_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), int(arguments.perc_identity_ref), int(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, arguments.profile, logger) ### CAMBIANDO/MODIFICANDO: He añadido schema_statistics, path a prodigal, prodigal training y schema_quality        
+    complete_allele_call, inferred_alleles_dict, inf_dict, exact_dict = allele_call_nucleotides(valid_core_gene_files, valid_sample_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), int(arguments.perc_identity_ref), int(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, arguments.profile, logger) ### CAMBIANDO/MODIFICANDO: He añadido schema_statistics, path a prodigal, prodigal training y schema_quality        
     if not complete_allele_call:
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)
 
-    ################################
-    ## Create the distance matrix ##
-    ################################
-    try:        
-        print ('Creating matrix distance\n')
-        create_distance_matrix(arguments.outputdir, 'result_for_tree_diagram.tsv')
-    except:
-        print('There was an error when creating distance matrix\n')
 
     #########################################################
     ## Update core gene schema adding new inferred alleles ##
@@ -2251,6 +2386,36 @@ def processing_allele_calling (arguments) :
             if not update_schema (str(arguments.updateschema).lower(), arguments.coregenedir, tmp_core_gene_dir, valid_core_gene_files, inferred_alleles_dict, alleles_in_locus_dict, logger):        
                 print('There is an error adding new inferred alleles found to the core genes schema. Check the log file to get more information \n')
                 exit(0)
+
+
+    if arguments.profile != '':
+        ############################
+        ## Get ST for each sample ##
+        ############################
+        #complete_ST, inf_ST = get_ST_profile(arguments.outputdir, arguments.profile, exact_dict, inf_dict, core_gene_list_files, sample_list_files, logger)
+        complete_ST, inf_ST = get_ST_profile(arguments.outputdir, arguments.profile, exact_dict, inf_dict, valid_core_gene_files, valid_sample_files, logger)
+        if not complete_ST:
+            print('There is an error while processing ST analysis. Check the log file to get more information \n')
+            exit(0)
+
+        ###########################################
+        ## Update ST profile file adding new STs ##
+        ###########################################
+        if str(arguments.updateprofile).lower() == 'true' or str(arguments.updateprofile).lower() == 'new':
+            if len(inf_ST) > 0:
+                if not update_st_profile (str(arguments.updateprofile).lower(), arguments.profile, arguments.outputdir, inf_ST, valid_core_gene_files, logger):        
+                    print('There is an error adding new STs found to the ST profile file. Check the log file to get more information \n')
+                    exit(0)
+
+
+    ################################
+    ## Create the distance matrix ##
+    ################################
+    try:        
+        print ('Creating matrix distance\n')
+        create_distance_matrix(arguments.outputdir, 'result_for_tree_diagram.tsv')
+    except:
+        print('There was an error when creating distance matrix\n')
 
     end_time = datetime.now()
     print('completed execution at :', end_time )

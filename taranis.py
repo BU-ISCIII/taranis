@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import argparse
 import allele_calling
@@ -169,6 +171,13 @@ def check_arg (args=None) :
                                     + 'True: Add INF alleles to the analysis core genes schema. ' 
                                     + 'New: Add INF alleles to a copy of the core genes schema preserving the analysis core genes schema. ' 
                                     + 'False: Do not update the core gene schema adding new INF alleles found. '
+                                    + 'Default is True. ',
+                                    default = True)
+    allele_calling_parser.add_argument('-updateprofile' , required = False, ############## AÑADIDO NUEVO PARA ACTUALIZAR NUEVAS COMBINACIONES DE ALELOS
+                                    help = 'Add new ST profiles found to the ST profile file. ' 
+                                    + 'True: Add new ST profiles to the analysis ST profile file. ' 
+                                    + 'New: Add Add new ST profiles to a copy of the ST profile file preserving the analysis ST file. ' 
+                                    + 'False: Do not update the ST profile file adding new ST profiles found. '
                                     + 'Default is True. ',
                                     default = True)
     allele_calling_parser.add_argument('-profile' , required = False,
