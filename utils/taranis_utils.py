@@ -424,7 +424,7 @@ def hamming_distance (pd_matrix):
 def create_distance_matrix (input_dir, input_file):
     try:
         result_file = os.path.join(input_dir, input_file)
-        pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
+        pd_matrix = pd.read_csv(result_file, sep='\t', header=0, index_col=0)
     except Exception as e:
 
         print('------------- ERROR --------------')
