@@ -173,7 +173,7 @@ def check_arg (args=None) :
                                     + 'False: Do not update the core gene schema adding new INF alleles found. '
                                     + 'Default is True. ',
                                     default = True)
-    allele_calling_parser.add_argument('-updateprofile' , required = False, ############## AÑADIDO NUEVO PARA ACTUALIZAR NUEVAS COMBINACIONES DE ALELOS
+    allele_calling_parser.add_argument('-updateprofile' , required = False,
                                     help = 'Add new ST profiles found to the ST profile file. ' 
                                     + 'True: Add new ST profiles to the analysis ST profile file. ' 
                                     + 'New: Add Add new ST profiles to a copy of the ST profile file preserving the analysis ST file. ' 
@@ -182,7 +182,7 @@ def check_arg (args=None) :
                                     default = True)
     allele_calling_parser.add_argument('-profile' , required = False,
                                     help = 'ST profile file based on core genes schema file to get ST for each sample. Default is empty and Taranis does not calculate samples ST. ',
-                                    default = '') 
+                                    default = 'False') 
     allele_calling_parser.add_argument('-cpus', required = False,
                                     help = 'Number of CPUS to be used in the program. Default is 1.',
                                     default = 1)

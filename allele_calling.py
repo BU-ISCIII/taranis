@@ -2372,7 +2372,7 @@ def processing_allele_calling (arguments) :
     blast_results_seq_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_seq')  ### path a directorio donde guardar secuencias encontradas tras blast con alelo de referencia
     blast_results_db_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_db') ### path a directorio donde guardar db de secuencias encontradas tras blast con alelo de referencia
 
-    complete_allele_call, inferred_alleles_dict, inf_dict, exact_dict = allele_call_nucleotides(valid_core_gene_files, valid_sample_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), int(arguments.perc_identity_ref), int(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, arguments.profile, logger) ### CAMBIANDO/MODIFICANDO: He añadido schema_statistics, path a prodigal, prodigal training y schema_quality        
+    complete_allele_call, inferred_alleles_dict, inf_dict, exact_dict = allele_call_nucleotides(valid_core_gene_files, valid_sample_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), int(arguments.perc_identity_ref), int(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, arguments.profile, logger)        
     if not complete_allele_call:
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)
@@ -2388,7 +2388,8 @@ def processing_allele_calling (arguments) :
                 exit(0)
 
 
-    if arguments.profile != '':
+    if str(arguments.profile).lower != 'false':
+        
         ############################
         ## Get ST for each sample ##
         ############################
