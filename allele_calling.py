@@ -2023,37 +2023,47 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                     if len(bigger_bitscore_seq_values) == 0:
                 
                         # Look for best bitscore BLAST result out of coverage thresholds to check possible PLOT or reporting LNF due to low coverage
+                        
                         for line in out_lines :
                             values = line.split('\t')
 
                             if  float(values[8]) > bigger_bitscore:
                                 qseqid, sseqid, pident,  qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = values
+                                bigger_bitscore_seq_values_out_cov = values ###
                                 bigger_bitscore = float(bitscore)
 
-                            s_length_no_gaps = len(sseq.replace('-', ''))
+                        # Get BLAST values relatives to contig for bigger bitscore result
+                        lnf_plot_found = {} ###
 
-                            # Get contig sequence and length for best bitscore BLAST result ID 
-                            
-                            #for record in records: ## parse
-                                #if record.id == sseqid : ## parse
-                                    #break ## parse
-                            #accession_sequence = record.seq ## parse
-                            #length_sseqid = len(accession_sequence) ## parse
+                        get_blast_results (sample_name, bigger_bitscore_seq_values_out_cov, contigs_in_sample_dict, lnf_plot_found, logger) ###
 
-                            accession_sequence = contigs_in_sample_dict[sample_name][sseqid]
-                            length_sseqid = len(accession_sequence)
+                        allele_id = str(list(lnf_plot_found.keys())[0]) ###
+                        qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = lnf_plot_found[allele_id]           
 
-                            # Check if best BLAST result out of coverage thresholds is a possible PLOT. If so, keep result info for later PLOT classification
-                            if int(sstart) == length_sseqid or int(send) == length_sseqid or int(sstart) == 1 or int(send) == 1:
-                                bigger_bitscore_seq_values = values
+                        # Get contig sequence and length for best bitscore BLAST result ID 
+                        
+                        #for record in records: ## parse
+                            #if record.id == sseqid : ## parse
+                                #break ## parse
+                        #accession_sequence = record.seq ## parse
+                        #length_sseqid = len(accession_sequence) ## parse
 
-                            # ·············································································································································· #
-                            # LNF if there are no BLAST results within coverage thresholds for this gene in this sample and best out threshold result is not a possible PLOT #
-                            # ·············································································································································· #
-                            else:
+                        accession_sequence = contigs_in_sample_dict[sample_name][sseqid]
+                        length_sseqid = len(accession_sequence)
 
-                                # Keep LNF info
-                                lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_dict, lnf_tpr_dict, schema_statistics, locus_alleles_path, qseqid, pident, s_length_no_gaps, '-', '-', coverage, schema_quality, annotation_core_dict, count_lnf, logger)
+                        # Check if best BLAST result out of coverage thresholds is a possible PLOT. If so, keep result info for later PLOT classification
+                        if int(sstart) == length_sseqid or int(send) == length_sseqid or int(sstart) == 1 or int(send) == 1:
+                            bigger_bitscore_seq_values = bigger_bitscore_seq_values_out_cov ###
+
+                        # ·············································································································································· #
+                        # LNF if there are no BLAST results within coverage thresholds for this gene in this sample and best out threshold result is not a possible PLOT #
+                        # ·············································································································································· #
+                        else:
+                            # Get sequence length
+                            s_length_no_gaps = len(bigger_bitscore_seq_values_out_cov[13].replace('-', ''))
+
+                            # Keep LNF info
+                            lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_dict, lnf_tpr_dict, schema_statistics, locus_alleles_path, qseqid, pident, s_length_no_gaps, '-', '-', coverage, schema_quality, annotation_core_dict, count_lnf, logger)
 
                     ## Keep result with bigger bitscore in allele_found dict and look for possible paralogs ##
                     if len(bigger_bitscore_seq_values) > 0:
