@@ -779,7 +779,7 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
     elif tag == 'ALM':
         count_dict[sample_name]['total'] += 1
         for mut_type in count_dict[sample_name]:
-            if mut_typIntroducing results interactive piecharts creatione in add_info.lower():
+            if mut_type in add_info.lower():
                 count_dict[sample_name][mut_type] += 1   
 
     if not sseqid in matching_genes_dict[sample_name] :
@@ -804,7 +804,7 @@ def get_blast_results (sample_name, values, contigs_in_sample_dict, allele_found
     qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = values
 
     ## Get contig ID and BLAST sequence
-    sseqid_blast = sseqid.split('_')[1]
+    sseqid_blast = "_".join(sseqid.split('_')[1:])
     sseq_no_gaps = sseq.replace('-', '') 
 
     
