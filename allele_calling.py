@@ -1909,7 +1909,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                         qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = bigger_bitscore_seq_values
 
                         #get_blast_results (bigger_bitscore_seq_values, records, allele_found, logger)
-                        get_blast_results (sample_name, values, contigs_in_sample_dict, allele_found, logger)
+                        get_blast_results (sample_name, bigger_bitscore_seq_values, contigs_in_sample_dict, allele_found, logger)
 
                         # Possible paralogs search
                         for line in out_lines :
