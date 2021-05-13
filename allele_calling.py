@@ -614,6 +614,8 @@ def paralog_exact_tag(sample_name, core_name, tag, schema_quality, matching_gene
 
     logger.info('Found %s at sample %s for core gene %s ', tag, sample_name, core_name)
 
+    paralog_quality_count = [] # (lista para contabilizar parálogos debido a bad o good quality)
+
     gene_annot, product_annot = annotation_core_dict[core_name]
 
     if not sample_name in tag_dict :
@@ -665,19 +667,18 @@ def paralog_exact_tag(sample_name, core_name, tag, schema_quality, matching_gene
             count_dict[sample_name]['total'] += 1
             for count_class in count_dict[sample_name]:
                 if count_class in allele_quality:
-                    count_dict[sample_name][count_class] += 1
-
+                    if "no_start_stop" not in count_class and "no_start_stop" in allele_quality:
+                        if count_class == "bad_quality":
+                            count_dict[sample_name][count_class] += 1
+                    else:
+                        count_dict[sample_name][count_class] += 1
 
     # (recuento tags para plot (parálogos))
     if len(allele_found) > 0:
-
         count = 0
-
         for paralog_quality in paralog_quality_count:
-
             count += 1
             if "bad_quality" in paralog_quality:
-
                 count_dict[sample_name]['total'] += 1
                 for count_class in count_dict[sample_name]:
                     if count_class in paralog_quality:
@@ -686,8 +687,8 @@ def paralog_exact_tag(sample_name, core_name, tag, schema_quality, matching_gene
                                 count_dict[sample_name][count_class] += 1
                             else:
                                 next
-                        else:
-                            count_dict[sample_name][count_class] += 1
+                    else:
+                        count_dict[sample_name][count_class] += 1
                 break
 
             else:
@@ -1317,7 +1318,7 @@ def update_st_profile (updateprofile, profile_csv_path, outputdir, inf_ST, core_
 # Create allele calling results reports #
 # · * · * · * · * · * · * · * · * · * · #
 
-def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, samples_profiles_dict, logger):
+def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, logger):
     header_matching_alleles_contig = ['Sample Name', 'Contig', 'Core Gene', 'Start', 'Stop', 'Direction', 'Codification']
     header_exact = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Query length', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
     header_paralogs = ['Core Gene','Sample Name', 'Gene Annotation', 'Product Annotation', 'Paralog Tag', 'ID %', 'Allele', 'Allele Quality', 'Contig', 'Bit Score', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
@@ -1486,15 +1487,6 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
                 tree_line = line.replace('PLOT_','')
                 td_fh.write(tree_line)
 
-    if samples_profiles_dict != '':
-        ## Saving ST profile to file
-        logger.info('Saving ST profile information to file..')
-        stprofile_file =  os.path.join(outputdir, 'stprofile.tsv')
-        with open (stprofile_file , 'w') as st_fh :
-            st_fh.write('\t'.join(header_stprofile)+ '\n')
-            for sample in sorted(samples_profiles_dict): 
-                st_fh.write(sample + '\t' + samples_profiles_dict[sample] + '\n')
-
     ###########################################################################################
     # Guardando report de prodigal. Temporal
     prodigal_report_file = os.path.join (outputdir, 'prodigal_report.tsv')
@@ -1533,7 +1525,7 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
 
 
 
-def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
+def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem, logger):
 
     ## Create result plots directory
     plots_dir = os.path.join(outputdir,'plots')
@@ -2251,14 +2243,14 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
  
     ## Save results and create reports
 
-    if not save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, samples_profiles_dict, logger):
+    if not save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, logger):
         print('There is an error while saving the allele calling results. Check the log file to get more information \n')
        # exit(0)
 
 
     ## Saving sample results plots
 
-    if not save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
+    if not save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem, logger):
         print('There is an error while saving the allele calling results plots. Check the log file to get more information \n')
 
 
@@ -2398,7 +2390,10 @@ def processing_allele_calling (arguments) :
                 exit(0)
 
 
-    if str(arguments.profile).lower != 'false':
+    print("str(arguments.profile).lower: ", str(arguments.profile).lower, '\n')
+    print("arguments.profile: ", arguments.profile, '\n')
+
+    if str(arguments.profile).lower() != 'false':
         
         ############################
         ## Get ST for each sample ##
