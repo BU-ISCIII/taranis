@@ -136,7 +136,7 @@ def prepare_core_gene (core_gene_file_list, store_dir, ref_alleles_dir, genus, s
             stdev = 0
         else:
             stdev = statistics.stdev(alleles_len)
-        schema_statistics[f_name[0]]=[statistics.mode(alleles_len), statistics.mean(alleles_len), stdev, min(alleles_len), max(alleles_len)]
+        schema_statistics[f_name[0]]=[statistics.mean(alleles_len), stdev, min(alleles_len), max(alleles_len)]
 
     return alleles_in_locus_dict, annotation_core_dict, schema_variability, schema_statistics, schema_quality
 
@@ -355,13 +355,13 @@ def prepare_samples(sample_file_list, store_dir, reference_genome_file, logger):
 
 def length_thresholds(core_name, schema_statistics, percent): ### logger
                                                                     
-    locus_mean = int(schema_statistics[core_name][1])
+    locus_mean = int(schema_statistics[core_name][0])
 
     if percent != "SD": 
         max_length_threshold = math.ceil(locus_mean + ((locus_mean * float(percent)) / 100))
         min_length_threshold = math.floor(locus_mean - ((locus_mean * float(percent)) / 100))
     else:
-        percent = float(schema_statistics[core_name][2])
+        percent = float(schema_statistics[core_name][1])
 
         max_length_threshold = math.ceil(locus_mean + (locus_mean * percent))
         min_length_threshold = math.floor(locus_mean - (locus_mean * percent))
@@ -555,7 +555,7 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
 
     elif 90 <= float(pident) and new_sequence_length == '-':
         # (BLAST 90 con resultado, bajo coverage BLAST)
-        locus_mean = int(schema_statistics[core_name][1]) 
+        locus_mean = int(schema_statistics[core_name][0]) 
         coverage_blast = int(s_length) / locus_mean 
         #coverage_blast = int(s_length) / matching_allele_length
         coverage_new_sequence = '-'
@@ -574,7 +574,7 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
 
     elif 90 <= float(pident) and new_sequence_length != '-':
         # (BLAST 90 con resultado, buen coverage BLAST, bajo coverage new_sseq)
-        locus_mean = int(schema_statistics[core_name][1]) 
+        locus_mean = int(schema_statistics[core_name][0]) 
         coverage_blast = int(s_length) / locus_mean
         #coverage_blast = int(s_length) / matching_allele_length  
         coverage_new_sequence = new_sequence_length / matching_allele_length 
@@ -2186,11 +2186,11 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                 new_sseq_coverage = new_sequence_length/matching_allele_length ### introduciendo coverage new_sseq /// debería ser con respecto a la media?
                                 
                                 if new_sseq_coverage < 1:
-                                    shorter_seq_coverage.append([core_name, sample_name, str(matching_allele_length), str(new_sequence_length), str(schema_statistics[core_name][1]), str(new_sseq_coverage), str(new_sequence_length/schema_statistics[core_name][1])])
+                                    shorter_seq_coverage.append([core_name, sample_name, str(matching_allele_length), str(new_sequence_length), str(schema_statistics[core_name][0]), str(new_sseq_coverage), str(new_sequence_length/schema_statistics[core_name][0])])
                                 elif new_sseq_coverage > 1:
-                                    longer_seq_coverage.append([core_name, sample_name, str(matching_allele_length), str(new_sequence_length), str(schema_statistics[core_name][1]), str(new_sseq_coverage), str(new_sequence_length/schema_statistics[core_name][1])])
+                                    longer_seq_coverage.append([core_name, sample_name, str(matching_allele_length), str(new_sequence_length), str(schema_statistics[core_name][0]), str(new_sseq_coverage), str(new_sequence_length/schema_statistics[core_name][0])])
                                 elif new_sseq_coverage == 1:
-                                    equal_seq_coverage.append([core_name, sample_name, str(matching_allele_length), str(new_sequence_length), str(schema_statistics[core_name][1]), str(new_sseq_coverage), str(new_sequence_length/schema_statistics[core_name][1])])
+                                    equal_seq_coverage.append([core_name, sample_name, str(matching_allele_length), str(new_sequence_length), str(schema_statistics[core_name][0]), str(new_sseq_coverage), str(new_sequence_length/schema_statistics[core_name][0])])
                                 #########################################################################################################################
 
                                 # Get and keep SNP and DNA and protein alignment
