@@ -1547,17 +1547,17 @@ def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_
 
         ## Obtain interactive piechart
         logger.info('Creating interactive results piecharts')
-        create_sunburst_allele_call (outputdir, sample_name, count_exact[sample_name], count_inf[sample_name], count_asm[sample_name], count_alm[sample_name], count_lnf[sample_name], count_tpr[sample_name], count_plot[sample_name], count_niph[sample_name], count_niphem[sample_name])
+        create_sunburst_allele_call (outputdir, sample_name, count_exact[sample_name], count_inf[sample_name], count_asm[sample_name], count_alm[sample_name], count_lnf[sample_name], count_tpr[sample_name], count_plot[sample_name], count_niph[sample_name], count_niphem[sample_name], count_error[sample_name])
 
     return True
 
 
 
-def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem):
+def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem, count_error):
                             ### logger
 
     total_locus = count_exact['total'] + count_inf['total'] + count_asm['total'] + count_alm['total'] + count_lnf['total'] + count_tpr['total'] + count_plot['total'] \
-                    + count_niph['total'] + count_niphem['total']
+                    + count_niph['total'] + count_niphem['total'] + count_error['total']
 
     tag_counts = [total_locus, count_exact['total'], count_exact['good_quality'], count_exact['bad_quality'], count_exact['no_start'], count_exact['no_start_stop'], 
                     count_exact['no_stop'], count_exact['multiple_stop'], count_inf['total'], count_inf['good_quality'], count_inf['bad_quality'], count_inf['no_start'], 
@@ -1567,7 +1567,8 @@ def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf,
                     count_niph['multiple_stop'], count_niphem['total'], count_niphem['good_quality'], count_niphem['bad_quality'], count_niphem['no_start'], 
                     count_niphem['no_start_stop'], count_niphem['no_stop'], count_niphem['multiple_stop'], count_lnf['total'], count_lnf['not_found'], count_lnf['low_id'],
                     count_lnf['low_coverage'], count_tpr['total'], count_tpr['good_quality'], count_tpr['bad_quality'], count_tpr['no_start'], count_tpr['no_start_stop'], 
-                    count_tpr['no_stop'], count_tpr['multiple_stop']]
+                    count_tpr['no_stop'], count_tpr['multiple_stop'], count_error['total'], count_error['good_quality'], count_error['bad_quality'], count_error['no_start'], 
+                    count_error['no_start_stop'], count_error['no_stop'], count_error['multiple_stop']]
 
     fig=go.Figure(go.Sunburst(
     ids=[
@@ -1585,7 +1586,9 @@ def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf,
         "Multiple stop - Bad Quality - NIPHEM", "LNF", "Not found", 
         "Low ID", "Low coverage", "TPR", "Good Quality - TPR", "Bad Quality - TPR", 
         "No start - Bad Quality - TPR", "No start-stop - Bad Quality - TPR", "No stop - Bad Quality - TPR", 
-        "Multiple stop - Bad Quality - TPR"
+        "Multiple stop - Bad Quality - TPR", "Error", "Good Quality - Error", "Bad Quality - Error", 
+        "No start - Bad Quality - Error", "No start-stop - Bad Quality - Error", 
+        "No stop - Bad Quality - Error", "Multiple stop - Bad Quality - Error"
     ],
     labels= [
         sample_name, "Exact<br>Match", "Good<br>Quality", "Bad<br>Quality",
@@ -1598,7 +1601,9 @@ def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf,
         "NIPHEM", "Good<br>Quality", "Bad<br>Quality", "No<br>start", 
         "No<br>start-stop", "No<br>stop", "Multiple<br>stop", "LNF", "Not<br>found", 
         "Low<br>ID", "Low<br>coverage", "TPR", "Good<br>Quality", "Bad<br>Quality",
-        "No<br>start", "No<br>start-stop", "No<br>stop", "Multiple<br>stop",
+        "No<br>start", "No<br>start-stop", "No<br>stop", "Multiple<br>stop", 
+        "Error", "Good<br>Quality", "Bad<br>Quality","No<br>start", 
+        "No<br>start-stop", "No<br>stop", "Multiple<br>stop"
     ],
     parents=[
         "", sample_name, "Exact Match", "Exact Match", "Bad Quality - Exact Match", 
@@ -1609,7 +1614,8 @@ def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf,
         "Bad Quality - NIPH", sample_name, "NIPHEM", "NIPHEM", "Bad Quality - NIPHEM", 
         "Bad Quality - NIPHEM", "Bad Quality - NIPHEM", "Bad Quality - NIPHEM", sample_name, "LNF", 
         "LNF", "LNF", sample_name, "TPR", "TPR", "Bad Quality - TPR", "Bad Quality - TPR", 
-        "Bad Quality - TPR", "Bad Quality - TPR" 
+        "Bad Quality - TPR", "Bad Quality - TPR", sample_name, "Error", "Error", "Bad Quality - Error", 
+        "Bad Quality - Error", "Bad Quality - Error", "Bad Quality - Error"
     ], 
     values=tag_counts,
     branchvalues="total",
@@ -1809,6 +1815,9 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
             
             if sample_name not in count_niphem:
                 count_niphem[sample_name] = {"good_quality" : 0, "bad_quality" : 0, "no_start" : 0, "no_start_stop" : 0, "no_stop" : 0, "multiple_stop" : 0, "total" : 0}
+
+            if sample_name not in count_error:
+                count_error[sample_name] = {"good_quality" : 0, "bad_quality" : 0, "no_start" : 0, "no_start_stop" : 0, "no_stop" : 0, "multiple_stop" : 0, "total" : 0}
 
 
             # Initialize the sample list to add the number of alleles and the start, stop positions
@@ -2240,6 +2249,17 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                     matching_genes_dict[sample_name][sseqid].append([core_name, sstart,send,'-', 'ERROR'])
                                 else:
                                     matching_genes_dict[sample_name][sseqid].append([core_name, sstart,send,'+', 'ERROR'])
+
+                                # (recuento tags para plot)
+                                count_error[sample_name]['total'] += 1
+                                for count_class in count_error[sample_name]:
+                                    if count_class in allele_quality:
+                                        if "no_start_stop" not in count_class and "no_start_stop" in allele_quality:
+                                            if count_class == "bad_quality":
+                                                count_error[sample_name][count_class] += 1
+                                        else:
+                                            count_error[sample_name][count_class] += 1
+
  
     ## Save results and create reports
 
