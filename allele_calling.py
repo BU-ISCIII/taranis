@@ -1384,7 +1384,7 @@ def save_st_profile_results (outputdir, samples_profiles_dict, logger):
 
 
 def create_sunburst_plot_st (outputdir, count_st, logger):
-                            ### logger
+                            ### logger?
 
     counts = []
     st_ids = ["ST"]
@@ -1394,33 +1394,34 @@ def create_sunburst_plot_st (outputdir, count_st, logger):
     total_samples = 0
 
     for st_type in count_st:
-        total_st_type_count = sum(count_st[st_type].values())
+
+        if type(count_st[st_type]) == dict:
+            total_st_type_count = sum(count_st[st_type].values())
+        else:
+            total_st_type_count = count_st[st_type]
 
         counts.append(total_st_type_count)
-
         st_ids.append(st_type)
         st_labels.append(st_type)
         st_parents.append("ST")
 
         total_samples += total_st_type_count
 
-        for st in count_st[st_type]:
-            counts.append(count_st[st_type][st])
-            st_ids.append(st + " - " + st_type)
-            st_labels.append(st)
-            st_parents.append(st_type)
+        if type(count_st[st_type]) == dict:
+            for st in count_st[st_type]:
+                counts.append(count_st[st_type][st])
+                st_ids.append(st + " - " + st_type)
+                st_labels.append(st)
+                st_parents.append(st_type)
 
     counts.insert(0, total_samples)
 
-    fig=go.Figure(go.Sunburst(
-    ids=[st_ids
-    ],
-    labels= [st_labels
-    ],
-    parents=[st_parents
-    ], 
-    values=counts,
-    branchvalues="total",
+    fig = go.Figure(go.Sunburst(
+    ids = st_ids,
+    labels = st_labels,
+    parents = st_parents, 
+    values = counts,
+    branchvalues = "total",
     ))
 
     fig.update_layout(margin = dict(t=0, l=0, r=0, b=0))
