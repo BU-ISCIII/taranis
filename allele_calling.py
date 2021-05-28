@@ -1883,7 +1883,10 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                     for line in out_lines :
                         values = line.split('\t')
                         qseqid = values[0]
-                        sseqid = values[1]
+                        if values[1] not in contigs_in_sample_dict[sample_name]: ###### SHIGELLA
+                            sseqid = '|'.join(values[1].split('|')[1:-1])
+                        else:
+                            sseqid = values[1]
                         sstart = values[9]
                         send = values[10]
 
