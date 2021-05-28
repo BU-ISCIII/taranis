@@ -2627,6 +2627,8 @@ def processing_allele_calling (arguments) :
     except:
         print('There was an error when creating distance matrix\n')
 
+    shutil.rmtree(os.path.join(arguments.outputdir, 'tmp'))
+
     end_time = datetime.now()
     print('completed execution at :', end_time )
 
