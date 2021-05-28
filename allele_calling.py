@@ -1786,45 +1786,62 @@ def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf,
 # Update core genes schema adding new inferred alleles found for each locus in allele calling analysis #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 
-## intentando tener en cuenta los esquemas cuyos alelos contengan ids alfanuméricos
-def update_schema (updateschema, schemadir, storedir, core_gene_list_files, inferred_alleles_dict, alleles_in_locus_dict, logger):
+def update_schema (updateschema, schemadir, outputdir, core_gene_list_files, inferred_alleles_dict, alleles_in_locus_dict, logger):
     
-    ## Create a copy of core genes schema if updateschema = 'new' / 'New'
-    if updateschema == 'new' or updateschema == 'New':
-        no_updated_schemadir = schemadir
-        schemadir_name = os.path.basename(no_updated_schemadir)
-        schemadir = os.path.join(storedir, schemadir_name + '_updated') 
-        shutil.copytree(no_updated_schemadir, schemadir)
-        logger.info('Copying core genes fasta files to update schema')
-        
-    ## Get INF alleles for each core gene and update each locus fasta file
-    for core_file in core_gene_list_files:
-        core_name = os.path.basename(core_file).split('.')[0]
-        if core_name in inferred_alleles_dict:
-            logger.info('Updating core gene file %s adding new INF alleles', core_file)
-            
-            inf_list = inferred_alleles_dict[core_name]
+    if len(inferred_alleles_dict) > 0: 
+        ## Create a copy of core genes schema if updateschema = 'new' / 'New'
+        if updateschema == 'new':
+            no_updated_schemadir = schemadir
+            ##schemadir_name = os.path.dirname(no_updated_schemadir) ---> se puede usar si guardo finalmente el nuevo esquema en el mismo directorio que el antiguo esquema, pero para ello debo verificar si termina o no el path en / para eliminarlo o no del path antes de hacer el dirname
+            schemadir_name = no_updated_schemadir.split("/")
+            if no_updated_schemadir.endswith("/"):
+                schemadir_name = schemadir_name[-2]
+            else:
+                schemadir_name = schemadir_name[-1]
+
+            schemadir = os.path.join(outputdir, schemadir_name + '_updated') 
 
             try:
-                alleles_ids = [int(allele) for allele in alleles_in_locus_dict[core_name]]
-                allele_number = max(alleles_ids)
-                
-                locus_schema_file = os.path.join(schemadir, core_name + '.fasta') 
-                with open (locus_schema_file, 'a') as core_fh:
-                    for inf in inf_list:
-                        allele_number += 1
-                        complete_inf_id = core_name + '_' + str(allele_number)
-                        core_fh.write('\n' + '>' + str(allele_number) + ' # ' + 'INF by Taranis' + '\n' + inf + '\n')
+                shutil.copytree(no_updated_schemadir, schemadir)
+                logger.info ('Schema copy %s has been created to update schema', schemadir)
             except:
-                alleles_ids = [int(allele.split('_')[-1]) for allele in alleles_in_locus_dict[core_name]]
-                allele_number = max(alleles_ids)
+                logger.info('Deleting preexisting directory')
+                shutil.rmtree(schemadir)
+                try:
+                    shutil.copytree(no_updated_schemadir, schemadir)
+                    logger.info ('Schema copy %s has been created to update schema', schemadir)
+                except:
+                    logger.info('Unable to create schema copy %s', schemadir)
+                    print('Cannot create schema copy on ', schemadir)
+                    exit(0)
 
-                locus_schema_file = os.path.join(schemadir, core_name + '.fasta') 
-                with open (locus_schema_file, 'a') as core_fh:
-                    for inf in inf_list:
-                        allele_number += 1
-                        complete_inf_id = core_name + '_' + str(allele_number)
-                        core_fh.write('\n' + '>' + complete_inf_id + ' # ' + 'INF by Taranis' + '\n' + inf + '\n')
+        ## Get INF alleles for each core gene and update each locus fasta file
+        for core_file in core_gene_list_files:
+            core_name = os.path.basename(core_file).split('.')[0]
+            if core_name in inferred_alleles_dict:
+                logger.info('Updating core gene file %s adding new INF alleles', core_file)
+                
+                inf_list = inferred_alleles_dict[core_name]
+
+                try:
+                    alleles_ids = [int(allele) for allele in alleles_in_locus_dict[core_name]]
+                    allele_number = max(alleles_ids)
+                    
+                    locus_schema_file = os.path.join(schemadir, core_name + '.fasta') 
+                    with open (locus_schema_file, 'a') as core_fh:
+                        for inf in inf_list:
+                            allele_number += 1
+                            core_fh.write('\n' + '>' + str(allele_number) + ' # ' + 'INF by Taranis' + '\n' + inf + '\n')
+                except:
+                    alleles_ids = [int(allele.split('_')[-1]) for allele in alleles_in_locus_dict[core_name]]
+                    allele_number = max(alleles_ids)
+
+                    locus_schema_file = os.path.join(schemadir, core_name + '.fasta') 
+                    with open (locus_schema_file, 'a') as core_fh:
+                        for inf in inf_list:
+                            allele_number += 1
+                            complete_inf_id = core_name + '_' + str(allele_number)
+                            core_fh.write('\n' + '>' + complete_inf_id + ' # ' + 'INF by Taranis' + '\n' + inf + '\n')
 
     return True
 
@@ -2555,19 +2572,14 @@ def processing_allele_calling (arguments) :
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)
 
-
     #########################################################
     ## Update core gene schema adding new inferred alleles ##
     #########################################################
     if inferred_alleles_dict:
         if str(arguments.updateschema).lower() == 'true' or str(arguments.updateschema).lower() == 'new':
-            if not update_schema (str(arguments.updateschema).lower(), arguments.coregenedir, tmp_core_gene_dir, valid_core_gene_files, inferred_alleles_dict, alleles_in_locus_dict, logger):        
+            if not update_schema (str(arguments.updateschema).lower(), arguments.coregenedir, arguments.outputdir, valid_core_gene_files, inferred_alleles_dict, alleles_in_locus_dict, logger):        
                 print('There is an error adding new inferred alleles found to the core genes schema. Check the log file to get more information \n')
                 exit(0)
-
-
-    print("str(arguments.profile).lower: ", str(arguments.profile).lower, '\n')
-    print("arguments.profile: ", arguments.profile, '\n')
 
     if str(arguments.profile).lower() != 'false':
         
