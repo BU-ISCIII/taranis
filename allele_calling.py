@@ -1257,6 +1257,7 @@ def create_distance_matrix (input_dir, input_file, locus_filter, sample_filter, 
 
 def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_list_files, sample_list_files, logger):
                     ## logger
+
     csv_read = []
     ST_profiles_dict = {}
     samples_profiles_dict = {}
@@ -1269,22 +1270,23 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
         for line in csvreader:
             csv_read.append(line)
     
-    profile_header = csv_read[0][1:len(core_gene_list_files) + 1] 
+    profile_header = csv_read[0][1:len(core_gene_list_files) + 1]
 
     for ST_index in range(1, len(csv_read)):
         ST_profiles_dict[csv_read[ST_index][0]] = {} 
         for core_index in range(len(profile_header)):
             ST_profiles_dict[csv_read[ST_index][0]][profile_header[core_index]] = csv_read[ST_index][core_index + 1]
-
-
+    
     for sample_file in sample_list_files:
         sample_name = '.'.join(os.path.basename(sample_file).split('.')[:-1])
 
         st_counter = 0
         for ST in ST_profiles_dict:
             core_counter = 0
-            for core_name in profile_header:
+
+            for core_name in profile_header: 
                 allele_in_ST = ST_profiles_dict[ST][core_name]
+                exact_gene = True
 
                 if sample_name in exact_dict:
                     if core_name in exact_dict[sample_name]:
@@ -1292,7 +1294,7 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
 
                         if not '_' in allele_in_ST:
                             if '_' in allele_in_sample:
-                                allele_in_sample = allele_in_sample.split('_')[1]                    
+                                allele_in_sample = allele_in_sample.split('_')[1]
 
                         if st_counter == 0:
                             if sample_name not in analysis_profiles_dict:
@@ -1301,57 +1303,70 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
 
                         if allele_in_sample == allele_in_ST:
                             core_counter += 1
-   
-                elif sample_name in inf_dict:
-                    if core_name in inf_dict[sample_name]:
-                        if st_counter == 0:
-                            allele_in_sample = inf_dict[sample_name][core_name][2]
-                            if sample_name not in analysis_profiles_dict:
-                                analysis_profiles_dict[sample_name] = {}
-                            analysis_profiles_dict[sample_name][core_name] = allele_in_sample
+
                     else:
-                        if st_counter == 0:
-                            allele_in_sample = 'N'
-                            if sample_name not in analysis_profiles_dict:
-                                analysis_profiles_dict[sample_name] = {}
-                            analysis_profiles_dict[sample_name][core_name] = allele_in_sample
+                        exact_gene = False 
+
+                else:
+                    exact_gene = False 
+                    
+                if exact_gene == False:
+                    if sample_name in inf_dict:
+                        if core_name in inf_dict[sample_name]:
+                            if st_counter == 0:
+                                allele_in_sample = inf_dict[sample_name][core_name][2]
+                                if sample_name not in analysis_profiles_dict:
+                                    analysis_profiles_dict[sample_name] = {}
+                                analysis_profiles_dict[sample_name][core_name] = allele_in_sample
+                        
+                        else: 
+                            if st_counter == 0:
+                                if sample_name not in analysis_profiles_dict:
+                                    analysis_profiles_dict[sample_name] = {}
                 
-                if allele_in_ST == 'N':
+                if allele_in_ST == 'N' and "allele_in_sample" not in locals():
                     core_counter += 1
 
             st_counter += 1
             if core_counter == len(profile_header):
                 samples_profiles_dict[sample_name] = ST
 
-                if "Known" not in count_st:
-                    count_st["Known"] = {}
-                if ST not in count_st["Known"]:
-                    count_st["Known"][ST] = 0
-                count_st["Known"][ST] += 1 
+                if "_INF" in ST:
+                    if "New" not in count_st:
+                        count_st["New"] = {}
+                    if ST not in count_st["New"]:
+                        count_st["New"][ST] = 0
+                    count_st["New"][ST] += 1
+
+                else:
+                    if "Known" not in count_st:
+                        count_st["Known"] = {}
+                    if ST not in count_st["Known"]:
+                        count_st["Known"][ST] = 0
+                    count_st["Known"][ST] += 1
 
                 break
 
         if sample_name not in samples_profiles_dict:
             if len(analysis_profiles_dict[sample_name]) == len(profile_header):
-                if analysis_profile_dict[sample_name] not in ST_profiles_dict.values():
-                    new_st_id = str(len(ST_profiles_dict) + 1)
-                    ST_profiles_dict[new_st_id  + "_INF"] = analysis_profile_dict[sample_name]
-                    inf_ST[new_st_id] = analysis_profile_dict[sample_name]
+                new_st_id = str(len(ST_profiles_dict) + 1)
+                ST_profiles_dict[new_st_id  + "_INF"] = analysis_profile_dict[sample_name]
+                inf_ST[new_st_id] = analysis_profile_dict[sample_name]
 
-                    if "New" not in count_st:
-                        count_st["New"] = {}
-                    if new_st_id not in count_st["New"]:
-                        count_st["New"][new_st_id] = 0
-                    count_st["New"][new_st_id] += 1
+                samples_profiles_dict[sample_name]=new_st_id  + "_INF"
+
+                if "New" not in count_st:
+                    count_st["New"] = {}
+                if new_st_id not in count_st["New"]:
+                    count_st["New"][new_st_id] = 0
+                count_st["New"][new_st_id] += 1
 
             else:
                 samples_profiles_dict[sample_name] = '-'
 
-                if "Empty" not in count_st:
-                    count_st["Empty"] = {}
-                if "-" not in count_st:
-                    count_st["Empty"]["-"] = 0
-                count_st["Empty"]["-"] += 1
+                if "Unknown" not in count_st:
+                    count_st["Unknown"] = 0
+                count_st["Unknown"] += 1
 
     ## Create ST profile results report
     save_st_profile_results (outputdir, samples_profiles_dict, logger)
@@ -1385,7 +1400,6 @@ def save_st_profile_results (outputdir, samples_profiles_dict, logger):
 
 def create_sunburst_plot_st (outputdir, count_st, logger):
                             ### logger?
-
     counts = []
     st_ids = ["ST"]
     st_labels = ["ST"]
@@ -2587,8 +2601,8 @@ def processing_allele_calling (arguments) :
         ############################
         ## Get ST for each sample ##
         ############################
-        #complete_ST, inf_ST = get_ST_profile(arguments.outputdir, arguments.profile, exact_dict, inf_dict, core_gene_list_files, sample_list_files, logger)
         complete_ST, inf_ST = get_ST_profile(arguments.outputdir, arguments.profile, exact_dict, inf_dict, valid_core_gene_files, valid_sample_files, logger)
+        
         if not complete_ST:
             print('There is an error while processing ST analysis. Check the log file to get more information \n')
             exit(0)
