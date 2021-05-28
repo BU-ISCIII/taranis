@@ -180,7 +180,7 @@ def prodigal_training(reference_genome_file, prodigal_dir, logger):
 
 def prodigal_prediction(file_name, prodigal_dir, prodigal_train_dir, logger):
 
-    f_name = os.path.basename(file_name).split('.')[0]
+    f_name = '.'.join(os.path.basename(file_name).split('.')[:-1])
     prodigal_dir_sample = os.path.join(prodigal_dir,f_name)
 
     output_prodigal_coord = os.path.join(prodigal_dir_sample, f_name + '_coord.gff') ## no
@@ -313,27 +313,27 @@ def prepare_samples(sample_file_list, store_dir, reference_genome_file, logger):
         return False
 
     for fasta_file in sample_file_list:
-        f_name = os.path.basename(fasta_file).split('.')
+        f_name = '.'.join(os.path.basename(fasta_file).split('.')[:-1])
 
         # Get samples id-contig dictionary
         fasta_file_parsed_dict = parsing_fasta_file_to_dict(fasta_file, logger)
-        if f_name[0] not in contigs_in_sample_dict.keys():
-            contigs_in_sample_dict[f_name[0]] = {}
-        contigs_in_sample_dict[f_name[0]] = fasta_file_parsed_dict 
+        if f_name not in contigs_in_sample_dict.keys():
+            contigs_in_sample_dict[f_name] = {}
+        contigs_in_sample_dict[f_name] = fasta_file_parsed_dict
 
         # dump fasta file into pickle file
         #with open (file_list[-1],'wb') as f: # generación de diccionarios de contigs para cada muestra
          #   pickle.dump(fasta_file_parsed_dict, f)
     
         # Create directory for storing BLAST results using reference allele(s)
-        blast_results_seq_per_sample_dir = os.path.join(blast_results_seq_dir, f_name[0])
+        blast_results_seq_per_sample_dir = os.path.join(blast_results_seq_dir, f_name)
         
         if not os.path.exists(blast_results_seq_per_sample_dir):
             try:
                 os.makedirs(blast_results_seq_per_sample_dir)
-                logger.debug('Created blast results directory for sample %s', f_name[0])
+                logger.debug('Created blast results directory for sample %s', f_name)
             except:
-                logger.info('Cannot create blast results directory for sample %s', f_name[0])
+                logger.info('Cannot create blast results directory for sample %s', f_name)
                 print ('Error when creating the directory for blast results', blast_results_seq_per_sample_dir)
                 exit(0)
 
@@ -1126,7 +1126,7 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
 
 
     for sample_file in sample_list_files:
-        sample_name = os.path.basename(sample_file).split('.')[0]
+        sample_name = '.'.join(os.path.basename(sample_file).split('.')[:-1])
 
         st_counter = 0
         for ST in ST_profiles_dict:
@@ -1543,7 +1543,7 @@ def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_
             exit(0) 
 
     for sample_file in sample_list_files:
-        sample_name = os.path.basename(sample_file).split('.')[0]
+        sample_name = '.'.join(os.path.basename(sample_file).split('.')[:-1])
 
         ## Obtain interactive piechart
         logger.info('Creating interactive results piecharts')
@@ -1787,7 +1787,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
         for sample_file in sample_list_files:
             logger.info('Processing sample file %s ', sample_file)
 
-            sample_name = os.path.basename(sample_file).split('.')[0]
+            sample_name = '.'.join(os.path.basename(sample_file).split('.')[:-1])
 
             # (recuento tags para plots)
             if sample_name not in count_exact:
@@ -1883,7 +1883,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                     for line in out_lines :
                         values = line.split('\t')
                         qseqid = values[0]
-                        if values[1] not in contigs_in_sample_dict[sample_name]: ###### SHIGELLA
+                        if values[1] not in contigs_in_sample_dict[sample_name]:
                             sseqid = '|'.join(values[1].split('|')[1:-1])
                         else:
                             sseqid = values[1]
