@@ -1525,7 +1525,7 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
 
 
 
-def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem, logger):
+def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem, count_error, logger):
 
     ## Create result plots directory
     plots_dir = os.path.join(outputdir,'plots')
@@ -1751,6 +1751,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
     count_plot = {}
     count_niph = {}
     count_niphem = {}
+    count_error = {}
 
     blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
 
@@ -2270,7 +2271,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
 
     ## Saving sample results plots
 
-    if not save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem, logger):
+    if not save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_inf, count_asm, count_alm, count_lnf, count_tpr, count_plot, count_niph, count_niphem, count_error, logger):
         print('There is an error while saving the allele calling results plots. Check the log file to get more information \n')
 
 
