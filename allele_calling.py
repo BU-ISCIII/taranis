@@ -249,7 +249,7 @@ def get_prodigal_sequence(blast_sseq, contig_blast_id, prodigal_directory, sampl
     contig_genes_path = os.path.join(full_path_prodigal_genes_per_contig, contig_blast_id + '.fasta')
     with open (contig_genes_path, 'w') as out_fh:
         for rec in predicted_genes:
-            contig_prodigal_id = (rec.id).split("_")[0]
+            contig_prodigal_id = '_'.join((rec.id).split("_")[:-1])
             if contig_prodigal_id == contig_blast_id: 
                 out_fh.write ('>' + str(rec.description) + '\n' + str(rec.seq) + '\n')
 
