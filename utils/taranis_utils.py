@@ -247,8 +247,15 @@ def get_fasta_file_list (check_directory,  logger):
     if not os.path.isdir(check_directory):
         logger.info('directory %s does not exists', check_directory)
         return False
-    filter_files = os.path.join(check_directory, '*.fasta')
-    list_filtered_files =  glob.glob(filter_files)
+    
+    fasta_format = ['*.fasta', '*.fa', '*.fna', '*.ffn', '*.frn']
+    list_filtered_files = []
+    for extension in fasta_format:
+        filter_files = os.path.join(check_directory, extension)
+        sublist_filtered_files =  glob.glob(filter_files)
+        for fasta_file in sublist_filtered_files:
+            list_filtered_files.append(fasta_file)
+    
     list_filtered_files.sort()
     if len (list_filtered_files) == 0 :
         logger.info('directory %s does not have any fasta file ', check_directory)
@@ -417,7 +424,7 @@ def hamming_distance (pd_matrix):
 def create_distance_matrix (input_dir, input_file):
     try:
         result_file = os.path.join(input_dir, input_file)
-        pd_matrix = pd.read_csv(input_file, sep='\t', header=0, index_col=0)
+        pd_matrix = pd.read_csv(result_file, sep='\t', header=0, index_col=0)
     except Exception as e:
 
         print('------------- ERROR --------------')

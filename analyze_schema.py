@@ -79,12 +79,8 @@ def extract_info_schema (schema_files, outputdir, genus, species, usegenus, logg
         alleles_in_locus = list(SeqIO.parse(schema_file, "fasta"))
 
         for allele_1 in alleles_in_locus:
-            #check if allele id contain string characters . If yes get only the nummber
-            if '_' in allele_1.id: ## X
-                tmp_id = allele_1.id.split('_')
-                allele_1_id = int(tmp_id[-1])
-            else:
-                allele_1_id = int(allele_1.id)
+
+            allele_1_id = allele_1.id
 
 
             # ··························································· #
@@ -95,11 +91,8 @@ def extract_info_schema (schema_files, outputdir, genus, species, usegenus, logg
                 
                 if str(allele_1.seq) in str(allele_2.seq) or str(allele_2.seq) in str(allele_1.seq) :
                     if len(str(allele_1.seq)) != len(str(allele_2.seq)) :
-                        if '_' in allele_2.id: ## X
-                            tmp_id = allele_2.id.split('_')
-                            allele_2_id = int(tmp_id[-1])
-                        else:
-                            allele_2_id = int(allele_2.id)
+
+                        allele_2_id = allele_2.id
 
                         if len(str(allele_1.seq)) > len(str(allele_2.seq)) :
                             no_subset = allele_1_id
@@ -529,7 +522,7 @@ def analyze_schema (inputdir, outputdir, genus, species, usegenus, logger) :
         with open (schema_info_file , 'w') as schema_info_fh :
             schema_info_fh.write('\t'.join(header_schema_info) + '\n')
             for allele in (schema_info_dict[core]) :
-                schema_info_fh.write(core + '\t' + str(allele) + '\t' + '\t'.join(schema_info_dict[core][allele]) + '\n')
+                schema_info_fh.write(core + '\t' + allele + '\t' + '\t'.join(schema_info_dict[core][allele]) + '\n')
 
     # Saving duplicated alleles to file
     logger.info('Saving duplicated alleles to file..')
@@ -548,7 +541,7 @@ def analyze_schema (inputdir, outputdir, genus, species, usegenus, logger) :
         allele_subsets_fh.write('\t'.join(header_alleles_subsets) + '\n')
         for core in sorted(allele_subsets) :
             for allele_id in allele_subsets[core]: 
-                allele_subsets_fh.write(core + '\t' + str(allele_id) + '\t' + ', '.join(map(str, list(allele_subsets[core][allele_id]))) + '\n')
+                allele_subsets_fh.write(core + '\t' + allele_id + '\t' + ', '.join(map(str, list(allele_subsets[core][allele_id]))) + '\n')
 
     # Saving schema quality to file
     logger.info('Saving schema quality information to file..')
@@ -627,13 +620,13 @@ def remove_alleles_from_schema (schema_files, remove_subsets, remove_duplicates,
         if remove_subsets == 'true':           
             if core_name in allele_subsets:
                 subsets_alleles = sum(list(allele_subsets [core_name].values()), []) 
-                alleles_to_remove += [str(x) for x in subsets_alleles]
+                alleles_to_remove += [x for x in subsets_alleles]
 
         if remove_duplicates == 'true':
             if core_name in allele_duplicated:
                 for duplicates_group in allele_duplicated[core_name]:
                     for id_index in range(1, len(duplicates_group)):
-                        alleles_to_remove += str(duplicates_group[id_index])
+                        alleles_to_remove += duplicates_group[id_index]
 
         if remove_no_cds == 'true':
             for quality_class in schema_quality_per_class [core_name]:

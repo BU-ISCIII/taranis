@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import argparse
 import allele_calling
@@ -173,7 +175,26 @@ def check_arg (args=None) :
                                     default = True)
     allele_calling_parser.add_argument('-profile' , required = False,
                                     help = 'ST profile file based on core genes schema file to get ST for each sample. Default is empty and Taranis does not calculate samples ST. ',
-                                    default = '') 
+                                    default = 'False') 
+    allele_calling_parser.add_argument('-updateprofile' , required = False,
+                                    help = 'Add new ST profiles found to the ST profile file. ' 
+                                    + 'True: Add new ST profiles to the analysis ST profile file. ' 
+                                    + 'New: Add Add new ST profiles to a copy of the ST profile file preserving the analysis ST file. ' 
+                                    + 'False: Do not update the ST profile file adding new ST profiles found. '
+                                    + 'Default is True. ',
+                                    default = True)
+    allele_calling_parser.add_argument('-locus_filter', required = False,
+                                    help = 'Exclude loci with LNF percentage above specified threshold from distance matrix. Default is False',
+                                    default = False)
+    allele_calling_parser.add_argument('-sample_filter', required = False,
+                                    help = 'Exclude samples with LNF percentage above specified threshold from distance matrix. Default is False',
+                                    default = False)
+    allele_calling_parser.add_argument('-locus_lnf_threshold', required = False,
+                                    help = 'Exclude loci with LNF percentage above specified threshold from distance matrix. Default is False //// LNF percentage above which loci are excluded from distance matrix. Default is 70.',
+                                    default = 70) ### default = False
+    allele_calling_parser.add_argument('-samples_lnf_threshold', required = False,
+                                    help = 'Exclude samples with LNF percentage above specified threshold from distance matrix. Default is False //// LNF percentage above which samples are excluded from distance matrix. Default is 70.',
+                                    default = 70) ### default = False
     allele_calling_parser.add_argument('-cpus', required = False,
                                     help = 'Number of CPUS to be used in the program. Default is 1.',
                                     default = 1)
