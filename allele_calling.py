@@ -2343,7 +2343,7 @@ def processing_allele_calling (arguments) :
     ############################################################
     ## Check additional programs are installed in your system ##
     ############################################################
-    pre_requisites_list = [['blastp', '2.5'], ['makeblastdb', '2.5']]
+    pre_requisites_list = [['blastp', '2.11'], ['makeblastdb', '2.11']]
     if not check_prerequisites (pre_requisites_list, logger):
         print ('your system does not fulfill the pre-requistes to run the script ')
         exit(0)
