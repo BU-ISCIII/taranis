@@ -2,10 +2,11 @@
 
 import sys
 import argparse
-import allele_calling
-import analyze_schema
 import create_schema
+import analyze_schema
 import reference_alleles
+import allele_calling
+import distance_matrix
 from taranis_configuration import *
 
 def check_arg (args=None) :
@@ -29,7 +30,7 @@ def check_arg (args=None) :
 
     parser.add_argument('--version', action='version', version='%(prog)s 0.3.5')
 
-    subparser = parser.add_subparsers(help = 'analyze_schema, reference_alleles, allele_calling'
+    subparser = parser.add_subparsers(help = 'analyze_schema, reference_alleles, allele_calling, distance_matrix'
                                       + 'are the available actions to execute taranis',
                                       dest = 'chosen_action')
 
@@ -183,18 +184,6 @@ def check_arg (args=None) :
                                     + 'False: Do not update the ST profile file adding new ST profiles found. '
                                     + 'Default is True. ',
                                     default = True)
-    allele_calling_parser.add_argument('-locus_filter', required = False,
-                                    help = 'Exclude loci with LNF percentage above specified threshold from distance matrix. Default is False',
-                                    default = False)
-    allele_calling_parser.add_argument('-sample_filter', required = False,
-                                    help = 'Exclude samples with LNF percentage above specified threshold from distance matrix. Default is False',
-                                    default = False)
-    allele_calling_parser.add_argument('-locus_lnf_threshold', required = False,
-                                    help = 'Exclude loci with LNF percentage above specified threshold from distance matrix. Default is False //// LNF percentage above which loci are excluded from distance matrix. Default is 70.',
-                                    default = 70) ### default = False
-    allele_calling_parser.add_argument('-samples_lnf_threshold', required = False,
-                                    help = 'Exclude samples with LNF percentage above specified threshold from distance matrix. Default is False //// LNF percentage above which samples are excluded from distance matrix. Default is 70.',
-                                    default = 70) ### default = False
     allele_calling_parser.add_argument('-cpus', required = False,
                                     help = 'Number of CPUS to be used in the program. Default is 1.',
                                     default = 1)
@@ -207,6 +196,30 @@ def check_arg (args=None) :
     allele_calling_parser.add_argument('-usegenus' , required = False,
                                     help = 'Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Defualt is False. ',
                                     default = 'False')
+
+
+    ### Input parameters for distance matrix option
+    distance_matrix_parser = subparser.add_parser('distance_matrix',
+                                    help = 'Get samples distance matrix from allele calling comparison table') 
+    distance_matrix_parser.add_argument('-alleles_matrix', required = True,
+                                    help = 'Alleles matrix file from which to obtain distances between samples')
+    distance_matrix_parser.add_argument('-locus_missing_threshold', required = False,
+                                    help = 'Missing values percentage threshold above which loci are excluded for distance matrix creation. Default is 100.',
+                                    default = 100)
+    distance_matrix_parser.add_argument('-sample_missing_threshold', required = False,
+                                    help = 'Missing values percentage threshold above which samples are excluded for distance matrix creation. Default is 100.',
+                                    default = 100)
+    distance_matrix_parser.add_argument('-paralog_filter', required = False,
+                                    help = 'Consider paralog tags (NIPH, NIPHEM) as missing values. Default is True',
+                                    default = True)
+    distance_matrix_parser.add_argument('-lnf_filter', required = False,
+                                    help = 'Consider locus not found tag (LNF) as missing value. Default is True',
+                                    default = True)
+    distance_matrix_parser.add_argument('-plot_filter', required = False,
+                                    help = 'Consider incomplete alleles found on the tip of a contig tag (PLOT) as missing value. Default is True',
+                                    default = True)
+    distance_matrix_parser.add_argument('-outputdir', required = True,
+                                    help = 'Directory where the result files will be stored')
 
 
     ### Input parameters for schema comparison options
@@ -260,6 +273,8 @@ if __name__ == '__main__' :
         result = processing_create_schema(arguments)
     elif arguments.chosen_action == 'reference_alleles' :
         result = reference_alleles.processing_reference_alleles(arguments)
+    elif arguments.chosen_action == 'distance_matrix' :
+        result = distance_matrix.processing_distance_matrix(arguments)
     else:
         print('not allow')
         result = 'Error'
