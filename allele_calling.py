@@ -23,8 +23,8 @@ import pandas as pd
 import shutil
 from progressbar import ProgressBar
 from utils.taranis_utils import *
-import math 
-import csv 
+import math
+import csv
 import plotly.graph_objects as go
 
 
@@ -51,7 +51,7 @@ def check_blast (reference_allele, sample_files, db_name, logger) : ## N
                     alleleMatchid = int((blast_record.query_id.split("_"))[-1])
     return True
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 # Parse samples and core genes schema fasta files to dictionary #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 
@@ -67,7 +67,7 @@ def parsing_fasta_file_to_dict (fasta_file, logger):
     return fasta_dict_ordered
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 # Get core genes schema info before allele calling analysis #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 
@@ -76,7 +76,7 @@ def prepare_core_gene (core_gene_file_list, store_dir, ref_alleles_dir, genus, s
 
     ## Initialize dict for keeping id-allele, quality, length variability, length statistics and annotation info for each schema core gene
     alleles_in_locus_dict = {}
-    schema_quality = {} 
+    schema_quality = {}
     annotation_core_dict = {}
     schema_variability = {}
     schema_statistics = {}
@@ -98,10 +98,10 @@ def prepare_core_gene (core_gene_file_list, store_dir, ref_alleles_dir, genus, s
         # dump fasta file into pickle file
         #with open (file_list[-1],'wb') as f:
          #   pickle.dump(fasta_file_parsed_dict, f)
-        
-        # Get core gene alleles quality 
-        locus_quality = check_core_gene_quality(fasta_file, logger)  
-        if f_name[0] not in schema_quality.keys(): 
+
+        # Get core gene alleles quality
+        locus_quality = check_core_gene_quality(fasta_file, logger)
+        if f_name[0] not in schema_quality.keys():
             schema_quality[f_name[0]] = {}
         schema_quality[f_name[0]] = locus_quality
 
@@ -124,7 +124,7 @@ def prepare_core_gene (core_gene_file_list, store_dir, ref_alleles_dir, genus, s
             #alleles_len.append(len(str(allele.seq))) ## parse
 
         schema_variability[f_name[0]]=list(set(alleles_len))
-        
+
         if len(alleles_len) == 1:
             stdev = 0
         else:
@@ -134,7 +134,7 @@ def prepare_core_gene (core_gene_file_list, store_dir, ref_alleles_dir, genus, s
     return alleles_in_locus_dict, annotation_core_dict, schema_variability, schema_statistics, schema_quality
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 # Get Prodigal training file from reference genome for samples gene prediction  #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 
@@ -144,30 +144,30 @@ def prodigal_training(reference_genome_file, prodigal_dir, logger):
     prodigal_train_dir = os.path.join(prodigal_dir, 'training')
 
     output_prodigal_train_dir = os.path.join(prodigal_train_dir, f_name + '.trn')
-    
+
     if not os.path.exists(prodigal_train_dir):
         try:
             os.makedirs(prodigal_train_dir)
             logger.debug('Created prodigal directory for training file %s', f_name)
         except:
             logger.info('Cannot create prodigal directory for training file %s', f_name)
-            print ('Error when creating the directory %s for training file', prodigal_train_dir) 
+            print ('Error when creating the directory %s for training file', prodigal_train_dir)
             exit(0)
 
         prodigal_command = ['prodigal' , '-i', reference_genome_file, '-t', output_prodigal_train_dir]
         prodigal_result = subprocess.run(prodigal_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    
+
       #  if prodigal_result.stderr:
        #     logger.error('cannot create training file for %s', f_name)
         #    logger.error('prodigal returning error code %s', prodigal_result.stderr)
          #   return False
     else:
         logger.info('Skeeping prodigal training file creation for %s, as it has already been created', f_name)
-    
+
     return output_prodigal_train_dir
 
 
-# · * · * · * · * · * · * · * · * · * #  
+# · * · * · * · * · * · * · * · * · * #
 # Get Prodigal sample gene prediction #
 # · * · * · * · * · * · * · * · * · * #
 
@@ -191,27 +191,27 @@ def prodigal_prediction(file_name, prodigal_dir, prodigal_train_dir, logger):
 
         prodigal_command = ['prodigal' , '-i', file_name , '-t', prodigal_train_dir, '-f', 'gff', '-o', output_prodigal_coord, '-a', output_prodigal_prot, '-d', output_prodigal_dna]
         prodigal_result = subprocess.run(prodigal_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        
+
         # if prodigal_result.stderr:
           #  logger.error('cannot predict genes for %s ', f_name)
            # logger.error('prodigal returning error code %s', prodigal_result.stderr)
             #return False
     else:
         logger.info('Skeeping prodigal genes prediction for %s, as it has already been made', f_name)
-    
+
     return True
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 # Get Prodigal predicted gene sequence equivalent to BLAST result matching bad quality allele or to no Exact Match BLAST result in allele calling analysis #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 
-def get_prodigal_sequence(blast_sseq, contig_blast_id, prodigal_directory, sample_name, blast_parameters, logger): 
+def get_prodigal_sequence(blast_sseq, contig_blast_id, prodigal_directory, sample_name, blast_parameters, logger):
 
     prodigal_directory_sample = os.path.join(prodigal_directory, sample_name)
     genes_file = os.path.join(prodigal_directory_sample, sample_name + '_dna.faa')
 
-    ## Create directory for storing prodigal genes prediction per contig BLAST databases 
+    ## Create directory for storing prodigal genes prediction per contig BLAST databases
     blastdb_per_contig_directory = 'blastdb_per_contig'
     full_path_blastdb_per_contig = os.path.join(prodigal_directory_sample, blastdb_per_contig_directory)
     if not os.path.exists(full_path_blastdb_per_contig):
@@ -243,10 +243,10 @@ def get_prodigal_sequence(blast_sseq, contig_blast_id, prodigal_directory, sampl
     with open (contig_genes_path, 'w') as out_fh:
         for rec in predicted_genes:
             contig_prodigal_id = '_'.join((rec.id).split("_")[:-1])
-            if contig_prodigal_id == contig_blast_id: 
+            if contig_prodigal_id == contig_blast_id:
                 out_fh.write ('>' + str(rec.description) + '\n' + str(rec.seq) + '\n')
 
-    ## Create local BLAST database for Prodigal predicted genes sequences for X contig in sample 
+    ## Create local BLAST database for Prodigal predicted genes sequences for X contig in sample
     if not create_blastdb(contig_genes_path, full_path_blastdb_per_contig, 'nucl', logger):
         print('Error when creating the blastdb for samples files. Check log file for more information. \n ')
         return False
@@ -254,45 +254,45 @@ def get_prodigal_sequence(blast_sseq, contig_blast_id, prodigal_directory, sampl
     ## Local BLAST Prodigal predicted genes sequences database VS BLAST sequence obtained in sample in allele calling analysis
     blast_db_name = os.path.join(full_path_blastdb_per_contig, contig_blast_id, contig_blast_id)
 
-    cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 90, outfmt= blast_parameters, max_target_seqs=10, max_hsps=10, num_threads=1)    
-    out, err = cline(stdin = blast_sseq) 
+    cline = NcbiblastnCommandline(db=blast_db_name, evalue=0.001, perc_identity = 90, outfmt= blast_parameters, max_target_seqs=10, max_hsps=10, num_threads=1)
+    out, err = cline(stdin = blast_sseq)
     out_lines = out.splitlines()
 
     bigger_bitscore = 0
-    if len (out_lines) > 0 :                  
+    if len (out_lines) > 0 :
         for line in out_lines :
             values = line.split('\t')
-            if  float(values[8]) > bigger_bitscore: 
+            if  float(values[8]) > bigger_bitscore:
                 qseqid , sseqid , pident ,  qlen , s_length , mismatch , r_gapopen , r_evalue , bitscore , sstart , send , qstart , qend ,sseq , qseq = values
                 bigger_bitscore = float(bitscore)
 
         ## Get complete Prodigal sequence matching allele calling BLAST sequence using ID
         predicted_genes_in_contig = SeqIO.parse(contig_genes_path, "fasta")
 
-        for rec in predicted_genes_in_contig: 
+        for rec in predicted_genes_in_contig:
             if rec.id == sseqid:
                 predicted_gene_sequence = str(rec.seq)
-                start_prodigal = str(rec.description.split( '#')[1]) 
-                end_prodigal = str(rec.description.split('#')[2]) 
+                start_prodigal = str(rec.description.split( '#')[1])
+                end_prodigal = str(rec.description.split('#')[2])
                 break
 
     ## Sequence not found by Prodigal when there are no BLAST results matching allele calling BLAST sequence
     if len (out_lines) == 0:
-        predicted_gene_sequence = 'Sequence not found by Prodigal' 
-        start_prodigal = '-' 
+        predicted_gene_sequence = 'Sequence not found by Prodigal'
+        start_prodigal = '-'
         end_prodigal = '-'
 
     return predicted_gene_sequence, start_prodigal, end_prodigal ### start_prodigal y end_prodigal para report prodigal
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * #  
+# · * · * · * · * · * · * · * · * · * · * · * · * #
 # Get samples info before allele calling analysis #
 # · * · * · * · * · * · * · * · * · * · * · * · * #
 
 def prepare_samples(sample_file_list, store_dir, reference_genome_file, logger):
-    
+
     ## Initialize dictionary for keeping id-contig
-    contigs_in_sample_dict = {} 
+    contigs_in_sample_dict = {}
 
     ## Paths for samples blastdb, Prodigal genes prediction and BLAST results
     blast_dir = os.path.join(store_dir,'blastdb')
@@ -317,10 +317,10 @@ def prepare_samples(sample_file_list, store_dir, reference_genome_file, logger):
         # dump fasta file into pickle file
         #with open (file_list[-1],'wb') as f: # generación de diccionarios de contigs para cada muestra
          #   pickle.dump(fasta_file_parsed_dict, f)
-    
+
         # Create directory for storing BLAST results using reference allele(s)
         blast_results_seq_per_sample_dir = os.path.join(blast_results_seq_dir, f_name)
-        
+
         if not os.path.exists(blast_results_seq_per_sample_dir):
             try:
                 os.makedirs(blast_results_seq_per_sample_dir)
@@ -330,7 +330,7 @@ def prepare_samples(sample_file_list, store_dir, reference_genome_file, logger):
                 print ('Error when creating the directory for blast results', blast_results_seq_per_sample_dir)
                 exit(0)
 
-        # Prodigal genes prediction for each sample 
+        # Prodigal genes prediction for each sample
         if not prodigal_prediction(fasta_file, prodigal_dir, output_prodigal_train_dir, logger):
             print('Error when predicting genes for samples files. Check log file for more information. \n ')
             return False
@@ -342,15 +342,15 @@ def prepare_samples(sample_file_list, store_dir, reference_genome_file, logger):
 
     return contigs_in_sample_dict
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * #
 # Get established length thresholds for allele tagging in allele calling analysis #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * #
 
 def length_thresholds(core_name, schema_statistics, percent): ### logger
-                                                                    
+
     locus_mean = int(schema_statistics[core_name][0])
 
-    if percent != "SD": 
+    if percent != "SD":
         max_length_threshold = math.ceil(locus_mean + ((locus_mean * float(percent)) / 100))
         min_length_threshold = math.floor(locus_mean - ((locus_mean * float(percent)) / 100))
     else:
@@ -362,7 +362,7 @@ def length_thresholds(core_name, schema_statistics, percent): ### logger
     return max_length_threshold, min_length_threshold
 
 
-# · * · * · * · * · * · * · * · * · * · * · #  
+# · * · * · * · * · * · * · * · * · * · * · #
 # Convert dna sequence to protein sequence  #
 # · * · * · * · * · * · * · * · * · * · * · #
 
@@ -373,7 +373,7 @@ def convert_to_protein (sequence) :
 
     return protein
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * #
 # Get SNPs between BLAST sequence and matching allele #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * #
 
@@ -396,7 +396,7 @@ def get_snp (sample, query) :
     # convert to Seq class to translate to protein
     seq_sample = Seq.Seq(sample)
     seq_query = Seq.Seq(query)
-    
+
     for index in range(length):
         if seq_query[index] != seq_sample[index] :
             triple_index = index - (index % 3)
@@ -421,9 +421,9 @@ def get_snp (sample, query) :
                              missense_synonym, prot_que + '/' + prot_seq, prot_annotation[prot_que[0]] + ' / ' + prot_annotation[prot_seq[0]]])
             if '-' in str(codon_seq) :
                 break
-        
+
     return snp_list
-    
+
 
 def nucleotide_to_protein_alignment (sample_seq, query_seq ) : ### Sustituido por get_alignment
     aligment = []
@@ -457,22 +457,22 @@ def get_alignment_for_deletions (sample_seq, query_seq): ### Sustituido por get_
     index_found = False
     alignments = pairwise2.align.globalxx(sample_seq, query_seq)
     for index in range(len(alignments)) :
-        if alignments[index][4] == len(query_seq) : 
+        if alignments[index][4] == len(query_seq) :
             index_found = True
             break
-    if not index_found : 
+    if not index_found :
         index = 0
     values = format_alignment(*alignments[index]).split('\n')
     match_alignment = [['sample', values[0]],['match', values[1]], ['schema',values[2]]]
     return match_alignment
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 # Get DNA and protein alignment between the final sequence found in the sample and the matching allele #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 
 def get_alignment (sample_seq, query_seq, reward, penalty, gapopen, gapextend, seq_type = "dna"):
-    
+
     ## If sequences alignment type desired is "protein" convert dna sequences to protein
     if seq_type == "protein":
         sample_seq = convert_to_protein(sample_seq)
@@ -487,7 +487,7 @@ def get_alignment (sample_seq, query_seq, reward, penalty, gapopen, gapextend, s
     return match_alignment
 
 
-# · * · * · * · * · * · * · * · * #  
+# · * · * · * · * · * · * · * · * #
 # Tag LNF cases and keep LNF info #
 # · * · * · * · * · * · * · * · * #
 
@@ -499,7 +499,7 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
         samples_matrix_dict[sample_name].append('LNF')
         tag_report = 'LNF'
         matching_allele_length = '-'
-    
+
     else:
         if new_sequence_length == '-':
             samples_matrix_dict[sample_name].append('LNF_' + str(qseqid))
@@ -509,7 +509,7 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
             tag_report = 'TPR'
 
         matching_allele_seq = alleles_in_locus_dict[core_name][qseqid]
-        matching_allele_length = len(matching_allele_seq) 
+        matching_allele_length = len(matching_allele_seq)
 
         #alleles_in_locus = list (SeqIO.parse(locus_alleles_path, "fasta")) ## parse
         #for allele in alleles_in_locus : ## parse
@@ -532,7 +532,7 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
         count_dict[sample_name]['not_found'] += 1
         count_dict[sample_name]['total'] += 1
 
-    elif 90 > float(pident): 
+    elif 90 > float(pident):
         # (BLAST 90 sin resultado y BLAST 70 con resultado)
         coverage_blast = '-'
         coverage_new_sequence = '-'
@@ -548,13 +548,13 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
 
     elif 90 <= float(pident) and new_sequence_length == '-':
         # (BLAST 90 con resultado, bajo coverage BLAST)
-        locus_mean = int(schema_statistics[core_name][0]) 
-        coverage_blast = int(s_length) / locus_mean 
+        locus_mean = int(schema_statistics[core_name][0])
+        coverage_blast = int(s_length) / locus_mean
         #coverage_blast = int(s_length) / matching_allele_length
         coverage_new_sequence = '-'
         if coverage_blast < 1:
             add_info = 'BLAST sequence coverage under threshold: {}%'.format(coverage)
-        else:  
+        else:
             add_info = 'BLAST sequence coverage above threshold: {}%'.format(coverage)
         logger.info('BLAST sequence coverage %s under threshold at sample %s, for gene  %s', coverage_blast, sample_name, core_name)
 
@@ -567,17 +567,17 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
 
     elif 90 <= float(pident) and new_sequence_length != '-':
         # (BLAST 90 con resultado, buen coverage BLAST, bajo coverage new_sseq)
-        locus_mean = int(schema_statistics[core_name][0]) 
+        locus_mean = int(schema_statistics[core_name][0])
         coverage_blast = int(s_length) / locus_mean
-        #coverage_blast = int(s_length) / matching_allele_length  
-        coverage_new_sequence = new_sequence_length / matching_allele_length 
+        #coverage_blast = int(s_length) / matching_allele_length
+        coverage_new_sequence = new_sequence_length / matching_allele_length
         if coverage_new_sequence < 1:
             add_info = 'New sequence coverage under threshold: {}%'.format(coverage)
-        else:  
+        else:
             add_info = 'New sequence coverage above threshold: {}%'.format(coverage)
         logger.info('New sequence coverage %s under threshold at sample %s, for gene  %s', coverage_new_sequence, sample_name, core_name)
 
-        # Get allele quality 
+        # Get allele quality
         allele_quality = schema_quality[core_name][qseqid]
 
         # (recuento tags para plot)
@@ -586,7 +586,7 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
             if count_class in allele_quality:
                 count_dict[sample_name][count_class] += 1
                 #if "bad_quality" in allele_quality:
-                 #   count_dict[sample_name]['bad_quality'] += 1 
+                 #   count_dict[sample_name]['bad_quality'] += 1
 
     ## Keeping LNF and TPR report info
     if not core_name in lnf_tpr_dict:
@@ -599,7 +599,7 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
     return True
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * #  
+# · * · * · * · * · * · * · * · * · * · * · * · * #
 # Tag paralog and exact match cases and keep info #
 # · * · * · * · * · * · * · * · * · * · * · * · * #
 
@@ -621,20 +621,20 @@ def paralog_exact_tag(sample_name, core_name, tag, schema_quality, matching_gene
         qseqid = allele_found[allele][0]
         tag = qseqid
 
-    samples_matrix_dict[sample_name].append(tag) 
+    samples_matrix_dict[sample_name].append(tag)
 
     for sequence in allele_found:
         qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = allele_found[sequence]
         sseq = sseq.replace('-', '')
 
-        # Get allele quality 
+        # Get allele quality
         allele_quality = schema_quality[core_name][qseqid]
 
         if len(allele_found) > 1:
             paralog_quality_count.append(allele_quality)
 
         # Get prodigal gene prediction if allele quality is 'bad_quality'
-        if 'bad_quality' in allele_quality: 
+        if 'bad_quality' in allele_quality:
             complete_predicted_seq, start_prodigal, end_prodigal = get_prodigal_sequence(sseq, sseqid, prodigal_directory, sample_name, blast_parameters, logger)
 
             ##### informe prodigal #####
@@ -642,7 +642,7 @@ def paralog_exact_tag(sample_name, core_name, tag, schema_quality, matching_gene
 
         else:
             complete_predicted_seq = '-'
-        
+
         if not sseqid in matching_genes_dict[sample_name] :
             matching_genes_dict[sample_name][sseqid] = []
         if sstart > send :
@@ -689,14 +689,14 @@ def paralog_exact_tag(sample_name, core_name, tag, schema_quality, matching_gene
                     count_dict[sample_name]['total'] += 1
                     count_dict[sample_name]['good_quality'] += 1
 
-    return True 
+    return True
 
 
-# · * · * · * · * · * · * · * · * · * · *  #  
+# · * · * · * · * · * · * · * · * · * · *  #
 # Tag INF/ASM/ALM/PLOT cases and keep info #
 # · * · * · * · * · * · * · * · * · * · *  #
 
-def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, new_sseq, matching_allele_length, tag_dict, list_tag, samples_matrix_dict, matching_genes_dict, prodigal_report, start_prodigal, end_prodigal, complete_predicted_seq, annotation_core_dict, count_dict, logger): 
+def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, new_sseq, matching_allele_length, tag_dict, list_tag, samples_matrix_dict, matching_genes_dict, prodigal_report, start_prodigal, end_prodigal, complete_predicted_seq, annotation_core_dict, count_dict, logger):
 
     gene_annot, product_annot = annotation_core_dict[core_name]
 
@@ -706,7 +706,7 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
     s_length = len(sseq)
     new_sequence_length = len(new_sseq)
 
-    logger.info('Found %s at sample %s for core gene %s ', tag, sample_name, core_name)                    
+    logger.info('Found %s at sample %s for core gene %s ', tag, sample_name, core_name)
 
     if tag == 'PLOT':
         tag_allele = tag + '_' + str(qseqid)
@@ -720,14 +720,14 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
         index_tag = tag_dict[core_name].index(new_sseq)
 
         tag_allele = tag + '_' + core_name + '_' + str(qseqid) + '_' + str(index_tag)
-    
+
     samples_matrix_dict[sample_name].append(tag_allele)
 
     # Keeping INF/ASM/ALM/PLOT report info
     if not core_name in list_tag :
         list_tag[core_name] = {}
     if not sample_name in list_tag[core_name] :
-        list_tag[core_name][sample_name] = {}   
+        list_tag[core_name][sample_name] = {}
 
     if tag == 'INF':
         list_tag[core_name][sample_name][tag_allele] = [gene_annot, product_annot, qseqid, allele_quality, sseqid,  bitscore, str(matching_allele_length), str(s_length), str(new_sequence_length), mismatch , r_gapopen, sstart, send,  new_sseq, complete_predicted_seq]
@@ -738,7 +738,7 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
             if count_class in allele_quality:
                 count_dict[sample_name][count_class] += 1
                 #if "bad_quality" in allele_quality:
-                 #   count_dict[sample_name]['bad_quality'] += 1     
+                 #   count_dict[sample_name]['bad_quality'] += 1
 
     elif tag == 'PLOT':
         list_tag[core_name][sample_name] = [gene_annot, product_annot, qseqid, allele_quality, sseqid, bitscore, sstart, send, sseq, new_sseq]
@@ -755,7 +755,7 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
         if len(sseq) < matching_allele_length:
             add_info = 'Global effect: DELETION. BLAST sequence length shorter than matching allele sequence length / Net result: ' + tag + '. Final gene sequence length ' + newsseq_vs_blastseq + ' than matching allele sequence length'
 
-        elif len(sseq) == matching_allele_length: 
+        elif len(sseq) == matching_allele_length:
             add_info = 'Global effect: BASE SUBSTITUTION. BLAST sequence length equal to matching allele sequence length / Net result: ' + tag + '. Final gene sequence length ' + newsseq_vs_blastseq + ' than matching allele sequence length'
 
         elif len(sseq) > matching_allele_length:
@@ -769,12 +769,12 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
         for mut_type in count_dict[sample_name]:
             if mut_type in add_info.lower():
                 count_dict[sample_name][mut_type] += 1
-    
+
     elif tag == 'ALM':
         count_dict[sample_name]['total'] += 1
         for mut_type in count_dict[sample_name]:
             if mut_type in add_info.lower():
-                count_dict[sample_name][mut_type] += 1   
+                count_dict[sample_name][mut_type] += 1
 
     if not sseqid in matching_genes_dict[sample_name] :
         matching_genes_dict[sample_name][sseqid] = []
@@ -789,32 +789,32 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
     return True
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 # Keep best results info after BLAST using results from previous reference allele BLAST as database VS ALL alleles in locus as query in allele calling analysis #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · #
 
 def get_blast_results (sample_name, values, contigs_in_sample_dict, allele_found, logger) :
-  
+
     qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = values
 
     ## Get contig ID and BLAST sequence
     sseqid_blast = "_".join(sseqid.split('_')[1:])
-    sseq_no_gaps = sseq.replace('-', '') 
+    sseq_no_gaps = sseq.replace('-', '')
 
-    
+
     ## Get start and end positions in contig searching for BLAST sequence index in contig sequence
-    
+
     # Get contig sequence
     accession_sequence = contigs_in_sample_dict[sample_name][sseqid_blast]
-    
+
     #for record in sample_contigs: ## parse
         #if record.id == sseqid_blast : ## parse
             #break ## parse
     #accession_sequence = str(record.seq) ## parse
 
-    # Try to get BLAST sequence index in contig. If index -> error because different contig sequence and BLAST sequence 
+    # Try to get BLAST sequence index in contig. If index -> error because different contig sequence and BLAST sequence
     # direction, obtain reverse complement BLAST sequence and try again.
-    try: 
+    try:
         sseq_index_1 = int(accession_sequence.index(sseq_no_gaps)) + 1
 
     except:
@@ -843,11 +843,11 @@ def get_blast_results (sample_name, values, contigs_in_sample_dict, allele_found
                 if sseqid_blast == allele_found[allele_id][1]: # if both sequences are in the same contig
                     logger.info('Found allele %s that starts or ends at the same position as %s ' , qseqid, allele_id)
                     allele_is_subset = True
-                    break 
+                    break
 
     if len(allele_found) == 0 or not allele_is_subset :
         contig_id_start = str(sseqid_blast + '_'+ sstart_new)
-        
+
         # Skip the allele found in the 100% identity and 100% alignment
         if not contig_id_start in allele_found:
             allele_found[contig_id_start] = [qseqid, sseqid_blast, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart_new, send_new, '-', '-', sseq, qseq]
@@ -855,7 +855,7 @@ def get_blast_results (sample_name, values, contigs_in_sample_dict, allele_found
     return True
 
 
-# · * · * · * · * · * · * · * · * · * ·  #  
+# · * · * · * · * · * · * · * · * · * ·  #
 # Get SNPs and ADN and protein alignment #
 # · * · * · * · * · * · * · * · * · * ·  #
 
@@ -868,7 +868,7 @@ def keep_snp_alignment_info(sseq, new_sseq, matching_allele_seq, qseqid, query_d
         matching_allele_seq = str(matching_allele_seq)
 
     ## Get the SNP information
-    snp_information = get_snp(sseq, matching_allele_seq) 
+    snp_information = get_snp(sseq, matching_allele_seq)
     if len(snp_information) > 0 :
         if not core_name in snp_dict :
             snp_dict[core_name] = {}
@@ -876,23 +876,23 @@ def keep_snp_alignment_info(sseq, new_sseq, matching_allele_seq, qseqid, query_d
             snp_dict[core_name][sample_name] = {}
         snp_dict[core_name][sample_name][qseqid]= snp_information
 
-    ## Get new sequence-allele sequence dna alignment 
+    ## Get new sequence-allele sequence dna alignment
     if not core_name in match_alignment_dict :
         match_alignment_dict[core_name] = {}
         if not sample_name in match_alignment_dict[core_name] :
-            match_alignment_dict[core_name][sample_name] = get_alignment (new_sseq, matching_allele_seq, reward, penalty, gapopen, gapextend) 
+            match_alignment_dict[core_name][sample_name] = get_alignment (new_sseq, matching_allele_seq, reward, penalty, gapopen, gapextend)
 
-    ## Get new sequence-allele sequence protein alignment 
+    ## Get new sequence-allele sequence protein alignment
     if not core_name in protein_dict :
         protein_dict[core_name] = {}
     if not sample_name in protein_dict[core_name] :
         protein_dict[core_name][sample_name] = []
     protein_dict[core_name][sample_name] = get_alignment (new_sseq, matching_allele_seq, reward, penalty, gapopen, gapextend, "protein")
-                        
+
     return True
 
 
-# · * · * · * · * · * · * · * · * · * · * ·  #  
+# · * · * · * · * · * · * · * · * · * · * ·  #
 # Create allele tag summary for each sample  #
 # · * · * · * · * · * · * · * · * · * · * ·  #
 
@@ -916,7 +916,7 @@ def create_summary (samples_matrix_dict, logger) :
                 summary_dict[key]['LNF'] += 1
             elif 'TPR' in values :
                 summary_dict[key]['TPR'] += 1
-            elif 'NIPH' == values : 
+            elif 'NIPH' == values :
                 summary_dict[key]['NIPH'] += 1
             elif 'NIPHEM' == values :
                 summary_dict[key]['NIPHEM'] += 1
@@ -945,26 +945,26 @@ def create_summary (samples_matrix_dict, logger) :
     return summary_result_list
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * ·  #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * ·  #
 # Get gene and product annotation for core gene using Prokka #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * ·  #
 
 ### (tsv para algunos locus? Utils para analyze schema?)
 def get_gene_annotation (annotation_file, annotation_dir, genus, species, usegenus, logger) :
-    
+
     name_file = os.path.basename(annotation_file).split('.')
     annotation_dir = os.path.join (annotation_dir, 'annotation', name_file[0])
-    
+
     if usegenus == 'true':
         annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
-                                            '--genus', genus, '--species', species, '--usegenus', 
+                                            '--genus', genus, '--species', species, '--usegenus',
                                             '--gcode', '11', '--prefix', name_file[0], '--quiet'])
 
     elif usegenus == 'false':
         annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
-                                            '--genus', genus, '--species', species, 
+                                            '--genus', genus, '--species', species,
                                             '--gcode', '11', '--prefix', name_file[0], '--quiet'])
-    
+
     annot_tsv = []
     tsv_path = os.path.join (annotation_dir, name_file[0] + '.tsv')
 
@@ -986,8 +986,8 @@ def get_gene_annotation (annotation_file, annotation_dir, genus, species, usegen
                     gene_annot = annot_tsv[1][gene_index]
             except:
                 gene_annot = 'Not found by Prokka'
-            
-            try: 
+
+            try:
                 product_annot = annot_tsv[1][product_index]
             except:
                 product_annot = 'Not found by Prokka'
@@ -1004,10 +1004,10 @@ def get_gene_annotation (annotation_file, annotation_dir, genus, species, usegen
 def get_gene_annotation (annotation_file, annotation_dir, logger) :
     name_file = os.path.basename(annotation_file).split('.')
     annotation_dir = os.path.join (annotation_dir, 'annotation', name_file[0])
-    
+
     annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
                                         '--prefix', name_file[0], '--quiet'])
-    
+
     annot_tsv = []
     tsv_path = os.path.join (annotation_dir, name_file[0] + '.tsv')
 
@@ -1025,8 +1025,8 @@ def get_gene_annotation (annotation_file, annotation_dir, logger) :
                     gene_annot = annot_tsv[1][2]
             except:
                 gene_annot = 'Not found by Prokka'
-            
-            try: 
+
+            try:
                 product_annot = annot_tsv[1][4]
             except:
                 product_annot = 'Not found by Prokka'
@@ -1044,10 +1044,10 @@ def get_gene_annotation (annotation_file, annotation_dir, logger) :
 def get_gene_annotation (annotation_file, annotation_dir, logger) :
     name_file = os.path.basename(annotation_file).split('.')
     annotation_dir = os.path.join (annotation_dir, 'annotation', name_file[0])
-    
+
     annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
                                         '--prefix', name_file[0], '--quiet'])
-    
+
     annot_tsv = []
     tsv_path = os.path.join (annotation_dir, name_file[0] + '.tsv')
     with open(tsv_path) as tsvfile:
@@ -1063,8 +1063,8 @@ def get_gene_annotation (annotation_file, annotation_dir, logger) :
                 gene_annot = annot_tsv[1][2]
         except:
             gene_annot = 'Not found by Prokka'
-        
-        try: 
+
+        try:
             product_annot = annot_tsv[1][4]
         except:
             product_annot = 'Not found by Prokka'
@@ -1096,7 +1096,7 @@ def get_inferred_allele_number(core_dict, logger): ## N
     return  True   #str 1 ( #'1'+ '0'*digit_length + 2)
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * #
 # Get ST profile for each samples based on allele calling results #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * #
 
@@ -1114,14 +1114,14 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
         csvreader = csv.reader(csvfile, delimiter="\t")
         for line in csvreader:
             csv_read.append(line)
-    
+
     profile_header = csv_read[0][1:len(core_gene_list_files) + 1]
 
     for ST_index in range(1, len(csv_read)):
-        ST_profiles_dict[csv_read[ST_index][0]] = {} 
+        ST_profiles_dict[csv_read[ST_index][0]] = {}
         for core_index in range(len(profile_header)):
             ST_profiles_dict[csv_read[ST_index][0]][profile_header[core_index]] = csv_read[ST_index][core_index + 1]
-    
+
     for sample_file in sample_list_files:
         sample_name = '.'.join(os.path.basename(sample_file).split('.')[:-1])
 
@@ -1129,7 +1129,7 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
         for ST in ST_profiles_dict:
             core_counter = 0
 
-            for core_name in profile_header: 
+            for core_name in profile_header:
                 allele_in_ST = ST_profiles_dict[ST][core_name]
                 exact_gene = True
 
@@ -1150,11 +1150,11 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
                             core_counter += 1
 
                     else:
-                        exact_gene = False 
+                        exact_gene = False
 
                 else:
-                    exact_gene = False 
-                    
+                    exact_gene = False
+
                 if exact_gene == False:
                     if sample_name in inf_dict:
                         if core_name in inf_dict[sample_name]:
@@ -1163,12 +1163,12 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
                                 if sample_name not in analysis_profiles_dict:
                                     analysis_profiles_dict[sample_name] = {}
                                 analysis_profiles_dict[sample_name][core_name] = allele_in_sample
-                        
-                        else: 
+
+                        else:
                             if st_counter == 0:
                                 if sample_name not in analysis_profiles_dict:
                                     analysis_profiles_dict[sample_name] = {}
-                
+
                 if allele_in_ST == 'N' and "allele_in_sample" not in locals():
                     core_counter += 1
 
@@ -1223,23 +1223,23 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
     return True, inf_ST
 
 
-# · * · * · * · * · * · *  #  
+# · * · * · * · * · * · *  #
 # Create ST results report #
 # · * · * · * · * · * · *  #
 
 def save_st_profile_results (outputdir, samples_profiles_dict, logger):
 
     header_stprofile = ['Sample Name', 'ST']
-    
+
     if samples_profiles_dict != '':
         ## Saving ST profile to file
         logger.info('Saving ST profile information to file..')
         stprofile_file =  os.path.join(outputdir, 'stprofile.tsv')
         with open (stprofile_file , 'w') as st_fh :
             st_fh.write('\t'.join(header_stprofile)+ '\n')
-            for sample in sorted(samples_profiles_dict): 
+            for sample in sorted(samples_profiles_dict):
                 st_fh.write(sample + '\t' + samples_profiles_dict[sample] + '\n')
-    
+
     return True
 
 
@@ -1278,38 +1278,38 @@ def create_sunburst_plot_st (outputdir, count_st, logger):
     fig = go.Figure(go.Sunburst(
     ids = st_ids,
     labels = st_labels,
-    parents = st_parents, 
+    parents = st_parents,
     values = counts,
     branchvalues = "total",
     ))
 
     fig.update_layout(margin = dict(t=0, l=0, r=0, b=0))
 
-    plotsdir = os.path.join(outputdir, 'plots', 'samples_st.html') 
+    plotsdir = os.path.join(outputdir, 'plots', 'samples_st.html')
 
     fig.write_html(plotsdir)
 
     return True
 
 
-# · * · * · * · * · * · * · * · * · * · * ·  #  
+# · * · * · * · * · * · * · * · * · * · * ·  #
 # Update ST profile file adding new ST found #
 # · * · * · * · * · * · * · * · * · * · * ·  #
 
 def update_st_profile (updateprofile, profile_csv_path, outputdir, inf_ST, core_gene_list_files, logger):
 
     ## Create a copy of ST profile file if updateprofile = 'new'
-    if updateprofile == 'new':    
+    if updateprofile == 'new':
         no_updated_profile_csv_path = profile_csv_path
         profile_csv_path_name = os.path.basename(no_updated_profile_csv_path).split('.')[0]
-        profile_csv_path = os.path.join(outputdir, profile_csv_path_name + '_updated' + '.csv') 
+        profile_csv_path = os.path.join(outputdir, profile_csv_path_name + '_updated' + '.csv')
         shutil.copyfile(no_updated_profile_csv_path, profile_csv_path)
         logger.info('Copying ST profile file to update profiles')
-        
+
     ## Update ST profile file
     logger.info('Updating ST profile file adding new INF ST')
 
-    with open (profile_csv_path, 'r') as csvfile:                                                
+    with open (profile_csv_path, 'r') as csvfile:
         csvreader = csv.reader(csvfile, delimiter="\t")
         for line in csvreader:
             profile_header = line[0][1:len(core_gene_list_files) + 1]
@@ -1326,7 +1326,7 @@ def update_st_profile (updateprofile, profile_csv_path, outputdir, inf_ST, core_
     return True
 
 
-# · * · * · * · * · * · * · * · * · * · #  
+# · * · * · * · * · * · * · * · * · * · #
 # Create allele calling results reports #
 # · * · * · * · * · * · * · * · * · * · #
 
@@ -1336,9 +1336,9 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
     header_paralogs = ['Core Gene','Sample Name', 'Gene Annotation', 'Product Annotation', 'Paralog Tag', 'ID %', 'Allele', 'Allele Quality', 'Contig', 'Bit Score', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
     header_inferred = ['Core Gene','Sample Name', 'INF tag', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Query length', 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence', 'Predicted Sequence']
     header_asm = ['Core Gene', 'Sample Name', 'ASM tag', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Query length', 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence', 'Additional info', 'Predicted Sequence']
-    header_alm = ['Core Gene', 'Sample Name', 'ALM tag', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Query length', 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence', 'Additional info', 'Predicted Sequence']    
+    header_alm = ['Core Gene', 'Sample Name', 'ALM tag', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Query length', 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence', 'Additional info', 'Predicted Sequence']
     header_plot = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig','Bit Score', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
-    header_lnf_tpr = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Tag', 'Allele', 'Allele Quality', 'ID %', 'Blast sequence coverage', 'New sequence coverage', 'Allele length', 'Blast sequence length', 'New sequence length', 'Additional info']        
+    header_lnf_tpr = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Tag', 'Allele', 'Allele Quality', 'ID %', 'Blast sequence coverage', 'New sequence coverage', 'Allele length', 'Blast sequence length', 'New sequence length', 'Additional info']
     header_snp = ['Core Gene', 'Sample Name', 'Allele number', 'Position', 'Mutation Schema/Sample', 'Codon Schema/Sample','Protein in Schema/Sample', 'Missense/Synonymous','Annotation Sample / Schema']
     header_protein = ['Core Gene','Sample Name', 'Protein in ' , 'Protein sequence']
     header_match_alignment = ['Core Gene','Sample Name','Alignment', 'Sequence']
@@ -1366,7 +1366,7 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
     exact_file =  os.path.join(outputdir, 'exact.tsv')
     with open (exact_file , 'w') as exact_fh :
         exact_fh.write('\t'.join(header_exact)+ '\n')
-        for core in sorted(exact_dict): 
+        for core in sorted(exact_dict):
             for sample in sorted(exact_dict[core]):
                 exact_fh.write(core + '\t' + sample + '\t' + '\t'.join(exact_dict[core][sample]) + '\n')
 
@@ -1387,10 +1387,10 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
         infer_fh.write('\t'.join(header_inferred) + '\n')
         for core in sorted (inf_dict) :
             for sample in sorted (inf_dict[core]) :
-                for inferred in inf_dict[core][sample]: 
+                for inferred in inf_dict[core][sample]:
                     #   seq_in_inferred_allele = '\t'.join (inf_dict[sample])
                     infer_fh.write(core + '\t' + sample + '\t' + inferred + '\t' + '\t'.join(inf_dict[core][sample][inferred]) + '\n')
-    
+
     ## Saving PLOTs to file
     logger.info('Saving PLOT information to file..')
     plot_file =  os.path.join(outputdir, 'plot.tsv')
@@ -1410,7 +1410,7 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
                 for contig in matching_genes_dict[samples] [contigs]:
                         matching_alleles = '\t'.join (contig)
                         matching_fh.write(samples + '\t' + contigs +'\t' + matching_alleles + '\n')
- 
+
     ## Saving ASMs to file
     logger.info('Saving asm information to file..')
     asm_file =  os.path.join(outputdir, 'asm.tsv')
@@ -1482,7 +1482,7 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
                 for protein in protein_dict[core][sample] :
                     protein_fh.write(core + '\t'+ sample +'\t'+ '\t'.join(protein) + '\n')
 
-    ## Saving summary information to file 
+    ## Saving summary information to file
     logger.info('Saving summary information to file..')
     summary_result = create_summary (samples_matrix_dict, logger)
     summary_file = os.path.join( outputdir, 'summary_result.tsv')
@@ -1552,7 +1552,7 @@ def save_allele_calling_plots (outputdir, sample_list_files, count_exact, count_
         except:
             logger.info('Unable to create again the results plots directory %s', plots_dir)
             print('Cannot create Results plots directory on ', plots_dir)
-            exit(0) 
+            exit(0)
 
     for sample_file in sample_list_files:
         sample_name = '.'.join(os.path.basename(sample_file).split('.')[:-1])
@@ -1571,84 +1571,84 @@ def create_sunburst_allele_call (outputdir, sample_name, count_exact, count_inf,
     total_locus = count_exact['total'] + count_inf['total'] + count_asm['total'] + count_alm['total'] + count_lnf['total'] + count_tpr['total'] + count_plot['total'] \
                     + count_niph['total'] + count_niphem['total'] + count_error['total']
 
-    tag_counts = [total_locus, count_exact['total'], count_exact['good_quality'], count_exact['bad_quality'], count_exact['no_start'], count_exact['no_start_stop'], 
-                    count_exact['no_stop'], count_exact['multiple_stop'], count_inf['total'], count_inf['good_quality'], count_inf['bad_quality'], count_inf['no_start'], 
+    tag_counts = [total_locus, count_exact['total'], count_exact['good_quality'], count_exact['bad_quality'], count_exact['no_start'], count_exact['no_start_stop'],
+                    count_exact['no_stop'], count_exact['multiple_stop'], count_inf['total'], count_inf['good_quality'], count_inf['bad_quality'], count_inf['no_start'],
                     count_inf['no_start_stop'], count_inf['no_stop'], count_inf['multiple_stop'], count_asm['total'], count_asm['insertion'], count_asm['deletion'],
-                    count_asm['substitution'], count_alm['total'], count_alm['insertion'], count_alm['deletion'], count_alm['substitution'], count_plot['total'], 
-                    count_niph['total'], count_niph['good_quality'], count_niph['bad_quality'], count_niph['no_start'], count_niph['no_start_stop'], count_niph['no_stop'], 
-                    count_niph['multiple_stop'], count_niphem['total'], count_niphem['good_quality'], count_niphem['bad_quality'], count_niphem['no_start'], 
+                    count_asm['substitution'], count_alm['total'], count_alm['insertion'], count_alm['deletion'], count_alm['substitution'], count_plot['total'],
+                    count_niph['total'], count_niph['good_quality'], count_niph['bad_quality'], count_niph['no_start'], count_niph['no_start_stop'], count_niph['no_stop'],
+                    count_niph['multiple_stop'], count_niphem['total'], count_niphem['good_quality'], count_niphem['bad_quality'], count_niphem['no_start'],
                     count_niphem['no_start_stop'], count_niphem['no_stop'], count_niphem['multiple_stop'], count_lnf['total'], count_lnf['not_found'], count_lnf['low_id'],
-                    count_lnf['low_coverage'], count_tpr['total'], count_tpr['good_quality'], count_tpr['bad_quality'], count_tpr['no_start'], count_tpr['no_start_stop'], 
-                    count_tpr['no_stop'], count_tpr['multiple_stop'], count_error['total'], count_error['good_quality'], count_error['bad_quality'], count_error['no_start'], 
+                    count_lnf['low_coverage'], count_tpr['total'], count_tpr['good_quality'], count_tpr['bad_quality'], count_tpr['no_start'], count_tpr['no_start_stop'],
+                    count_tpr['no_stop'], count_tpr['multiple_stop'], count_error['total'], count_error['good_quality'], count_error['bad_quality'], count_error['no_start'],
                     count_error['no_start_stop'], count_error['no_stop'], count_error['multiple_stop']]
 
     fig=go.Figure(go.Sunburst(
     ids=[
-        sample_name, "Exact Match", "Good Quality - Exact Match", "Bad Quality - Exact Match", 
-        "No start - Bad Quality - Exact Match", "No start-stop - Bad Quality - Exact Match", 
+        sample_name, "Exact Match", "Good Quality - Exact Match", "Bad Quality - Exact Match",
+        "No start - Bad Quality - Exact Match", "No start-stop - Bad Quality - Exact Match",
         "No stop - Bad Quality - Exact Match", "Multiple stop - Bad Quality - Exact Match",
         "INF", "Good Quality - INF", "Bad Quality - INF", "No start - Bad Quality - INF",
         "No start-stop - Bad Quality - INF", "No stop - Bad Quality - INF", "Multiple stop - Bad Quality - INF",
-        "ASM", "Insertion - ASM", "Deletion - ASM", "Substitution - ASM", "ALM", "Insertion - ALM", 
-        "Deletion - ALM", "Substitution - ALM", "PLOT", "NIPH", "Good Quality - NIPH", 
-        "Bad Quality - NIPH", "No start - Bad Quality - NIPH", "No start-stop - Bad Quality - NIPH", 
-        "No stop - Bad Quality - NIPH", "Multiple stop - Bad Quality - NIPH", "NIPHEM", 
-        "Good Quality - NIPHEM", "Bad Quality - NIPHEM", "No start - Bad Quality - NIPHEM", 
-        "No start-stop - Bad Quality - NIPHEM", "No stop - Bad Quality - NIPHEM", 
-        "Multiple stop - Bad Quality - NIPHEM", "LNF", "Not found", 
-        "Low ID", "Low coverage", "TPR", "Good Quality - TPR", "Bad Quality - TPR", 
-        "No start - Bad Quality - TPR", "No start-stop - Bad Quality - TPR", "No stop - Bad Quality - TPR", 
-        "Multiple stop - Bad Quality - TPR", "Error", "Good Quality - Error", "Bad Quality - Error", 
-        "No start - Bad Quality - Error", "No start-stop - Bad Quality - Error", 
+        "ASM", "Insertion - ASM", "Deletion - ASM", "Substitution - ASM", "ALM", "Insertion - ALM",
+        "Deletion - ALM", "Substitution - ALM", "PLOT", "NIPH", "Good Quality - NIPH",
+        "Bad Quality - NIPH", "No start - Bad Quality - NIPH", "No start-stop - Bad Quality - NIPH",
+        "No stop - Bad Quality - NIPH", "Multiple stop - Bad Quality - NIPH", "NIPHEM",
+        "Good Quality - NIPHEM", "Bad Quality - NIPHEM", "No start - Bad Quality - NIPHEM",
+        "No start-stop - Bad Quality - NIPHEM", "No stop - Bad Quality - NIPHEM",
+        "Multiple stop - Bad Quality - NIPHEM", "LNF", "Not found",
+        "Low ID", "Low coverage", "TPR", "Good Quality - TPR", "Bad Quality - TPR",
+        "No start - Bad Quality - TPR", "No start-stop - Bad Quality - TPR", "No stop - Bad Quality - TPR",
+        "Multiple stop - Bad Quality - TPR", "Error", "Good Quality - Error", "Bad Quality - Error",
+        "No start - Bad Quality - Error", "No start-stop - Bad Quality - Error",
         "No stop - Bad Quality - Error", "Multiple stop - Bad Quality - Error"
     ],
     labels= [
         sample_name, "Exact<br>Match", "Good<br>Quality", "Bad<br>Quality",
         "No<br>start", "No<br>start-stop", "No<br>stop", "Multiple<br>stop",
-        "INF", "Good<br>Quality", "Bad<br>Quality", "No<br>start", 
-        "No<br>start-stop", "No<br>stop", "Multiple<br>stop", "ASM", "Insertion", 
-        "Deletion", "Substitution", "ALM", "Insertion", "Deletion", 
+        "INF", "Good<br>Quality", "Bad<br>Quality", "No<br>start",
+        "No<br>start-stop", "No<br>stop", "Multiple<br>stop", "ASM", "Insertion",
+        "Deletion", "Substitution", "ALM", "Insertion", "Deletion",
         "Substitution", "PLOT", "NIPH", "Good<br>Quality", "Bad<br>Quality",
         "No<br>start", "No<br>start-stop", "No<br>stop", "Multiple<br>stop",
-        "NIPHEM", "Good<br>Quality", "Bad<br>Quality", "No<br>start", 
-        "No<br>start-stop", "No<br>stop", "Multiple<br>stop", "LNF", "Not<br>found", 
+        "NIPHEM", "Good<br>Quality", "Bad<br>Quality", "No<br>start",
+        "No<br>start-stop", "No<br>stop", "Multiple<br>stop", "LNF", "Not<br>found",
         "Low<br>ID", "Low<br>coverage", "TPR", "Good<br>Quality", "Bad<br>Quality",
-        "No<br>start", "No<br>start-stop", "No<br>stop", "Multiple<br>stop", 
-        "Error", "Good<br>Quality", "Bad<br>Quality","No<br>start", 
+        "No<br>start", "No<br>start-stop", "No<br>stop", "Multiple<br>stop",
+        "Error", "Good<br>Quality", "Bad<br>Quality","No<br>start",
         "No<br>start-stop", "No<br>stop", "Multiple<br>stop"
     ],
     parents=[
-        "", sample_name, "Exact Match", "Exact Match", "Bad Quality - Exact Match", 
-        "Bad Quality - Exact Match", "Bad Quality - Exact Match", "Bad Quality - Exact Match", 
-        sample_name, "INF", "INF", "Bad Quality - INF", "Bad Quality - INF", "Bad Quality - INF", 
-        "Bad Quality - INF", sample_name, "ASM", "ASM", "ASM", sample_name, "ALM", "ALM", "ALM", sample_name, 
+        "", sample_name, "Exact Match", "Exact Match", "Bad Quality - Exact Match",
+        "Bad Quality - Exact Match", "Bad Quality - Exact Match", "Bad Quality - Exact Match",
+        sample_name, "INF", "INF", "Bad Quality - INF", "Bad Quality - INF", "Bad Quality - INF",
+        "Bad Quality - INF", sample_name, "ASM", "ASM", "ASM", sample_name, "ALM", "ALM", "ALM", sample_name,
         sample_name, "NIPH", "NIPH", "Bad Quality - NIPH", "Bad Quality - NIPH", "Bad Quality - NIPH",
-        "Bad Quality - NIPH", sample_name, "NIPHEM", "NIPHEM", "Bad Quality - NIPHEM", 
-        "Bad Quality - NIPHEM", "Bad Quality - NIPHEM", "Bad Quality - NIPHEM", sample_name, "LNF", 
-        "LNF", "LNF", sample_name, "TPR", "TPR", "Bad Quality - TPR", "Bad Quality - TPR", 
-        "Bad Quality - TPR", "Bad Quality - TPR", sample_name, "Error", "Error", "Bad Quality - Error", 
+        "Bad Quality - NIPH", sample_name, "NIPHEM", "NIPHEM", "Bad Quality - NIPHEM",
+        "Bad Quality - NIPHEM", "Bad Quality - NIPHEM", "Bad Quality - NIPHEM", sample_name, "LNF",
+        "LNF", "LNF", sample_name, "TPR", "TPR", "Bad Quality - TPR", "Bad Quality - TPR",
+        "Bad Quality - TPR", "Bad Quality - TPR", sample_name, "Error", "Error", "Bad Quality - Error",
         "Bad Quality - Error", "Bad Quality - Error", "Bad Quality - Error"
-    ], 
+    ],
     values=tag_counts,
     branchvalues="total",
     ))
 
     fig.update_layout(margin = dict(t=0, l=0, r=0, b=0))
 
-    plotsdir = os.path.join(outputdir, 'plots', sample_name + '.html') 
+    plotsdir = os.path.join(outputdir, 'plots', sample_name + '.html')
 
     fig.write_html(plotsdir)
 
     return True
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 # Update core genes schema adding new inferred alleles found for each locus in allele calling analysis #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 
 def update_schema (updateschema, schemadir, outputdir, core_gene_list_files, inferred_alleles_dict, alleles_in_locus_dict, logger):
-    
-    if len(inferred_alleles_dict) > 0: 
+
+    if len(inferred_alleles_dict) > 0:
         ## Create a copy of core genes schema if updateschema = 'new' / 'New'
         if updateschema == 'new':
             no_updated_schemadir = schemadir
@@ -1659,7 +1659,7 @@ def update_schema (updateschema, schemadir, outputdir, core_gene_list_files, inf
             else:
                 schemadir_name = schemadir_name[-1]
 
-            schemadir = os.path.join(outputdir, schemadir_name + '_updated') 
+            schemadir = os.path.join(outputdir, schemadir_name + '_updated')
 
             try:
                 shutil.copytree(no_updated_schemadir, schemadir)
@@ -1680,14 +1680,14 @@ def update_schema (updateschema, schemadir, outputdir, core_gene_list_files, inf
             core_name = os.path.basename(core_file).split('.')[0]
             if core_name in inferred_alleles_dict:
                 logger.info('Updating core gene file %s adding new INF alleles', core_file)
-                
+
                 inf_list = inferred_alleles_dict[core_name]
 
                 try:
                     alleles_ids = [int(allele) for allele in alleles_in_locus_dict[core_name]]
                     allele_number = max(alleles_ids)
-                    
-                    locus_schema_file = os.path.join(schemadir, core_name + '.fasta') 
+
+                    locus_schema_file = os.path.join(schemadir, core_name + '.fasta')
                     with open (locus_schema_file, 'a') as core_fh:
                         for inf in inf_list:
                             allele_number += 1
@@ -1696,7 +1696,7 @@ def update_schema (updateschema, schemadir, outputdir, core_gene_list_files, inf
                     alleles_ids = [int(allele.split('_')[-1]) for allele in alleles_in_locus_dict[core_name]]
                     allele_number = max(alleles_ids)
 
-                    locus_schema_file = os.path.join(schemadir, core_name + '.fasta') 
+                    locus_schema_file = os.path.join(schemadir, core_name + '.fasta')
                     with open (locus_schema_file, 'a') as core_fh:
                         for inf in inf_list:
                             allele_number += 1
@@ -1707,27 +1707,27 @@ def update_schema (updateschema, schemadir, outputdir, core_gene_list_files, inf
 
 """
 def update_schema (updateschema, schemadir, storedir, core_gene_list_files, inferred_alleles_dict, alleles_in_locus_dict, logger):
-    
+
     ## Create a copy of core genes schema if updateschema = 'new' / 'New'
     if updateschema == 'new' or updateschema == 'New':
         no_updated_schemadir = schemadir
         schemadir_name = os.path.basename(no_updated_schemadir)
-        schemadir = os.path.join(storedir, schemadir_name + '_updated') 
+        schemadir = os.path.join(storedir, schemadir_name + '_updated')
         shutil.copytree(no_updated_schemadir, schemadir)
         logger.info('Copying core genes fasta files to update schema')
-        
+
     ## Get INF alleles for each core gene and update each locus fasta file
     for core_file in core_gene_list_files:
         core_name = os.path.basename(core_file).split('.')[0]
         if core_name in inferred_alleles_dict:
             logger.info('Updating core gene file %s adding new INF alleles', core_file)
-            
+
             inf_list = inferred_alleles_dict[core_name]
-        
+
             alleles_ids = [int(allele) for allele in alleles_in_locus_dict[core_name]]
             allele_number = max(alleles_ids)
 
-            locus_schema_file = os.path.join(schemadir, core_name + '.fasta') 
+            locus_schema_file = os.path.join(schemadir, core_name + '.fasta')
             with open (locus_schema_file, 'a') as core_fh:
                 for inf in inf_list:
                     allele_number += 1
@@ -1737,12 +1737,12 @@ def update_schema (updateschema, schemadir, storedir, core_gene_list_files, infe
 """
 
 
-# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #  
+# · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 # Allele calling analysis to find each core gene in schema and its variants in samples #
 # · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · * · *  #
 
 def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, inputdir, outputdir, cpus, percentlength, coverage, evalue, perc_identity_ref, perc_identity_loc, reward, penalty, gapopen, gapextend, max_target_seqs, max_hsps, num_threads, flankingnts, schema_variability, schema_statistics, schema_quality, annotation_core_dict, profile_csv_path, logger ):
-    
+
     prodigal_report = [] # TEMPORAL. prodigal_report para checkear las secuencias obtenidas con prodigal vs blast y las posiciones sstart y send
     # listas añadidas para calcular coverage medio de new_sseq con respecto a alelo para establecer coverage mínimo por debajo del cual considerar LNF
     shorter_seq_coverage = [] # TEMPORAL
@@ -1795,14 +1795,14 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
     for core_file in pbar(core_gene_list_files) :
         core_name = os.path.basename(core_file).split('.')[0]
         full_gene_list.append(core_name)
-        logger.info('Processing core gene file %s ', core_file) 
+        logger.info('Processing core gene file %s ', core_file)
 
         # Get path to this locus fasta file
         locus_alleles_path = os.path.join(query_directory, str(core_name + '.fasta'))
-        
+
         # Get path to reference allele fasta file for this locus
         core_reference_allele_path = os.path.join(reference_alleles_directory, core_name + '.fasta')
-        
+
         # Get length thresholds for INF, ASM and ALM classification
         max_length_threshold, min_length_threshold = length_thresholds(core_name, schema_statistics, percentlength)
 
@@ -1812,7 +1812,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
         ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##
         ## Processing the search for each schema core gene in each sample  ##
         ## # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # ##
-        
+
         for sample_file in sample_list_files:
             logger.info('Processing sample file %s ', sample_file)
 
@@ -1824,25 +1824,25 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
 
             if sample_name not in count_inf:
                 count_inf[sample_name] = {"good_quality" : 0, "bad_quality" : 0, "no_start" : 0, "no_start_stop" : 0, "no_stop" : 0, "multiple_stop" : 0, "total" : 0}
-            
+
             if sample_name not in count_asm:
                 count_asm[sample_name] = {"insertion" : 0, "deletion" : 0, "substitution" : 0, "total" : 0}
-            
+
             if sample_name not in count_alm:
                 count_alm[sample_name] = {"insertion" : 0, "deletion" : 0, "substitution" : 0, "total" : 0}
-            
+
             if sample_name not in count_lnf:
                 count_lnf[sample_name] = {"not_found" : 0, "low_id" : 0, "low_coverage" : 0, "total" : 0}
-            
+
             if sample_name not in count_tpr:
                 count_tpr[sample_name] = {"good_quality" : 0, "bad_quality" : 0, "no_start" : 0, "no_start_stop" : 0, "no_stop" : 0, "multiple_stop" : 0, "total" : 0}
-            
+
             if sample_name not in count_plot:
                 count_plot[sample_name] = {"total" : 0}
-            
+
             if sample_name not in count_niph:
                 count_niph[sample_name] = {"good_quality" : 0, "bad_quality" : 0, "no_start" : 0, "no_start_stop" : 0, "no_stop" : 0, "multiple_stop" : 0, "total" : 0}
-            
+
             if sample_name not in count_niphem:
                 count_niphem[sample_name] = {"good_quality" : 0, "bad_quality" : 0, "no_start" : 0, "no_start_stop" : 0, "no_stop" : 0, "multiple_stop" : 0, "total" : 0}
 
@@ -1855,7 +1855,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                 samples_matrix_dict[sample_name] = []
                 matching_genes_dict[sample_name] = {}
 
-            # Path to this sample BLAST database created when processing samples 
+            # Path to this sample BLAST database created when processing samples
             blast_db_name = os.path.join(blast_db_directory, sample_name, sample_name)
 
             # * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * #
@@ -1865,8 +1865,8 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
             cline = NcbiblastnCommandline(db=blast_db_name, evalue=evalue, perc_identity=perc_identity_ref, reward=reward, penalty=penalty, gapopen=gapopen, gapextend=gapextend, outfmt=blast_parameters, max_target_seqs=max_target_seqs, max_hsps=max_hsps, num_threads=num_threads, query=core_reference_allele_path)
             out, err = cline()
             out_lines = out.splitlines()
-            
-            bigger_bitscore = 0 
+
+            bigger_bitscore = 0
 
             # ······························································ #
             # LNF if there are no BLAST results for this gene in this sample #
@@ -1879,7 +1879,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                 out_lines = out.splitlines()
 
                 if len (out_lines) > 0 :
-                
+
                     for line in out_lines :
                         values = line.split('\t')
                         if  float(values[8]) > bigger_bitscore:
@@ -1892,21 +1892,21 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                 else:
                     # Keep LNF info
                     lnf_tpr_tag(core_name, sample_name, '-', samples_matrix_dict, lnf_tpr_dict, schema_statistics, locus_alleles_path, '-', '-', '-', '-', '-', '-', schema_quality, annotation_core_dict, count_lnf, logger)
-                
+
                 continue
 
             ## Continue classification process if the core gene has been detected in sample after BLAST search
             if len (out_lines) > 0:
 
-                # Parse contigs for this sample 
+                # Parse contigs for this sample
                 #contig_file = os.path.join(inputdir, sample_name + ".fasta") ## parse
                 #records = list(SeqIO.parse(contig_file, "fasta")) ## parse
 
                 ## Keep BLAST results after locus detection in sample using reference allele
-                              
+
                 # Path to BLAST results fasta file
                 path_to_blast_seq = os.path.join(blast_results_seq_directory, sample_name, core_name + "_blast.fasta")
-                
+
                 with open (path_to_blast_seq, 'w') as outblast_fh:
                     seq_number = 1
                     for line in out_lines :
@@ -1943,8 +1943,8 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                             flanked_sseq = accession_sequence[ : max_index + flankingnts ]
 
                         seq_id = str(seq_number) + '_' + sseqid
-                        outblast_fh.write('>' + seq_id + ' # ' + ' # '.join(values[0:13]) + '\n' + flanked_sseq + '\n' + '\n' )                                                                                                                                        
-                    
+                        outblast_fh.write('>' + seq_id + ' # ' + ' # '.join(values[0:13]) + '\n' + flanked_sseq + '\n' + '\n' )
+
                         seq_number += 1
 
                 ## Create local BLAST database for BLAST results after locus detection in sample using reference allele
@@ -1967,7 +1967,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                 out_lines = out.splitlines()
 
                 allele_found = {} # To keep filtered BLAST results
-                
+
                 ## Check if there is any BLAST result with ID = 100 ##
                 for line in out_lines:
 
@@ -1987,7 +1987,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                         #matching_allele_length = len(matching_allele_seq) ## parse
 
                         matching_allele_seq = alleles_in_locus_dict[core_name][qseqid]
-                        matching_allele_length = len(matching_allele_seq) 
+                        matching_allele_length = len(matching_allele_seq)
 
                         # Keep BLAST results with ID = 100 and same length as matching allele
                         if int(s_length) == matching_allele_length:
@@ -2003,7 +2003,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                     paralog_exact_tag(sample_name, core_name, 'NIPHEM', schema_quality, matching_genes_dict, samples_matrix_dict, allele_found, paralog_dict, prodigal_report, prodigal_directory, blast_parameters, annotation_core_dict, count_niphem, logger)
 
                     continue
-                
+
                 ## Check for possible paralogs with ID < 100 if there is only one BLAST result with ID = 100 and same length as matching allele
                 elif len(allele_found) == 1 :
 
@@ -2014,8 +2014,8 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                         s_length_no_gaps = len(sseq_no_gaps)
 
                         # Keep BLAST result if its coverage is within min and max thresholds
-                        if min_length_threshold <= s_length_no_gaps <= max_length_threshold:                            
-                            #get_blast_results (values, records, allele_found, logger) 
+                        if min_length_threshold <= s_length_no_gaps <= max_length_threshold:
+                            #get_blast_results (values, records, allele_found, logger)
                             get_blast_results (sample_name, values, contigs_in_sample_dict, allele_found, logger)
 
                     # ································································ #
@@ -2026,7 +2026,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                         paralog_exact_tag(sample_name, core_name, 'EXACT', schema_quality, matching_genes_dict, samples_matrix_dict, allele_found, exact_dict, prodigal_report, prodigal_directory, blast_parameters, annotation_core_dict, count_exact, logger)
 
                         continue
-                    
+
                     # ··········································································· #
                     # NIPH if there there are paralogs with ID < 100 for this gene in this sample #
                     # ··········································································· #
@@ -2055,9 +2055,9 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                     ## Check if best BLAST result out of coverage thresholds is a possible PLOT or LNF due to low coverage ##
                     #if len(allele_found) == 0:
                     if len(bigger_bitscore_seq_values) == 0:
-                
+
                         # Look for best bitscore BLAST result out of coverage thresholds to check possible PLOT or reporting LNF due to low coverage
-                        
+
                         for line in out_lines :
                             values = line.split('\t')
 
@@ -2072,10 +2072,10 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                         get_blast_results (sample_name, bigger_bitscore_seq_values_out_cov, contigs_in_sample_dict, lnf_plot_found, logger) ###
 
                         allele_id = str(list(lnf_plot_found.keys())[0]) ###
-                        qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = lnf_plot_found[allele_id]           
+                        qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = lnf_plot_found[allele_id]
 
-                        # Get contig sequence and length for best bitscore BLAST result ID 
-                        
+                        # Get contig sequence and length for best bitscore BLAST result ID
+
                         #for record in records: ## parse
                             #if record.id == sseqid : ## parse
                                 #break ## parse
@@ -2113,9 +2113,9 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
 
                             qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = values
                             sseq_no_gaps = sseq.replace('-', '')
-                            s_length_no_gaps = len(sseq_no_gaps) 
+                            s_length_no_gaps = len(sseq_no_gaps)
 
-                            if min_length_threshold <= s_length_no_gaps <= max_length_threshold:                            
+                            if min_length_threshold <= s_length_no_gaps <= max_length_threshold:
 
                                 #get_blast_results (values, records, allele_found, logger)
                                 get_blast_results (sample_name, values, contigs_in_sample_dict, allele_found, logger)
@@ -2127,14 +2127,14 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
 
                             paralog_exact_tag(sample_name, core_name, 'NIPH', schema_quality, matching_genes_dict, samples_matrix_dict, allele_found, paralog_dict, prodigal_report, prodigal_directory, blast_parameters, annotation_core_dict, count_niph, logger)
 
-                            continue 
+                            continue
 
                         ## Continue classification if there are no paralogs ##
                         elif len(allele_found) == 1 :
 
                             allele_id = str(list(allele_found.keys())[0])
                             qseqid, sseqid, pident, qlen, s_length, mismatch, r_gapopen, r_evalue, bitscore, sstart, send, qstart, qend, sseq, qseq = allele_found[allele_id]
-                            
+
                             sseq_no_gaps = sseq.replace('-', '')
                             s_length_no_gaps = len(sseq_no_gaps)
 
@@ -2142,19 +2142,19 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                             allele_quality = schema_quality[core_name][qseqid]
 
                             # Get matching allele sequence and length
-                            
+
                             #alleles_in_locus = list (SeqIO.parse(locus_alleles_path, "fasta")) ## parse
                             #for allele in alleles_in_locus : ## parse
                                 #if allele.id == qseqid : ## parse
                                     #break ## parse
                             #matching_allele_seq = allele.seq ## parse
-                            #matching_allele_length = len(matching_allele_seq) ## parse               
+                            #matching_allele_length = len(matching_allele_seq) ## parse
 
                             matching_allele_seq = alleles_in_locus_dict [core_name][qseqid]
                             matching_allele_length = len(matching_allele_seq)
 
                             # Get contig sequence and length for ID found in BLAST
-                            
+
                             #for record in records: ## parse
                                 #if record.id == sseqid : ## parse
                                     #break ## parse
@@ -2172,7 +2172,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
 
                                     ### sacar sec prodigal para PLOT?
                                     # Get prodigal predicted sequence if matching allele quality is "bad quality"
-                                    if 'bad_quality' in allele_quality: 
+                                    if 'bad_quality' in allele_quality:
                                         complete_predicted_seq, start_prodigal, end_prodigal = get_prodigal_sequence(sseq_no_gaps, sseqid, prodigal_directory, sample_name, blast_parameters, logger)
 
                                         # Keep info for prodigal report
@@ -2186,10 +2186,10 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                     # Keep PLOT info
                                     inf_asm_alm_tag(core_name, sample_name, 'PLOT', allele_found[allele_id], allele_quality, '-', matching_allele_length, '-', plot_dict, samples_matrix_dict, matching_genes_dict, prodigal_report, start_prodigal, end_prodigal, complete_predicted_seq, annotation_core_dict, count_plot, logger)
 
-                                    continue 
+                                    continue
 
                             # * * * * * * * * * * * * * * * * * * * * #
-                            # Search for complete final new sequence  # 
+                            # Search for complete final new sequence  #
                             # * * * * * * * * * * * * * * * * * * * * #
 
                             ## Get Prodigal predicted sequence ##
@@ -2216,7 +2216,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                     sample_gene_sequence = accession_sequence[ int(sstart) -1 : ]
 
                             # Get new stop codon index
-                            stop_index = get_stop_codon_index(sample_gene_sequence) 
+                            stop_index = get_stop_codon_index(sample_gene_sequence)
 
                             ## Classification of final new sequence if it is found ##
                             if stop_index != False:
@@ -2226,7 +2226,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                 #########################################################################################################################
                                 ### c/m: introducido para determinar qué umbral de coverage poner. TEMPORAL
                                 new_sseq_coverage = new_sequence_length/matching_allele_length ### introduciendo coverage new_sseq /// debería ser con respecto a la media?
-                                
+
                                 if new_sseq_coverage < 1:
                                     shorter_seq_coverage.append([core_name, sample_name, str(matching_allele_length), str(new_sequence_length), str(schema_statistics[core_name][0]), str(new_sseq_coverage), str(new_sequence_length/schema_statistics[core_name][0])])
                                 elif new_sseq_coverage > 1:
@@ -2265,7 +2265,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                 # ························································································· #
                                 # TPR if final new sequence coverage is not within thresholds for this gene in this sample  #
                                 # ························································································· #
-                                else: 
+                                else:
 
                                     # Keep TPR info
                                     lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_dict, lnf_tpr_dict, schema_statistics, locus_alleles_path, qseqid, pident, s_length_no_gaps, new_sequence_length, '-', coverage, schema_quality, annotation_core_dict, count_tpr, logger)
@@ -2293,7 +2293,7 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                         else:
                                             count_error[sample_name][count_class] += 1
 
- 
+
     ## Save results and create reports
 
     if not save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, logger):
@@ -2321,10 +2321,10 @@ def processing_allele_calling (arguments) :
         With the support of additional functions it will create the output files
         with the summary report.
     Input:
-        arguments   # Input arguments given on command line 
+        arguments   # Input arguments given on command line
     Functions:
         ????
-    Variables: 
+    Variables:
         ????
     Return:
         ????
@@ -2332,18 +2332,18 @@ def processing_allele_calling (arguments) :
 
     start_time = datetime.now()
     print('Start the execution at :', start_time )
-    
+
     # Open log file
     logger = open_log ('taranis_wgMLST.log')
-    print('Checking the pre-requisites.')
-    
+    #print('Checking the pre-requisites.')
+
     ############################################################
     ## Check additional programs are installed in your system ##
     ############################################################
-    pre_requisites_list = [['blastp', '2.9'], ['makeblastdb', '2.9']]
-    if not check_prerequisites (pre_requisites_list, logger):
-        print ('your system does not fulfill the pre-requistes to run the script ')
-        exit(0)
+    #pre_requisites_list = [['blastp', '2.9'], ['makeblastdb', '2.9']]
+    #if not check_prerequisites (pre_requisites_list, logger):
+    #    print ('your system does not fulfill the pre-requistes to run the script ')
+    #    exit(0)
 
     ######################################################
     ## Check that given directories contain fasta files ##
@@ -2409,7 +2409,7 @@ def processing_allele_calling (arguments) :
             logger.info('Cleaned up temporary directory ', )
             print('Cannot create temporary directory on ', tmp_samples_dir, 'Check the log file to get more information \n')
             exit(0)
-    
+
     contigs_in_sample_dict = prepare_samples(valid_sample_files, tmp_samples_dir, arguments.refgenome, logger)
     if not contigs_in_sample_dict :
         print('There is an error while processing the saving temporary files. Check the log file to get more information \n')
@@ -2423,11 +2423,11 @@ def processing_allele_calling (arguments) :
     query_directory = arguments.coregenedir
     reference_alleles_directory = arguments.refalleles
     blast_db_directory = os.path.join(tmp_samples_dir,'blastdb')
-    prodigal_directory = os.path.join(tmp_samples_dir,'prodigal') 
+    prodigal_directory = os.path.join(tmp_samples_dir,'prodigal')
     blast_results_seq_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_seq')  ### path a directorio donde guardar secuencias encontradas tras blast con alelo de referencia
     blast_results_db_directory = os.path.join(tmp_samples_dir,'blast_results', 'blast_results_db') ### path a directorio donde guardar db de secuencias encontradas tras blast con alelo de referencia
 
-    complete_allele_call, inferred_alleles_dict, inf_dict, exact_dict = allele_call_nucleotides(valid_core_gene_files, valid_sample_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), int(arguments.perc_identity_ref), int(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, arguments.profile, logger)        
+    complete_allele_call, inferred_alleles_dict, inf_dict, exact_dict = allele_call_nucleotides(valid_core_gene_files, valid_sample_files, alleles_in_locus_dict, contigs_in_sample_dict, query_directory, reference_alleles_directory, blast_db_directory, prodigal_directory, blast_results_seq_directory, blast_results_db_directory, arguments.inputdir, arguments.outputdir,  int(arguments.cpus), arguments.percentlength, arguments.coverage, float(arguments.evalue), int(arguments.perc_identity_ref), int(arguments.perc_identity_loc), int(arguments.reward), int(arguments.penalty), int(arguments.gapopen), int(arguments.gapextend), int(arguments.max_target_seqs), int(arguments.max_hsps), int(arguments.num_threads), int(arguments.flankingnts), schema_variability, schema_statistics, schema_quality, annotation_core_dict, arguments.profile, logger)
     if not complete_allele_call:
         print('There is an error while processing the allele calling. Check the log file to get more information \n')
         exit(0)
@@ -2437,17 +2437,17 @@ def processing_allele_calling (arguments) :
     #########################################################
     if inferred_alleles_dict:
         if str(arguments.updateschema).lower() == 'true' or str(arguments.updateschema).lower() == 'new':
-            if not update_schema (str(arguments.updateschema).lower(), arguments.coregenedir, arguments.outputdir, valid_core_gene_files, inferred_alleles_dict, alleles_in_locus_dict, logger):        
+            if not update_schema (str(arguments.updateschema).lower(), arguments.coregenedir, arguments.outputdir, valid_core_gene_files, inferred_alleles_dict, alleles_in_locus_dict, logger):
                 print('There is an error adding new inferred alleles found to the core genes schema. Check the log file to get more information \n')
                 exit(0)
 
     if str(arguments.profile).lower() != 'false':
-        
+
         ############################
         ## Get ST for each sample ##
         ############################
         complete_ST, inf_ST = get_ST_profile(arguments.outputdir, arguments.profile, exact_dict, inf_dict, valid_core_gene_files, valid_sample_files, logger)
-        
+
         if not complete_ST:
             print('There is an error while processing ST analysis. Check the log file to get more information \n')
             exit(0)
@@ -2457,7 +2457,7 @@ def processing_allele_calling (arguments) :
         ###########################################
         if str(arguments.updateprofile).lower() == 'true' or str(arguments.updateprofile).lower() == 'new':
             if len(inf_ST) > 0:
-                if not update_st_profile (str(arguments.updateprofile).lower(), arguments.profile, arguments.outputdir, inf_ST, valid_core_gene_files, logger):        
+                if not update_st_profile (str(arguments.updateprofile).lower(), arguments.profile, arguments.outputdir, inf_ST, valid_core_gene_files, logger):
                     print('There is an error adding new STs found to the ST profile file. Check the log file to get more information \n')
                     exit(0)
 
