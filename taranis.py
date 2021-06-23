@@ -30,7 +30,7 @@ def check_arg (args=None) :
 
     parser.add_argument('--version', action='version', version='%(prog)s 0.3.5')
 
-    subparser = parser.add_subparsers(help = 'analyze_schema, reference_alleles, allele_calling, distance_matrix'
+    subparser = parser.add_subparsers(help = 'analyze_schema, reference_alleles, allele_calling, distance_matrix '
                                       + 'are the available actions to execute taranis',
                                       dest = 'chosen_action')
 
@@ -91,7 +91,7 @@ def check_arg (args=None) :
                                     help = 'E-value in BLAST searches. Default is 0.001.',
                                     default = 0.001) 
     reference_alleles_parser.add_argument('-perc_identity', required = False,
-                                    help = 'Identity percent in BLAST searches. Default is 90 %. ',
+                                    help = 'Identity percent in BLAST searches. Default is 90. ',
                                     default = 90) 
     reference_alleles_parser.add_argument('-reward', required = False,
                                     help = 'Match reward in BLAST searches. Default is 1. ',
@@ -115,7 +115,7 @@ def check_arg (args=None) :
 
     ### Input parameters for allele calling option
     allele_calling_parser = subparser.add_parser('allele_calling',
-                                    help = 'Gene by gene allele calling') 
+                                    help = 'Gene by gene allele calling.') 
     allele_calling_parser.add_argument('-coregenedir', required = True,
                                     help = 'Directory where the core gene files are located ')
     allele_calling_parser.add_argument('-refalleles', required = True,
@@ -132,16 +132,16 @@ def check_arg (args=None) :
                                     default = 'SD') 
     allele_calling_parser.add_argument('-coverage', required = False,
                                     help = 'Coverage threshold to exclude found sequences. '
-                                    + 'Outside of this limit it is considered LNF. Default is 50 %.',
-                                    default = 50) 
+                                    + 'Outside of this limit it is considered LNF. Default is 50.',
+                                    default = 50)
     allele_calling_parser.add_argument('-evalue', required = False,
                                     help = 'E-value in BLAST searches. Default is 0.001. ',
                                     default = 0.001) 
     allele_calling_parser.add_argument('-perc_identity_ref', required = False,
-                                    help = 'Identity percentage in BLAST searches using reference alleles for each locus detection in samples. Default is 90 %. ',
-                                    default = 90) 
+                                    help = 'Identity percentage in BLAST searches using reference alleles for each locus detection in samples. Default is 90.',
+                                    default = 90)     
     allele_calling_parser.add_argument('-perc_identity_loc', required = False,
-                                    help = 'Identity percentage in BLAST searches using all alleles in each locus for allele identification in samples. Default is 90 %. ',
+                                    help = 'Identity percentage in BLAST searches using all alleles in each locus for allele identification in samples. Default is 90.',
                                     default = 90) 
     allele_calling_parser.add_argument('-reward', required = False,
                                     help = 'Match reward in BLAST searches. Default is 1. ',
@@ -200,7 +200,7 @@ def check_arg (args=None) :
 
     ### Input parameters for distance matrix option
     distance_matrix_parser = subparser.add_parser('distance_matrix',
-                                    help = 'Get samples distance matrix from allele calling comparison table') 
+                                    help = 'Get samples distance matrix from allele calling comparison table.') 
     distance_matrix_parser.add_argument('-alleles_matrix', required = True,
                                     help = 'Alleles matrix file from which to obtain distances between samples')
     distance_matrix_parser.add_argument('-locus_missing_threshold', required = False,
@@ -223,37 +223,32 @@ def check_arg (args=None) :
 
 
     ### Input parameters for schema comparison options
-    compare_schema_parser = subparser.add_parser('compare_schema', help = 'Compare 2 schema.')
-    compare_schema_parser.add_argument('-scheme1',
-                                       help = 'Directory where are the schema files for the schema 1.')
-    compare_schema_parser.add_argument('-scheme2',
-                                       help = 'Directory where are the schema files for the schema 2.')
+    #compare_schema_parser = subparser.add_parser('compare_schema', help = 'Compare 2 schema.')
+    #compare_schema_parser.add_argument('-scheme1',
+    #                                   help = 'Directory where are the schema files for the schema 1.')
+    #compare_schema_parser.add_argument('-scheme2',
+    #                                   help = 'Directory where are the schema files for the schema 2.')
 
 
     ### Input parameters for schema creation options
-    create_schema_parser = subparser.add_parser('create_schema', help = 'Create a schema.')
-    create_schema_parser.add_argument('-xlsfile',
-                                      help = 'xls file name which contains the list of the core genes.')
-    create_schema_parser.add_argument('-outputdir', help = 'Directory where the core gene files '
-                                      + 'will be stored. If directory exists it will be prompt for '
-                                      + 'deletion confirmation.')
+    #create_schema_parser = subparser.add_parser('create_schema', help = 'Create a schema.')
+    #create_schema_parser.add_argument('-xlsfile',
+    #                                  help = 'xls file name which contains the list of the core genes.')
+    #create_schema_parser.add_argument('-outputdir', help = 'Directory where the core gene files '
+    #                                  + 'will be stored. If directory exists it will be prompt for '
+    #                                  + 'deletion confirmation.')
 
     return parser.parse_args()
 
 
-#def processing_analyze_schema (arguments) :
- #   print ('analyze_schema')
-
+#def processing_compare_schema (arguments) :
+ #   print ('compare_schema')
   #  return True
 
-def processing_compare_schema (arguments) :
-    print ('compare_schema')
-    return True
-
-def processing_create_schema (arguments) :
-    print ('create_schema')
-    create_schema.processing_create_schema(arguments)
-    return True
+#def processing_create_schema (arguments) :
+ #   print ('create_schema')
+  #  create_schema.processing_create_schema(arguments)
+   # return True
 
 if __name__ == '__main__' :
     version = 'taranis version 0.2.2'
@@ -267,14 +262,14 @@ if __name__ == '__main__' :
         result = allele_calling.processing_allele_calling(arguments)
     elif arguments.chosen_action == 'analyze_schema':
         result = analyze_schema.processing_analyze_schema(arguments)
-    elif arguments.chosen_action == 'compare_schema' :
-        result = processing_compare_schema(arguments)
-    elif arguments.chosen_action == 'create_schema' :
-        result = processing_create_schema(arguments)
     elif arguments.chosen_action == 'reference_alleles' :
         result = reference_alleles.processing_reference_alleles(arguments)
     elif arguments.chosen_action == 'distance_matrix' :
         result = distance_matrix.processing_distance_matrix(arguments)
+    #elif arguments.chosen_action == 'compare_schema' :
+     #   result = processing_compare_schema(arguments)
+    #elif arguments.chosen_action == 'create_schema' :
+     #   result = processing_create_schema(arguments)
     else:
         print('not allow')
         result = 'Error'

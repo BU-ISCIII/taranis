@@ -14,9 +14,7 @@ import plotly.io as pio
 #from logging.handlers import RotatingFileHandler
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import generic_dna
 from Bio import Seq
-
 #from Bio.Blast.Applications import NcbiblastnCommandline
 from io import StringIO
 #from Bio.Blast import NCBIXML

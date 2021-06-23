@@ -8,30 +8,23 @@ import re
 import statistics
 import logging
 from logging.handlers import RotatingFileHandler
-
 from datetime import datetime
 import glob
 import pickle
-
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
-from Bio.Alphabet import generic_dna
 from Bio import Seq
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
 from Bio.Blast.Applications import NcbiblastnCommandline
 from io import StringIO
 from Bio.Blast import NCBIXML
-#from BCBio import GFF
 import pandas as pd
 import shutil
 from progressbar import ProgressBar
-
 from utils.taranis_utils import *
-
 import math 
 import csv 
-
 import plotly.graph_objects as go
 
 
@@ -65,7 +58,7 @@ def check_blast (reference_allele, sample_files, db_name, logger) : ## N
 def parsing_fasta_file_to_dict (fasta_file, logger):
     fasta_dict = {}
     fasta_dict_ordered = {}
-    for contig in SeqIO.parse(fasta_file, "fasta", generic_dna):
+    for contig in SeqIO.parse(fasta_file, "fasta"):
         fasta_dict[str(contig.id)] = str(contig.seq.upper())
     logger.debug('file %s parsed to dictionary', fasta_file)
 
@@ -1440,7 +1433,7 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
 
     ## Saving LNFs to file
     logger.info('Saving lnf information to file..')
-    lnf_file =  os.path.join(outputdir, 'lnf.tsv')
+    lnf_file =  os.path.join(outputdir, 'lnf_tpr.tsv')
     with open (lnf_file , 'w') as lnf_fh :
         lnf_fh.write('\t'.join(header_lnf_tpr)+ '\n')
         for core in lnf_tpr_dict :
