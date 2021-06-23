@@ -982,16 +982,20 @@ def get_gene_annotation (annotation_file, annotation_dir, genus, species, usegen
                 annot_tsv.append(line)
 
         if len(annot_tsv) > 1:
+
+            gene_index = annot_tsv[0].index("gene")
+            product_index = annot_tsv[0].index("product")
+
             try:
                 if '_' in annot_tsv[1][2]:
-                    gene_annot = annot_tsv[1][2].split('_')[0]
+                    gene_annot = annot_tsv[1][gene_index].split('_')[0]
                 else:
-                    gene_annot = annot_tsv[1][2]
+                    gene_annot = annot_tsv[1][gene_index]
             except:
                 gene_annot = 'Not found by Prokka'
             
             try: 
-                product_annot = annot_tsv[1][4]
+                product_annot = annot_tsv[1][product_index]
             except:
                 product_annot = 'Not found by Prokka'
         else:
@@ -2343,7 +2347,7 @@ def processing_allele_calling (arguments) :
     ############################################################
     ## Check additional programs are installed in your system ##
     ############################################################
-    pre_requisites_list = [['blastp', '2.11'], ['makeblastdb', '2.11']]
+    pre_requisites_list = [['blastp', '2.9'], ['makeblastdb', '2.9']]
     if not check_prerequisites (pre_requisites_list, logger):
         print ('your system does not fulfill the pre-requistes to run the script ')
         exit(0)
