@@ -6,9 +6,9 @@ channels:
 dependencies:
   - pip
   - python>=3.6
-  - bioconda::prokka=1.13
-  - bioconda::blast=2.9
-  - bioconda::mash=1.1
+  - bioconda::prokka>=1.14
+  - bioconda::blast>=2.9
+  - bioconda::mash>=2
   - bioconda::prodigal=2.6.3
 
   - pip:
