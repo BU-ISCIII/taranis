@@ -104,7 +104,7 @@ taranis allele_calling \
 -coregenedir schema_dir \
 -refalleles YYYY-MM-DD_taranis_reference_alleles_dir \
 -inputdir samples_dir \
--refgenome reference_genome_dir \
+-refgenome reference_genome.fasta \
 -outputdir YYYY-MM-DD_taranis_allele_calling_dir
 ```
 
@@ -115,8 +115,8 @@ taranis allele_calling \
 -coregenedir schema_dir \
 -refalleles YYYY-MM-DD_taranis_reference_alleles_dir \
 -inputdir samples_dir \
--refgenome reference_genome_dir \
--profile profile_dir \
+-refgenome reference_genome.fasta \
+-profile profile.csv \
 -outputdir YYYY-MM-DD_taranis_allele_calling_dir
 ```
 
@@ -295,9 +295,11 @@ optional arguments:
 - **analyze_schema mode:**
 
   * **FOLDERS:**
+  
     * **raw_schema_information:**  General information about each allele of each locus
 
   * **FILES:**
+  
     * **alleles_subsets.tsv:** Report of alleles that are subsequences of other alleles of the same locus
     * **duplicated_alleles.tsv:** Report of duplicate alleles within the same locus
     * **length_statistics.tsv:** Allele length statistics report for each locus
@@ -307,6 +309,7 @@ optional arguments:
 - **reference_alleles mode:**
 
   * **FILES:**
+  
     * **[refalleles_locusX].fasta:** One fasta file for each schema locus containing reference alleles for that locus
 
 
