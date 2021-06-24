@@ -189,7 +189,7 @@ def create_distance_matrix (alleles_matrix, outputdir, locus_missing_threshold, 
                 # Get samples filtering report 
                 logger.info('Saving distance matrix filter information to file after samples filtering..')
 
-                header_samples_filter = ["Sample", "LNF", "NIPH + NIPHEM", "PLOT", "Total missing values %"]
+                header_samples_filter = ["Sample Name", "LNF", "NIPH + NIPHEM", "PLOT", "Total missing values %"]
 
                 #with open (filter_report_file, 'a') as filter_fh:
 
@@ -213,7 +213,7 @@ def create_distance_matrix (alleles_matrix, outputdir, locus_missing_threshold, 
                 # Get samples filtering report
                 logger.info('Saving distance matrix filter information to file after loci filtering..')
 
-                header_loci_filter = ["Locus", "LNF", "NIPH + NIPHEM", "PLOT", "Total missing values %"]
+                header_loci_filter = ["Core Gene", "LNF", "NIPH + NIPHEM", "PLOT", "Total missing values %"]
 
                 with open (filter_report_file, 'a') as filter_fh:
                     

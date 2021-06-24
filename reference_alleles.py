@@ -161,10 +161,10 @@ def processing_reference_alleles (arguments) :
     ############################################################
     ## Check additional programs are installed in your system ##
     ############################################################
-    pre_requisite_list = [['blastp', '2.5'], ['makeblastdb' , '2.5'], ['mash', '1.1']]
-    if not check_prerequisites (pre_requisite_list, logger):
-        print ('your system does not fulfill the pre-requistes to run the script ')
-        exit(0)
+    #pre_requisite_list = [['blastp', '2.9'], ['makeblastdb' , '2.9'], ['mash', '2']]
+    #if not check_prerequisites (pre_requisite_list, logger):
+    #    print ('your system does not fulfill the pre-requistes to run the script ')
+    #    exit(0)
 
     ######################################################
     ## Check that given directories contain fasta files ##
