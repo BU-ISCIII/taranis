@@ -418,10 +418,9 @@ def get_snp (sample, query) :
             snp_list.append([str(index+1),str(seq_query[index]) + '/' + str(seq_sample[index]), str(codon_que) + '/'+ str(codon_seq),
                              # when one of the sequence ends but not the other we will translate the remain sequence to proteins
                              # in that case we will only annotate the first protein. Using [0] as key of the dictionary  annotation
-                             missense_synonym, prot_que + '/' + prot_seq, prot_annotation[prot_que[0]] + ' / ' + prot_annotation[prot_seq[0]]])
+                             prot_que + '/' + prot_seq, missense_synonym, prot_annotation[prot_que[0]] + ' / ' + prot_annotation[prot_seq[0]]])
             if '-' in str(codon_seq) :
                 break
-
     return snp_list
 
 
@@ -568,9 +567,9 @@ def lnf_tpr_tag(core_name, sample_name, alleles_in_locus_dict, samples_matrix_di
     elif 90 <= float(pident) and new_sequence_length != '-':
         # (BLAST 90 con resultado, buen coverage BLAST, bajo coverage new_sseq)
         locus_mean = int(schema_statistics[core_name][0])
-        coverage_blast = int(s_length) / locus_mean
+        coverage_blast = int(s_length) / locus_mean * 100
         #coverage_blast = int(s_length) / matching_allele_length
-        coverage_new_sequence = new_sequence_length / matching_allele_length
+        coverage_new_sequence = new_sequence_length / matching_allele_length * 100
         if coverage_new_sequence < 1:
             add_info = 'New sequence coverage under threshold: {}%'.format(coverage)
         else:
@@ -646,9 +645,11 @@ def paralog_exact_tag(sample_name, core_name, tag, schema_quality, matching_gene
         if not sseqid in matching_genes_dict[sample_name] :
             matching_genes_dict[sample_name][sseqid] = []
         if sstart > send :
-            matching_genes_dict[sample_name][sseqid].append([core_name, sstart, send,'-', tag])
+            #matching_genes_dict[sample_name][sseqid].append([core_name, sstart, send,'-', tag])
+            matching_genes_dict[sample_name][sseqid].append([core_name, qseqid, sstart, send,'-', tag])
         else:
-            matching_genes_dict[sample_name][sseqid].append([core_name, sstart, send,'+', tag])
+            #matching_genes_dict[sample_name][sseqid].append([core_name, sstart, send,'+', tag])
+            matching_genes_dict[sample_name][sseqid].append([core_name, qseqid, sstart, send,'+', tag])
 
         ## Keeping paralog NIPH/NIPHEM report info
         if tag == 'NIPH' or tag == 'NIPHEM':
@@ -779,9 +780,11 @@ def inf_asm_alm_tag(core_name, sample_name, tag, blast_values, allele_quality, n
     if not sseqid in matching_genes_dict[sample_name] :
         matching_genes_dict[sample_name][sseqid] = []
     if sstart > send :
-        matching_genes_dict[sample_name][sseqid].append([core_name, str(int(sstart)-new_sequence_length -1), sstart,'-', tag_allele])
+        #matching_genes_dict[sample_name][sseqid].append([core_name, str(int(sstart)-new_sequence_length -1), sstart,'-', tag_allele])
+        matching_genes_dict[sample_name][sseqid].append([core_name, qseqid, str(int(sstart)-new_sequence_length -1), sstart,'-', tag_allele])
     else:
-        matching_genes_dict[sample_name][sseqid].append([core_name, sstart,str(int(sstart)+ new_sequence_length),'+', tag_allele])
+        #matching_genes_dict[sample_name][sseqid].append([core_name, sstart, str(int(sstart)+ new_sequence_length),'+', tag_allele])
+        matching_genes_dict[sample_name][sseqid].append([core_name, qseqid, sstart, str(int(sstart)+ new_sequence_length),'+', tag_allele])
 
     ##### informe prodigal #####
     prodigal_report.append([core_name, sample_name, qseqid, tag_allele, sstart, send, start_prodigal, end_prodigal, sseq, complete_predicted_seq])
@@ -1331,26 +1334,26 @@ def update_st_profile (updateprofile, profile_csv_path, outputdir, inf_ST, core_
 # · * · * · * · * · * · * · * · * · * · #
 
 def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, exact_dict, paralog_dict, inf_dict, plot_dict, matching_genes_dict, list_asm, list_alm, lnf_tpr_dict, snp_dict, match_alignment_dict, protein_dict, prodigal_report, shorter_seq_coverage, longer_seq_coverage, equal_seq_coverage, shorter_blast_seq_coverage, longer_blast_seq_coverage, equal_blast_seq_coverage, logger):
-    header_matching_alleles_contig = ['Sample Name', 'Contig', 'Core Gene', 'Start', 'Stop', 'Direction', 'Codification']
+    header_matching_alleles_contig = ['Sample Name', 'Contig', 'Core Gene', 'Allele', 'Contig Start', 'Contig Stop', 'Direction', 'Codification']
     header_exact = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Query length', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
-    header_paralogs = ['Core Gene','Sample Name', 'Gene Annotation', 'Product Annotation', 'Paralog Tag', 'ID %', 'Allele', 'Allele Quality', 'Contig', 'Bit Score', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
+    header_paralogs = ['Core Gene','Sample Name', 'Gene Annotation', 'Product Annotation', 'Paralog Tag', 'ID %', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
     header_inferred = ['Core Gene','Sample Name', 'INF tag', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Query length', 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence', 'Predicted Sequence']
     header_asm = ['Core Gene', 'Sample Name', 'ASM tag', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Query length', 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence', 'Additional info', 'Predicted Sequence']
     header_alm = ['Core Gene', 'Sample Name', 'ALM tag', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig', 'Bitscore', 'Query length', 'Contig length', 'New sequence length' , 'Mismatch' , 'gaps', 'Contig start', 'Contig end',  'New sequence', 'Additional info', 'Predicted Sequence']
-    header_plot = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig','Bit Score', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
-    header_lnf_tpr = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Tag', 'Allele', 'Allele Quality', 'ID %', 'Blast sequence coverage', 'New sequence coverage', 'Allele length', 'Blast sequence length', 'New sequence length', 'Additional info']
-    header_snp = ['Core Gene', 'Sample Name', 'Allele number', 'Position', 'Mutation Schema/Sample', 'Codon Schema/Sample','Protein in Schema/Sample', 'Missense/Synonymous','Annotation Sample / Schema']
+    header_plot = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Allele', 'Allele Quality', 'Contig','Bitscore', 'Contig start', 'Contig end', 'Sequence', 'Predicted Sequence']
+    header_lnf_tpr = ['Core Gene', 'Sample Name', 'Gene Annotation', 'Product Annotation', 'Tag', 'Allele', 'Allele Quality', 'ID %', 'Blast sequence coverage %', 'New sequence coverage %', 'Query length', 'Contig length', 'New sequence length', 'Additional info']
+    header_snp = ['Core Gene', 'Sample Name', 'Allele', 'Position', 'Mutation Schema/Sample', 'Codon Schema/Sample','Amino acid in Schema/Sample', 'Mutation type','Annotation Schema/Sample']
     header_protein = ['Core Gene','Sample Name', 'Protein in ' , 'Protein sequence']
     header_match_alignment = ['Core Gene','Sample Name','Alignment', 'Sequence']
     header_stprofile = ['Sample Name', 'ST']
 
 
     # Añadido header_prodigal_report para report prodigal
-    header_prodigal_report = ['Core gene', 'Sample Name', 'Allele', 'Sequence type', 'BLAST start', 'BLAST end', 'Prodigal start', 'Prodigal end', 'BLAST sequence', 'Prodigal sequence']
+#    header_prodigal_report = ['Core gene', 'Sample Name', 'Allele', 'Sequence type', 'BLAST start', 'BLAST end', 'Prodigal start', 'Prodigal end', 'BLAST sequence', 'Prodigal sequence']
     # Añadido header_newsseq_coverage_report para determinar coverage threshold a imponer
-    header_newsseq_coverage_report = ['Core gene', 'Sample Name', 'Query length', 'New sequence length', 'Locus mean', 'Coverage (new sequence/allele)', 'Coverage (new sequence/locus mean)']
+#    header_newsseq_coverage_report = ['Core gene', 'Sample Name', 'Query length', 'New sequence length', 'Locus mean', 'Coverage (new sequence/allele)', 'Coverage (new sequence/locus mean)']
     # Añadido header_blast_coverage_report para determinar coverage threshold a imponer
-    header_blast_coverage_report = ['Core gene', 'Sample Name', 'Query length', 'Blast sequence length', 'Locus mean', 'Coverage (blast sequence/allele)', 'Coverage (blast sequence/locus mean)']
+#    header_blast_coverage_report = ['Core gene', 'Sample Name', 'Query length', 'Blast sequence length', 'Locus mean', 'Coverage (blast sequence/allele)', 'Coverage (blast sequence/locus mean)']
 
     ## Saving the result information to file
     print ('Saving results to files \n')
@@ -1366,9 +1369,9 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
     exact_file =  os.path.join(outputdir, 'exact.tsv')
     with open (exact_file , 'w') as exact_fh :
         exact_fh.write('\t'.join(header_exact)+ '\n')
-        for core in sorted(exact_dict):
-            for sample in sorted(exact_dict[core]):
-                exact_fh.write(core + '\t' + sample + '\t' + '\t'.join(exact_dict[core][sample]) + '\n')
+        for sample in sorted(exact_dict):
+            for core in sorted(exact_dict[sample]):
+                exact_fh.write(core + '\t' + sample + '\t' + '\t'.join(exact_dict[sample][core]) + '\n')
 
     ## Saving paralog alleles to file
     logger.info('Saving paralog information to file..')
@@ -1404,8 +1407,8 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
     logger.info('Saving matching information to file..')
     matching_file =  os.path.join(outputdir, 'matching_contigs.tsv')
     with open (matching_file , 'w') as matching_fh :
-        matching_fh.write('\t'.join(header_matching_alleles_contig ) + '\n')
-        for samples in sorted ( matching_genes_dict) :
+        matching_fh.write('\t'.join(header_matching_alleles_contig) + '\n')
+        for samples in sorted (matching_genes_dict) :
             for contigs in matching_genes_dict[samples] :
                 for contig in matching_genes_dict[samples] [contigs]:
                         matching_alleles = '\t'.join (contig)
@@ -1491,46 +1494,46 @@ def save_allele_call_results (outputdir, full_gene_list, samples_matrix_dict, ex
             summ_fh.write(line + '\n')
 
     ## Modify the result file to remove the PLOT_ string for creating the file to use in the tree diagram
-    logger.info('Saving result information for tree diagram')
-    tree_diagram_file = os.path.join ( outputdir, 'result_for_tree_diagram.tsv')
-    with open (result_file, 'r') as result_fh:
-        with open(tree_diagram_file, 'w') as td_fh:
-            for line in result_fh:
-                tree_line = line.replace('PLOT_','')
-                td_fh.write(tree_line)
+#    logger.info('Saving result information for tree diagram')
+#    tree_diagram_file = os.path.join ( outputdir, 'result_for_tree_diagram.tsv')
+#    with open (result_file, 'r') as result_fh:
+#        with open(tree_diagram_file, 'w') as td_fh:
+#            for line in result_fh:
+#                tree_line = line.replace('PLOT_','')
+#                td_fh.write(tree_line)
 
     ###########################################################################################
     # Guardando report de prodigal. Temporal
-    prodigal_report_file = os.path.join (outputdir, 'prodigal_report.tsv')
+#    prodigal_report_file = os.path.join (outputdir, 'prodigal_report.tsv')
     # saving prodigal predictions to file
-    with open (prodigal_report_file, 'w') as out_fh:
-        out_fh.write ('\t'.join(header_prodigal_report)+ '\n')
-        for prodigal_result in prodigal_report:
-            out_fh.write ('\t'.join(prodigal_result)+ '\n')
+#    with open (prodigal_report_file, 'w') as out_fh:
+#        out_fh.write ('\t'.join(header_prodigal_report)+ '\n')
+#        for prodigal_result in prodigal_report:
+#            out_fh.write ('\t'.join(prodigal_result)+ '\n')
 
     # Guardando coverage de new_sseq para estimar el threshold a establecer. Temporal
-    newsseq_coverage_file = os.path.join (outputdir, 'newsseq_coverage_report.tsv')
+#    newsseq_coverage_file = os.path.join (outputdir, 'newsseq_coverage_report.tsv')
     # saving the coverage information to file
-    with open (newsseq_coverage_file, 'w') as out_fh:
-        out_fh.write ('\t' + '\t'.join(header_newsseq_coverage_report)+ '\n')
-        for coverage in shorter_seq_coverage:
-            out_fh.write ('Shorter new sequence' + '\t' + '\t'.join(coverage)+ '\n')
-        for coverage in longer_seq_coverage:
-            out_fh.write ('Longer new sequence' + '\t' + '\t'.join(coverage)+ '\n')
-        for coverage in equal_seq_coverage:
-            out_fh.write ('Same length new sequence' + '\t' + '\t'.join(coverage)+ '\n')
+#    with open (newsseq_coverage_file, 'w') as out_fh:
+#        out_fh.write ('\t' + '\t'.join(header_newsseq_coverage_report)+ '\n')
+#        for coverage in shorter_seq_coverage:
+#            out_fh.write ('Shorter new sequence' + '\t' + '\t'.join(coverage)+ '\n')
+#        for coverage in longer_seq_coverage:
+#            out_fh.write ('Longer new sequence' + '\t' + '\t'.join(coverage)+ '\n')
+#        for coverage in equal_seq_coverage:
+#            out_fh.write ('Same length new sequence' + '\t' + '\t'.join(coverage)+ '\n')
 
     # Guardando coverage de la sseq obtenida tras blast para estimar el threshold a establecer. Temporal
-    blast_coverage_file = os.path.join (outputdir, 'blast_coverage_report.tsv')
+#    blast_coverage_file = os.path.join (outputdir, 'blast_coverage_report.tsv')
     # saving the result information to file
-    with open (blast_coverage_file, 'w') as out_fh:
-        out_fh.write ('\t' + '\t'.join(header_blast_coverage_report)+ '\n')
-        for coverage in shorter_blast_seq_coverage:
-            out_fh.write ('Shorter blast sequence' + '\t' + '\t'.join(coverage)+ '\n')
-        for coverage in longer_blast_seq_coverage:
-            out_fh.write ('Longer blast sequence' + '\t' + '\t'.join(coverage)+ '\n')
-        for coverage in equal_blast_seq_coverage:
-            out_fh.write ('Same length blast sequence' + '\t' + '\t'.join(coverage)+ '\n')
+#    with open (blast_coverage_file, 'w') as out_fh:
+#        out_fh.write ('\t' + '\t'.join(header_blast_coverage_report)+ '\n')
+#        for coverage in shorter_blast_seq_coverage:
+#            out_fh.write ('Shorter blast sequence' + '\t' + '\t'.join(coverage)+ '\n')
+#        for coverage in longer_blast_seq_coverage:
+#            out_fh.write ('Longer blast sequence' + '\t' + '\t'.join(coverage)+ '\n')
+#        for coverage in equal_blast_seq_coverage:
+#            out_fh.write ('Same length blast sequence' + '\t' + '\t'.join(coverage)+ '\n')
     ###########################################################################################
 
     return True
@@ -2279,9 +2282,11 @@ def allele_call_nucleotides (core_gene_list_files, sample_list_files, alleles_in
                                 if not sseqid in matching_genes_dict[sample_name] :
                                     matching_genes_dict[sample_name][sseqid] = []
                                 if sstart > send :
-                                    matching_genes_dict[sample_name][sseqid].append([core_name, sstart,send,'-', 'ERROR'])
+                                    #matching_genes_dict[sample_name][sseqid].append([core_name, sstart, send,'-', 'ERROR'])
+                                    matching_genes_dict[sample_name][sseqid].append([core_name, qseqid, sstart, send,'-', 'ERROR'])
                                 else:
-                                    matching_genes_dict[sample_name][sseqid].append([core_name, sstart,send,'+', 'ERROR'])
+                                    #matching_genes_dict[sample_name][sseqid].append([core_name, sstart,send,'+', 'ERROR'])
+                                    matching_genes_dict[sample_name][sseqid].append([core_name, qseqid, sstart, send,'+', 'ERROR'])
 
                                 # (recuento tags para plot)
                                 count_error[sample_name]['total'] += 1
