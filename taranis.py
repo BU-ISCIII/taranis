@@ -68,13 +68,13 @@ def check_arg (args=None) :
                                     + 'Default is False.',
                                     default = False) 
     analyze_schema_parser.add_argument('-genus' , required = False,
-                                    help = 'Genus name for Prokka schema genes annotation. Defualt is Genus. ',
+                                    help = 'Genus name for Prokka schema genes annotation. Default is Genus. ',
                                     default = 'Genus') 
     analyze_schema_parser.add_argument('-species' , required = False,
-                                    help = 'Species name for Prokka schema genes annotation. Defualt is species. ',
+                                    help = 'Species name for Prokka schema genes annotation. Default is species. ',
                                     default = 'species') 
     analyze_schema_parser.add_argument('-usegenus' , required = False,
-                                    help = 'Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Defualt is False. ',
+                                    help = 'Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Default is False. ',
                                     default = 'False')
     analyze_schema_parser.add_argument('-cpus', required = False,
                                     help = 'Number of CPUS to be used in the program. Default is 1.',
@@ -188,13 +188,13 @@ def check_arg (args=None) :
                                     help = 'Number of CPUS to be used in the program. Default is 1.',
                                     default = 1)
     allele_calling_parser.add_argument('-genus' , required = False,
-                                    help = 'Genus name for Prokka schema genes annotation. Defualt is Genus. ',
+                                    help = 'Genus name for Prokka schema genes annotation. Default is Genus. ',
                                     default = 'Genus') 
     allele_calling_parser.add_argument('-species' , required = False,
-                                    help = 'Species name for Prokka schema genes annotation. Defualt is species. ',
+                                    help = 'Species name for Prokka schema genes annotation. Default is species. ',
                                     default = 'species') 
     allele_calling_parser.add_argument('-usegenus' , required = False,
-                                    help = 'Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Defualt is False. ',
+                                    help = 'Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Default is False. ',
                                     default = 'False')
 
 
