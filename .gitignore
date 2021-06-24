@@ -2,7 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+*.komodoproject
 # C extensions
 *.so
 *.log
@@ -21,6 +21,7 @@ eggs/
 lib/
 lib64/
 parts/
+logs/
 sdist/
 var/
 wheels/
