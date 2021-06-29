@@ -578,12 +578,12 @@ def analyze_schema (inputdir, outputdir, genus, species, usegenus, logger) :
             #stat_fh.write(core + '\t' + ', '.join(map(str,schema_statistics[core][0])) + '\t' + '\t'.join (map(str,schema_statistics[core][1::])) + '\t' + ', '.join(length_number) + '\t' + str(total_alleles) + '\n')
 
     # Saving schema annotation to file
-    logger.info('Saving core gene schema annotation to file..') 
-    annotation_file =  os.path.join(outputdir, 'raw_info' , 'annotation.tsv')    
-    with open (annotation_file , 'w') as annot_fh :
-        annot_fh.write('\t'.join(header_annotation) + '\n')
-        for core in sorted(annotation_core_dict) :
-            annot_fh.write(core + '\t' + '\t'.join(annotation_core_dict[core]) + '\n')
+    #logger.info('Saving core gene schema annotation to file..') 
+    #annotation_file =  os.path.join(outputdir, 'raw_info' , 'annotation.tsv')    
+    #with open (annotation_file , 'w') as annot_fh :
+    #    annot_fh.write('\t'.join(header_annotation) + '\n')
+    #    for core in sorted(annotation_core_dict) :
+    #        annot_fh.write(core + '\t' + '\t'.join(annotation_core_dict[core]) + '\n')
 
     logger.info('Completed dumped raw information to files')
         
