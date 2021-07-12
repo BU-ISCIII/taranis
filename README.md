@@ -53,7 +53,7 @@ This option is recomended.
 
 Install Anaconda3.
 
-`conda install -c bioconda taranis`
+`conda install -c conda-forge -c bioconda -c defaults taranis`
 
 Wait for the environment to solve. <br>
 Ignore warnings/errors.
