@@ -186,7 +186,7 @@ def junk (): ## N
     return True
 
 
-def check_prerequisites (pre_requisite_list, logger): 
+def check_prerequisites (pre_requisite_list, logger):
     # check if blast is installed and has the minimum version
     for program, version in pre_requisite_list :
         if not check_program_is_exec_version (program , version, logger):
@@ -247,7 +247,7 @@ def get_fasta_file_list (check_directory,  logger):
     if not os.path.isdir(check_directory):
         logger.info('directory %s does not exists', check_directory)
         return False
-    
+
     fasta_format = ['*.fasta', '*.fa', '*.fna', '*.ffn', '*.frn']
     list_filtered_files = []
     for extension in fasta_format:
@@ -255,7 +255,7 @@ def get_fasta_file_list (check_directory,  logger):
         sublist_filtered_files =  glob.glob(filter_files)
         for fasta_file in sublist_filtered_files:
             list_filtered_files.append(fasta_file)
-    
+
     list_filtered_files.sort()
     if len (list_filtered_files) == 0 :
         logger.info('directory %s does not have any fasta file ', check_directory)
@@ -315,15 +315,15 @@ def check_core_gene_quality(fasta_file_path, logger):
     return locus_quality
 
 
-def check_sequence_order(allele_sequence, logger): 
+def check_sequence_order(allele_sequence, logger):
     start_codon_forward= ['ATG','ATA','ATT','GTG', 'TTG']
     start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
 
     stop_codons_forward = ['TAA', 'TAG','TGA']
     stop_codons_reverse = ['TTA', 'CTA','TCA']
-    
+
     # check direction
-    if allele_sequence[0:3] in start_codon_forward or allele_sequence[-3:] in stop_codons_forward: 
+    if allele_sequence[0:3] in start_codon_forward or allele_sequence[-3:] in stop_codons_forward:
         return 'forward'
     if allele_sequence[-3:] in start_codon_reverse or allele_sequence[0:3] in stop_codons_reverse:
         return 'reverse'
@@ -346,20 +346,20 @@ def get_stop_codon_index(seq) :
 
 ### (tsv para algunos locus? Utils para analyze schema?)
 def get_gene_annotation (annotation_file, annotation_dir, genus, species, usegenus, logger) :
-    
+
     name_file = os.path.basename(annotation_file).split('.')
     annotation_dir = os.path.join (annotation_dir, 'annotation', name_file[0])
-    
+
     if usegenus == 'true':
         annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
-                                            '--genus', genus, '--species', species, '--usegenus', 
+                                            '--genus', genus, '--species', species, '--usegenus',
                                             '--gcode', '11', '--prefix', name_file[0], '--quiet'])
 
     elif usegenus == 'false':
         annotation_result = subprocess.run (['prokka', annotation_file, '--outdir', annotation_dir,
-                                            '--genus', genus, '--species', species, 
+                                            '--genus', genus, '--species', species,
                                             '--gcode', '11', '--prefix', name_file[0], '--quiet'])
-    
+
     annot_tsv = []
     tsv_path = os.path.join (annotation_dir, name_file[0] + '.tsv')
 
@@ -377,8 +377,8 @@ def get_gene_annotation (annotation_file, annotation_dir, genus, species, usegen
                     gene_annot = annot_tsv[1][2]
             except:
                 gene_annot = 'Not found by Prokka'
-            
-            try: 
+
+            try:
                 product_annot = annot_tsv[1][4]
             except:
                 product_annot = 'Not found by Prokka'

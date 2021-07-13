@@ -127,7 +127,8 @@ shift $((OPTIND-1))
 echo "Executing:../taranis.py allele_calling -coregenedir $schema -inputdir $assemblies -refgenome $refgenome -outputdir allele_calling_test -percentlength 20 -refalleles $refallele -profile $profile"
 echo "Assemblies: $assemblies"
 echo "Schema: $schema"
-
+echo "$PWD"
+cd
 $script_dir/../taranis.py analyze_schema -inputdir $script_dir/MLST_listeria -outputdir analyze_schema_test
 
 $script_dir/../taranis.py reference_alleles -coregenedir $script_dir/MLST_listeria -outputdir reference_alleles_test
