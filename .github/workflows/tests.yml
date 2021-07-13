@@ -35,4 +35,4 @@ jobs:
     steps:
       - name: Run pipeline with test data
         run: |
-            docker run buisciii/taranis:dev bash /opt/taranis/test/test.sh
+            docker run buisciii/taranis:dev bash -c /opt/taranis/test/test.sh
