@@ -5,7 +5,7 @@ ADD utils /opt/taranis/utils
 ADD test /opt/taranis/test
 ADD *.py /opt/taranis/
 ADD environment.yml /opt/taranis/
-ADD CHANGELOG.md /opt/taranis/
+ADD README.d /opt/taranis/
 ADD LICENSE /opt/taranis/
 
 RUN cd /opt/taranis
