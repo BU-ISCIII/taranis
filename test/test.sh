@@ -128,7 +128,6 @@ echo "Executing:../taranis.py allele_calling -coregenedir $schema -inputdir $ass
 echo "Assemblies: $assemblies"
 echo "Schema: $schema"
 
-conda activate taranis
 $script_dir/../taranis.py analyze_schema -inputdir $script_dir/MLST_listeria -outputdir analyze_schema_test
 
 $script_dir/../taranis.py reference_alleles -coregenedir $script_dir/MLST_listeria -outputdir reference_alleles_test
