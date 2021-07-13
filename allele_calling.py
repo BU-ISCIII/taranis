@@ -1196,19 +1196,26 @@ def get_ST_profile(outputdir, profile_csv_path, exact_dict, inf_dict, core_gene_
                 break
 
         if sample_name not in samples_profiles_dict:
-            if len(analysis_profiles_dict[sample_name]) == len(profile_header):
-                new_st_id = str(len(ST_profiles_dict) + 1)
-                ST_profiles_dict[new_st_id  + "_INF"] = analysis_profile_dict[sample_name]
-                inf_ST[new_st_id] = analysis_profile_dict[sample_name]
+            if sample_name in analysis_profiles_dict:
+                if len(analysis_profiles_dict[sample_name]) == len(profile_header):
+                    new_st_id = str(len(ST_profiles_dict) + 1)
+                    ST_profiles_dict[new_st_id  + "_INF"] = analysis_profile_dict[sample_name]
+                    inf_ST[new_st_id] = analysis_profile_dict[sample_name]
 
-                samples_profiles_dict[sample_name]=new_st_id  + "_INF"
+                    samples_profiles_dict[sample_name]=new_st_id  + "_INF"
 
-                if "New" not in count_st:
-                    count_st["New"] = {}
-                if new_st_id not in count_st["New"]:
-                    count_st["New"][new_st_id] = 0
-                count_st["New"][new_st_id] += 1
+                    if "New" not in count_st:
+                        count_st["New"] = {}
+                    if new_st_id not in count_st["New"]:
+                        count_st["New"][new_st_id] = 0
+                    count_st["New"][new_st_id] += 1
 
+                else:
+                    samples_profiles_dict[sample_name] = '-'
+
+                    if "Unknown" not in count_st:
+                        count_st["Unknown"] = 0
+                    count_st["Unknown"] += 1
             else:
                 samples_profiles_dict[sample_name] = '-'
 

@@ -6,6 +6,7 @@ import sys
 import glob
 from datetime import datetime
 import statistics
+from collections import Counter
 #import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 import plotly.io as pio
@@ -170,7 +171,9 @@ def extract_info_schema (schema_files, outputdir, genus, species, usegenus, logg
             stdev = 0
         else:
             stdev = statistics.stdev(alleles_len)
-        schema_statistics[gene_name]=[statistics.mode(alleles_len), statistics.mean(alleles_len), stdev, min(alleles_len), max(alleles_len)]
+        
+        #schema_statistics[gene_name]=[statistics.mode(alleles_len), statistics.mean(alleles_len), stdev, min(alleles_len), max(alleles_len)]
+        schema_statistics[gene_name]=[list(Counter(alleles_len).most_common(1)[0])[0], statistics.mean(alleles_len), stdev, min(alleles_len), max(alleles_len)]
 
         for length in list(set(alleles_len)):
             schema_variability_count[gene_name][str(length)] = str(alleles_len.count(length))
@@ -572,14 +575,16 @@ def analyze_schema (inputdir, outputdir, genus, species, usegenus, logger) :
                 total_alleles += int(schema_variability_count[core][length])
 
             stat_fh.write(core + '\t' + '\t'.join (map(str,schema_statistics[core])) + '\t' + ', '.join(length_number) + '\t' + str(total_alleles) + '\n')
+            #stat_fh.write(core + '\t' + ', '.join(map(str,schema_statistics[core][0])) + '\t' + '\t'.join (map(str,schema_statistics[core][1::])) + '\t' + ', '.join(length_number) + '\t' + str(total_alleles) + '\n')
 
     # Saving schema annotation to file
-    logger.info('Saving core gene schema annotation to file..')
-    annotation_file =  os.path.join(outputdir, 'raw_info' , 'annotation.tsv')
-    with open (annotation_file , 'w') as annot_fh :
-        annot_fh.write('\t'.join(header_annotation) + '\n')
-        for core in sorted(annotation_core_dict) :
-            annot_fh.write(core + '\t' + '\t'.join(annotation_core_dict[core]) + '\n')
+    #logger.info('Saving core gene schema annotation to file..') 
+    #annotation_file =  os.path.join(outputdir, 'raw_info' , 'annotation.tsv')    
+    #with open (annotation_file , 'w') as annot_fh :
+    #    annot_fh.write('\t'.join(header_annotation) + '\n')
+    #    for core in sorted(annotation_core_dict) :
+    #        annot_fh.write(core + '\t' + '\t'.join(annotation_core_dict[core]) + '\n')
+
 
     logger.info('Completed dumped raw information to files')
 

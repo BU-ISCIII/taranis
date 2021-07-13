@@ -213,9 +213,9 @@ def check_program_is_exec_version (program, version, logger):
 
 
 def create_blastdb (file_name, db_name,db_type, logger ):
-    f_name = os.path.basename(file_name).split('.')
-    db_dir = os.path.join(db_name,f_name[0])
-    output_blast_dir = os.path.join(db_dir, f_name[0])
+    f_name = '.'.join(os.path.basename(file_name).split('.')[:-1])
+    db_dir = os.path.join(db_name,f_name)
+    output_blast_dir = os.path.join(db_dir, f_name)
 
     if not os.path.exists(db_dir):
         try:
