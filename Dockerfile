@@ -5,6 +5,7 @@ ADD utils /opt/taranis/utils
 ADD test /opt/taranis/test
 ADD *.py /opt/taranis/
 ADD environment.yml /opt/taranis/
+ADD logging_config.ini /opt/taranis/
 ADD README.md /opt/taranis/
 ADD LICENSE /opt/taranis/
 
