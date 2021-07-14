@@ -126,18 +126,17 @@ taranis allele_calling \
 
 ```
 taranis distance_matrix \
--alleles_matrix YYYY-MM-DD_taranis_allele_calling_dir/result.tsv
+-alleles_matrix YYYY-MM-DD_taranis_allele_calling_dir/result.tsv -outputdir YYYY-MM-DD_taranis_distance_matrix_dir
 ```
 
   <p>Get distance matrix filtering loci and samples which missing values percentage is above specified threshold:
 
 ```
 taranis distance_matrix\
--alleles_matrix \
+-alleles_matrix YYYY-MM-DD_taranis_allele_calling_dir/result.tsv\
 -locus_missing_threshold 20 \
 -sample_missing_threshold 50 \
--refgenome reference_genome_dir \
--outputdir YYYY-MM-DD_taranis_allele_calling_dir
+-outputdir YYYY-MM-DD_taranis_distance_matrix_dir
 ```
 
 
