@@ -13,12 +13,19 @@ import questionary
 # from itertools import islice
 
 import os
-from rich.console import Console
+import rich.console
+import numpy as np
+
 import sys
 
+from pathlib import Path
 from Bio import SeqIO
 
+
+import pdb
 log = logging.getLogger(__name__)
+
+
 
 
 def get_files_in_folder(folder, extension=None):
@@ -49,6 +56,11 @@ def file_exists(file_to_check):
     if os.path.isfile(file_to_check):
         return True
     return False
+
+def find_nearest_numpy_value(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
 
 def folder_exists(folder_to_check):
     """Checks if input folder exists
@@ -97,7 +109,7 @@ def query_user_yes_no(question, default):
             else:
                 return "no"
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no' " "(or 'y' or 'n').\n")
+            sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 def read_fasta_file(fasta_file):
     return SeqIO.parse(fasta_file, "fasta")
@@ -114,18 +126,34 @@ def rich_force_colors():
         return True
     return None
 
-def write_fasta_file(out_folder, seq_data, multiple_files=False, extension=True):
+
+def write_fasta_file(out_folder, seq_data, allele_name=None, f_name=None):
     try:
         os.makedirs(out_folder, exist_ok=True)
     except OSError as e:
         sys.exit(1)
     if isinstance(seq_data, dict):
         for key, seq in seq_data.items():
-            if extension:
-                f_name = os.path.join(out_folder, key + ".fasta")
-            else:
-                f_name = os.path.join(out_folder, key)
-            with open (f_name, "w") as fo:
+            if f_name is None:
+                # use the fasta name as file name
+                f_name = key + ".fasta"
+            f_path_name = os.path.join(out_folder, f_name)
+            with open (f_path_name, "w") as fo:
                 fo.write(">" + key + "\n")
                 fo.write(seq)
-        
+    else:
+        if f_name is None:
+            f_name = allele_name
+        f_path_name = os.path.join(out_folder, f_name)
+        with open (f_path_name, "w") as fo:
+            fo.write(">" + allele_name + "\n")
+            fo.write(seq_data)
+    return f_name
+
+
+stderr = rich.console.Console(
+    stderr=True,
+    style="dim",
+    highlight=False,
+    force_terminal=rich_force_colors(),
+)

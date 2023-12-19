@@ -1,14 +1,17 @@
 import logging
 
 import click
+import glob
 import os
 import rich.console
 import rich.logging
 import rich.traceback
 import sys
 
+import taranis.prediction
 import taranis.utils
 import taranis.reference_alleles
+import taranis.allele_calling
 
 log = logging.getLogger()
 
@@ -86,7 +89,7 @@ class CustomHelpOrder(click.Group):
     help="Print verbose output to the console.",
 )
 @click.option(
-    "-l", "--log-file", help="Save a verbose log to a file.", metavar="<filename>"
+    "-l", "--log-file", help="Save a verbose log to a file.", metavar="filename"
 )
 def taranis_cli(verbose, log_file):
     # Set the base logger to output DEBUG
@@ -111,6 +114,7 @@ def reference_alleles(
     schema,
     output,
 ):
+    # taranis reference-alleles -s ../../documentos_antiguos/datos_prueba/schema_1_locus/ -o ../../new_taranis_result_code
     # taranis reference-alleles -s ../../documentos_antiguos/datos_prueba/schema_test/ -o ../../new_taranis_result_code
     if not taranis.utils.folder_exists(schema):
         log.error("schema folder %s does not exists", schema)
@@ -141,3 +145,69 @@ def reference_alleles(
     for f_file in schema_files:
         ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output)
     _ = ref_alleles.create_ref_alleles()
+
+
+# Allele calling
+#  taranis -l ../../test/taranis.log  allele-calling -s ../../documentos_antiguos/datos_prueba/schema_test/ -r ../../documentos_antiguos/datos_prueba/reference_alleles/ -g ../../taranis_data/listeria_genoma_referencia/listeria.fasta -a ../../taranis_data/listeria_sampled/RA-L2073_R1.fasta -o ../../test/
+# taranis allele-calling -s ../../documentos_antiguos/datos_prueba/schema_test/ -r ../../documentos_antiguos/datos_prueba/reference_alleles/ -g ../../taranis_data/listeria_genoma_referencia/listeria.fasta -a ../../taranis_data/listeria_sampled/RA-L2073_R1.fasta -o ../../test/
+# taranis allele-calling -s ../../documentos_antiguos/datos_prueba/schema_test/ -r ../../documentos_antiguos/datos_prueba/reference_alleles/ -g ../../taranis_data/listeria_genoma_referencia/listeria.fasta -a ../../taranis_data/muestras_listeria_servicio_fasta/3789/assembly.fasta -o ../../test/
+
+@taranis_cli.command(help_priority=3)
+@click.option("-s", "--schema", required=True, multiple=False, type=click.Path(), help="Directory where the schema with the core gene files are located. ")
+@click.option("-r", "--reference", required=True, multiple=False, type=click.Path(), help="Directory where the schema reference allele files are located. ")
+@click.option("-g", "--genome", required=True, multiple=False, type=click.Path(), help="Genome reference file")
+@click.option("-a", "--sample", required=True, multiple=False, type=click.Path(), help="Sample location file in fasta format. ")
+@click.option("-o", "--output", required=True, multiple=False, type=click.Path(), help="Output folder to save reference alleles")
+def allele_calling(
+    schema,
+    reference,
+    genome,
+    sample,
+    output,
+):
+    folder_to_check = [schema, reference]
+    for folder in folder_to_check:
+        if not taranis.utils.folder_exists(folder):
+            log.error("folder %s does not exists", folder)
+            stderr.print(
+                "[red] Folder does not exist. " + folder + "!"
+            )
+            sys.exit(1)
+    if not taranis.utils.file_exists(sample):
+        log.error("file %s does not exists", sample)
+        stderr.print(
+            "[red] File does not exist. " + sample + "!"
+        )
+        sys.exit(1)
+    schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
+    if len(schema_files) == 0:
+        log.error("Schema folder %s does not have any fasta file", schema)
+        stderr.print("[red] Schema folder does not have any fasta file")
+        sys.exit(1)
+    
+    # Check if output folder exists
+    if taranis.utils.folder_exists(output):
+        q_question = "Folder " + output + " already exists. Files will be overwritten. Do you want to continue?"
+        if "no" in taranis.utils.query_user_yes_no(q_question, "no"):
+            log.info("Aborting code by user request")
+            stderr.print("[red] Exiting code. ")
+            sys.exit(1)
+    else:
+        try:
+            os.makedirs(output)
+        except OSError as e:
+            log.info("Unable to create folder at %s", output)
+            stderr.print("[red] ERROR. Unable to create folder  " + output)
+            sys.exit(1)
+    # Filter fasta files from reference folder
+    ref_alleles = glob.glob(os.path.join(reference, "*.fasta"))
+    # Create predictions
+    pred_out = os.path.join(output, "prediction" )
+    pred_sample = taranis.prediction.Prediction(genome, sample, pred_out)
+    pred_sample.training()
+    pred_sample.prediction()
+
+    """Analyze the sample file against schema to identify outbreakers
+    """
+    sample_allele = taranis.allele_calling.Sample(pred_sample, sample, schema, ref_alleles ,output)
+    sample_allele.analyze_sample()
