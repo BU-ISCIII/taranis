@@ -4,30 +4,86 @@ Common utility function used for relecov_tools package.
 """
 
 import glob
-# import hashlib
-import logging
-import questionary
-# import json
-# import openpyxl
-# import yaml
-# from itertools import islice
 
+import logging
+import numpy as np
+import questionary
 import os
 import rich.console
-import numpy as np
+import shutil
+import subprocess
+
 
 import sys
 
 from pathlib import Path
 from Bio import SeqIO
-
+from Bio.SeqRecord import SeqRecord
 
 import pdb
 log = logging.getLogger(__name__)
 
+def rich_force_colors():
+    """
+    Check if any environment variables are set to force Rich to use coloured output
+    """
+    if (
+        os.getenv("GITHUB_ACTIONS")
+        or os.getenv("FORCE_COLOR")
+        or os.getenv("PY_COLORS")
+    ):
+        return True
+    return None
+stderr = rich.console.Console(
+    stderr=True,
+    style="dim",
+    highlight=False,
+    force_terminal=rich_force_colors(),
+)
+
+START_CODON_FORWARD= ['ATG','ATA','ATT','GTG', 'TTG']
+start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
+
+STOP_CODON_FORWARD = ['TAA', 'TAG','TGA']
+stop_codon_reverse = ['TTA', 'CTA','TCA']
+
+def check_sequence_order(allele_sequence):
+    # check direction
+    if allele_sequence[0:3] in START_CODON_FORWARD or allele_sequence[-3:] in STOP_CODON_FORWARD:
+        return 'forward'
+    if allele_sequence[-3:] in start_codon_reverse or allele_sequence[0:3] in stop_codon_reverse:
+        return 'reverse'
+    return "Error"
+
+def create_annotation_files(fasta_file, annotation_dir, prefix, genus="Genus", species="species", usegenus=False):
+    try:
+        _ = subprocess.run (['prokka', fasta_file, '--force', annotation_dir, '--genus', genus, '--species', species, '--usegenus', str(usegenus), '--gcode', '11', '--prefix', prefix, '--quiet'])
+    except Exception as e:
+        log.error("Unable to run prokka. Error message: %s ", e )
+        stderr.print("[red] Unable to run prokka. Given error; " + e)
+        sys.exit(1)
+    # Check that prokka store files in the requested folder
+    # if prokka results are not found in the requested folder then move from the
+    # running directory to the right one
+    if not folder_exists(annotation_dir):
+        try:
+            shutil.move(prefix, annotation_dir)
+        except Exception as e:
+            log.error("Unable to move prokka result folder to %s ", e )
+            stderr.print("[red] Unable to move result prokka folder. Error; " + e)
+            sys.exit(1)
+    return os.path.join(annotation_dir, prefix)
 
 
-
+def create_new_folder(folder_name):
+    try:
+        os.makedirs(folder_name, exist_ok=True)
+    except Exception as e:
+        log.error("Folder %s can not be created %s", folder_name, e)
+        stderr.print("[red] Folder does not have any file which match your request")
+        sys.exit(1)
+    return
+    
 def get_files_in_folder(folder, extension=None):
     """get the list of files, filtered by extension in the input folder. If
     extension is not set, then all files in folder are returned
@@ -37,12 +93,22 @@ def get_files_in_folder(folder, extension=None):
         extension (string, optional): extension for filtering. Defaults to None.
     
     Returns:
-        list: list of files
+        list: list of files which match the condition
     """
+    if not folder_exists(folder):
+        log.error("Folder %s does not exists", folder)
+        stderr.print("[red] Schema folder does not exist. " + folder + "!")
+        sys.exit(1)
     if extension is None:
         extension = "*"
-    return glob.glob(folder + "*." + extension)
-
+    folder_files = os.path.join(folder , "*." + extension)
+    files_in_folder = glob.glob(folder_files)
+    if len(files_in_folder) == 0:
+        log.error("Folder %s does not have any file which the extension %s", folder, extension)
+        stderr.print("[red] Folder does not have any file which match your request")
+        sys.exit(1)
+    return files_in_folder
+    
 
 def file_exists(file_to_check):
     """Checks if input file exists
@@ -56,6 +122,18 @@ def file_exists(file_to_check):
     if os.path.isfile(file_to_check):
         return True
     return False
+
+def find_multiple_stop_codons(seq) :
+    stop_codons = ['TAA', 'TAG','TGA']
+    c_index = []
+    for idx in range (0, len(seq) -2, 3) :
+        c_seq = seq[idx : idx + 3]
+        if c_seq in stop_codons :
+            c_index.append(idx)
+    if len(c_index) == 1:
+        return False
+    return True
+
 
 def find_nearest_numpy_value(array, value):
     array = np.asarray(array)
@@ -111,21 +189,36 @@ def query_user_yes_no(question, default):
         else:
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
+def read_annotation_file(ann_file, allele_name, only_first_line=True):
+
+    """ example of annotation file
+    locus_tag	ftype	length_bp	gene	EC_number	COG	product
+    IEKBEMEO_00001	CDS	1344	yeeO_1		COG0534	putative FMN/FAD exporter YeeO
+    IEKBEMEO_00002	CDS	1344	yeeO_2		COG0534	putative FMN/FAD exporter YeeO
+
+    """
+    ann_data = {}
+    with open (ann_file, "r") as fh:
+        lines = fh.readlines()
+    heading = lines[0].split("\t")
+    locus_tag_idx = heading.index("locus_tag")
+    gene_idx = heading.index("gene")
+    if only_first_line:
+        first_line = lines[1].split("\t")
+        ann_data[allele_name] = first_line[gene_idx] if first_line[gene_idx] != "" else "Not found by Prokka'"
+    else:
+        # Return all annotation lines
+        for line in lines[1:]:
+            s_line = line.strip().split("\t")
+            allele_key = allele_name + "_" + s_line[locus_tag_idx].split("_")[1]
+            ann_data[allele_key] = s_line[gene_idx] if s_line[gene_idx] != "" else "Not found by Prokka'"
+    return ann_data
+
+
+
 def read_fasta_file(fasta_file):
     return SeqIO.parse(fasta_file, "fasta")
     
-def rich_force_colors():
-    """
-    Check if any environment variables are set to force Rich to use coloured output
-    """
-    if (
-        os.getenv("GITHUB_ACTIONS")
-        or os.getenv("FORCE_COLOR")
-        or os.getenv("PY_COLORS")
-    ):
-        return True
-    return None
-
 
 def write_fasta_file(out_folder, seq_data, allele_name=None, f_name=None):
     try:
@@ -151,9 +244,4 @@ def write_fasta_file(out_folder, seq_data, allele_name=None, f_name=None):
     return f_name
 
 
-stderr = rich.console.Console(
-    stderr=True,
-    style="dim",
-    highlight=False,
-    force_terminal=rich_force_colors(),
-)
+
