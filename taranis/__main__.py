@@ -129,6 +129,7 @@ def taranis_cli(verbose, log_file):
 # testing data for analyze schema
 # taranis analyze-schema -i /media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/analyze_schema
 
+
 @taranis_cli.command(help_priority=1)
 @click.option(
     "-i",
@@ -193,8 +194,7 @@ def analyze_schema(
     usegenus,
 ):
     schema_files = taranis.utils.get_files_in_folder(inputdir, "fasta")
-    
-    
+
     """
     schema_analyze = {}
     for schema_file in schema_files:
@@ -205,7 +205,20 @@ def analyze_schema(
     # for schema_file in schema_files:
     results = []
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = [executor.submit(taranis.analyze_schema.prueba_paralelizacion, schema_file, output, remove_subset, remove_duplicated, remove_no_cds, genus, species, usegenus) for schema_file in schema_files]
+        futures = [
+            executor.submit(
+                taranis.analyze_schema.prueba_paralelizacion,
+                schema_file,
+                output,
+                remove_subset,
+                remove_duplicated,
+                remove_no_cds,
+                genus,
+                species,
+                usegenus,
+            )
+            for schema_file in schema_files
+        ]
         # Collect results as they complete
         for future in concurrent.futures.as_completed(futures):
             results.append(future.result())
