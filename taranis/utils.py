@@ -9,6 +9,7 @@ import logging
 import numpy as np
 import questionary
 import os
+import plotly.graph_objects as go
 import rich.console
 import shutil
 import subprocess
@@ -47,6 +48,8 @@ start_codon_reverse= ['CAT', 'TAT','AAT','CAC','CAA']
 STOP_CODON_FORWARD = ['TAA', 'TAG','TGA']
 stop_codon_reverse = ['TTA', 'CTA','TCA']
 
+POSIBLE_BAD_QUALITY = ["Can not be converted to protein", "Start codon not found", "Stop codon not found", "Multiple stop codons found" ,"Duplicate allele", "Sub set allele"]
+
 def check_sequence_order(allele_sequence):
     # check direction
     if allele_sequence[0:3] in START_CODON_FORWARD or allele_sequence[-3:] in STOP_CODON_FORWARD:
@@ -57,7 +60,7 @@ def check_sequence_order(allele_sequence):
 
 def create_annotation_files(fasta_file, annotation_dir, prefix, genus="Genus", species="species", usegenus=False):
     try:
-        _ = subprocess.run (['prokka', fasta_file, '--force', annotation_dir, '--genus', genus, '--species', species, '--usegenus', str(usegenus), '--gcode', '11', '--prefix', prefix, '--quiet'])
+        _ = subprocess.run (['prokka', fasta_file, '--force', '--outdir', annotation_dir, '--genus', genus, '--species', species, '--usegenus', str(usegenus), '--gcode', '11', '--prefix', prefix, '--quiet'])
     except Exception as e:
         log.error("Unable to run prokka. Error message: %s ", e )
         stderr.print("[red] Unable to run prokka. Given error; " + e)
@@ -83,7 +86,19 @@ def create_new_folder(folder_name):
         stderr.print("[red] Folder does not have any file which match your request")
         sys.exit(1)
     return
-    
+
+
+def  create_graphic(out_folder, f_name, mode, x_data, y_data, labels, title ):
+    fig = go.Figure()
+    # pdb.set_trace()
+    if mode == "lines":
+        fig.add_trace(go.Scatter(x=x_data, y=y_data, mode=mode, name=title))
+    elif mode == "pie":
+        fig.add_trace(go.Pie(labels=labels, values=x_data))
+        fig.update_layout(title_text= title)
+    fig.write_image(os.path.join(out_folder, f_name))
+
+
 def get_files_in_folder(folder, extension=None):
     """get the list of files, filtered by extension in the input folder. If
     extension is not set, then all files in folder are returned
@@ -205,13 +220,13 @@ def read_annotation_file(ann_file, allele_name, only_first_line=True):
     gene_idx = heading.index("gene")
     if only_first_line:
         first_line = lines[1].split("\t")
-        ann_data[allele_name] = first_line[gene_idx] if first_line[gene_idx] != "" else "Not found by Prokka'"
+        ann_data[allele_name] = first_line[gene_idx] if first_line[gene_idx] != "" else "Not found by Prokka"
     else:
         # Return all annotation lines
         for line in lines[1:]:
             s_line = line.strip().split("\t")
             allele_key = allele_name + "_" + s_line[locus_tag_idx].split("_")[1]
-            ann_data[allele_key] = s_line[gene_idx] if s_line[gene_idx] != "" else "Not found by Prokka'"
+            ann_data[allele_key] = s_line[gene_idx] if s_line[gene_idx] != "" else "Not found by Prokka"
     return ann_data
 
 
@@ -243,5 +258,10 @@ def write_fasta_file(out_folder, seq_data, allele_name=None, f_name=None):
             fo.write(seq_data)
     return f_name
 
+def write_data_to_file(out_folder, f_name, data, include_header=True, data_type="pandas", extension="csv"):
+    f_path_name = os.path.join(out_folder,f_name)
+    if data_type == "pandas":
+        data.to_csv(f_path_name, sep=",",header=include_header)
+        return
 
 

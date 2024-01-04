@@ -7,6 +7,15 @@ import taranis.utils
 import pdb
 import random
 
+"""
+    Para hacer las pruebas con alfaclust activo el entorno de conda alfatclust_env
+    despues me voy a la carpeta donde me he descargado, de git, alfatclust y 
+    ejecuto :
+     ./alfatclust.py -i /media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema/lmo0003.fasta  -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/alfacluster_test/resultado_alfaclust_lmo003  -l 0.9 
+    despues ejecuto este programa de prueba cambiando los ficheros de resultados 
+    
+"""
+
 # read result of alfatclust
 
 alfa_clust_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/test/resultado_alfatclust-090"
@@ -16,7 +25,7 @@ alleles_found = False
 locus_list = []
 for line in lines:
     line = line.strip()
-    if line == "#Cluster 9" :
+    if line == "#Cluster 5" :
         if alleles_found == False:
             alleles_found = True
             continue

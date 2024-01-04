@@ -8,6 +8,7 @@ import rich.console
 import rich.logging
 import rich.traceback
 import sys
+import time
 
 import taranis.prediction
 import taranis.utils
@@ -204,10 +205,11 @@ def analyze_schema(
     """
     # for schema_file in schema_files:
     results = []
+    start = time.perf_counter()
     with concurrent.futures.ProcessPoolExecutor() as executor:
         futures = [
             executor.submit(
-                taranis.analyze_schema.prueba_paralelizacion,
+                taranis.analyze_schema.parallel_execution,
                 schema_file,
                 output,
                 remove_subset,
@@ -222,8 +224,9 @@ def analyze_schema(
         # Collect results as they complete
         for future in concurrent.futures.as_completed(futures):
             results.append(future.result())
-    _ = taranis.analyze_schema.collect_statistics(results)
-
+    _ = taranis.analyze_schema.collect_statistics(results, output)
+    finish = time.perf_counter()
+    print(f"Schema analyze finish in {round((finish-start)/60, 2)} minutes")
 
 # Reference alleles
 @taranis_cli.command(help_priority=2)

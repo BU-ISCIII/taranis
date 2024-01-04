@@ -2,3 +2,4 @@ click
 questionary
 bio
 scikit-learn
+plotly

@@ -56,30 +56,27 @@ class AnalyzeSchema:
                     a_quality[record.id]["quality"] = "Bad quality"
                     a_quality[record.id]["reason"] = "Can not be converted to protein"
                     a_quality[record.id]["order"] = "-"
-                    continue
-                sequence_order = taranis.utils.check_sequence_order(str(record.seq))
-                if sequence_order == "Error":
-                    a_quality[record.id]["quality"] = "Bad quality"
-                    a_quality[record.id]["reason"] = "Start or end codon not found"
-                    a_quality[record.id]["order"] = "-"
-                    continue
-                elif sequence_order == "reverse":
-                    record_sequence = str(record.seq.reverse_complement())
                 else:
-                    record_sequence = str(record.seq)
-                a_quality[record.id]["order"] = sequence_order
-                if record_sequence[0:3] not in taranis.utils.START_CODON_FORWARD:
-                    a_quality[record.id]["quality"] = "Bad quality"
-                    a_quality[record.id]["reason"] = "Start codon not found"
-                    continue
-                if record_sequence[-3:] not in taranis.utils.STOP_CODON_FORWARD:
-                    a_quality[record.id]["quality"] = "Bad quality"
-                    a_quality[record.id]["reason"] = "Stop codon not found"
-                    continue
-                if taranis.utils.find_multiple_stop_codons(record_sequence):
-                    a_quality[record.id]["quality"] = "Bad quality"
-                    a_quality[record.id]["reason"] = "Multiple stop codons found"
-                    continue
+                    sequence_order = taranis.utils.check_sequence_order(str(record.seq))
+                    if sequence_order == "Error":
+                        a_quality[record.id]["quality"] = "Bad quality"
+                        a_quality[record.id]["reason"] = "Start or end codon not found"
+                        a_quality[record.id]["order"] = "-"
+                    elif sequence_order == "reverse":
+                        record_sequence = str(record.seq.reverse_complement())
+                    else:
+                        record_sequence = str(record.seq)
+                    a_quality[record.id]["order"] = sequence_order
+                    if record_sequence[0:3] not in taranis.utils.START_CODON_FORWARD:
+                        a_quality[record.id]["quality"] = "Bad quality"
+                        a_quality[record.id]["reason"] = "Start codon not found"
+                    elif record_sequence[-3:] not in taranis.utils.STOP_CODON_FORWARD:
+                        a_quality[record.id]["quality"] = "Bad quality"
+                        a_quality[record.id]["reason"] = "Stop codon not found"
+                    
+                    elif taranis.utils.find_multiple_stop_codons(record_sequence):
+                        a_quality[record.id]["quality"] = "Bad quality"
+                        a_quality[record.id]["reason"] = "Multiple stop codons found"
                 if (
                     self.remove_no_cds
                     and a_quality[record.id]["quality"] == "Bad quality"
@@ -96,12 +93,16 @@ class AnalyzeSchema:
                         tmp_dict[seq_value] = 0
                     else:
                         bad_quality_record.append(rec_id)
+                        a_quality[rec_id]["quality"] ="Bad quality"
+                        a_quality[rec_id]["reason"] ="Duplicate allele"
         if self.remove_subset:
             unique_seq = list(set(list(allele_seq.values())))
             for rec_id, seq_value in allele_seq.items():
                 unique_seq.remove(seq_value)
                 if seq_value in unique_seq:
                     bad_quality_record.append(rec_id)
+                    a_quality[rec_id]["quality"] ="Bad quality"
+                    a_quality[rec_id]["reason"] ="Sub set allele"
         new_schema_folder = os.path.join(self.output, "new_schema")
         _ = taranis.utils.create_new_folder(new_schema_folder)
         new_schema_file = os.path.join(new_schema_folder, self.allele_name + ".fasta")
@@ -118,6 +119,7 @@ class AnalyzeSchema:
         return a_quality
 
     def fetch_statistics_from_alleles(self, a_quality):
+        possible_bad_quality = ["Can not be converted to protein", "Start codon not found", "Stop codon not found", "Multiple stop codons found" ,"Duplicate allele", "Sub set allele"]
         record_data = {}
         bad_quality_reason = {}
         a_length = []
@@ -138,6 +140,9 @@ class AnalyzeSchema:
         record_data["good_percent"] = round(
             100 * (total_alleles - bad_quality_counter) / total_alleles, 2
         )
+        for item in possible_bad_quality:
+            record_data[item] =  bad_quality_reason[item] if item in bad_quality_reason else 0
+        # record_data["bad_quality_reason"] = bad_quality_reason
         return record_data
 
     def analyze_allele_in_schema(self):
@@ -156,7 +161,7 @@ class AnalyzeSchema:
         return allele_data
 
 
-def prueba_paralelizacion(
+def parallel_execution(
     schema_allele,
     output,
     remove_subset,
@@ -179,6 +184,43 @@ def prueba_paralelizacion(
     return schema_obj.analyze_allele_in_schema()
 
 
-def collect_statistics(stat_data):
+
+def collect_statistics(stat_data, out_folder):
+    def stats_graphics(stats_folder):
+        print(out_folder)
+        graphic_folder = os.path.join(stats_folder, "graphics")
+        _ = taranis.utils.create_new_folder(graphic_folder)
+        # create graphic for alleles/number of genes
+        genes_alleles_df = stats_df["num_alleles"].value_counts().rename_axis("alleles").sort_index().reset_index(name="genes")
+        _ = taranis.utils.create_graphic(graphic_folder, "num_genes_per_allele.png", "lines", genes_alleles_df["alleles"].to_list(), genes_alleles_df["genes"].to_list(), ["Allele", "number of genes"],"title")
+        # create pie graph for good quality
+        
+        good_percent = [round(stats_df["good_percent"].mean(),2)]
+        good_percent.append(100 - good_percent[0])
+        labels = ["Good quality", "Bad quality"]
+        # pdb.set_trace()
+        _ = taranis.utils.create_graphic(graphic_folder, "quality_of_locus.png", "pie", good_percent, "", labels, "Quality of locus")
+        # create pie graph for bad quality reason. This is optional if there are
+        # bad quality alleles
+        labels = []
+        values = []
+        for item in taranis.utils.POSIBLE_BAD_QUALITY:
+            labels.append(item)
+            values.append(stats_df[item].sum())
+        if sum(values) > 0:
+             _ = taranis.utils.create_graphic(graphic_folder, "bad_quality_reason.png", "pie", values, "", labels, "Bad quality reason")
+        # create pie graph for not found gene name
+        # pdb.set_trace()
+        times_not_found_gene = len(stats_df[stats_df["annotation_gene"] == "Not found by Prokka"])
+        if times_not_found_gene > 0:
+            gene_not_found = [times_not_found_gene, len(stat_data)]
+            labels = ["Not found gene name", "Number of alleles"]
+            _ = taranis.utils.create_graphic(graphic_folder, "gene_not_found.png", "pie", gene_not_found, "", labels, "Quality of locus")
+    
     stats_df = pd.DataFrame(stat_data)
+    stats_folder = os.path.join(out_folder, "statistics")
+    _ = taranis.utils.create_new_folder(stats_folder)
+    _ = taranis.utils.write_data_to_file(stats_folder, "statistics.csv", stats_df)
+    stats_graphics(stats_folder)
+
     print(stats_df)
