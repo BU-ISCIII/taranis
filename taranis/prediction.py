@@ -15,7 +15,7 @@ stderr = rich.console.Console(
 )
 
 
-class Prediction():
+class Prediction:
     def __init__(self, genome_ref, sample_file, out_dir):
         self.genome_ref = genome_ref
         self.sample_file = sample_file
@@ -33,31 +33,52 @@ class Prediction():
             except OSError as e:
                 log.error("Cannot create %s directory", self.out_dir)
                 log.error(e)
-                stderr.print (f"[red] Unable to create {self.out_dir} folder")
+                stderr.print(f"[red] Unable to create {self.out_dir} folder")
                 exit(1)
 
     def training(self):
-        prodigal_command = ["prodigal" , "-i", self.genome_ref, "-t", self.train]
+        prodigal_command = ["prodigal", "-i", self.genome_ref, "-t", self.train]
         try:
-            _ = subprocess.run(prodigal_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            _ = subprocess.run(
+                prodigal_command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
         except Exception as e:
             log.error("Unable to execute prodigal command for training")
             log.error(e)
-            stderr.print (f"[red] Unable to run prodigal commmand. ERROR {e} ")
+            stderr.print(f"[red] Unable to run prodigal commmand. ERROR {e} ")
             exit(1)
         return
 
-
-
     def prediction(self):
-        
-        prodigal_command = ["prodigal" , "-i", self.sample_file , "-t", self.train, "-f", "gff", "-o", self.pred_coord, "-a", self.pred_protein, "-d", self.pred_gene]
+        prodigal_command = [
+            "prodigal",
+            "-i",
+            self.sample_file,
+            "-t",
+            self.train,
+            "-f",
+            "gff",
+            "-o",
+            self.pred_coord,
+            "-a",
+            self.pred_protein,
+            "-d",
+            self.pred_gene,
+        ]
         try:
-            _ = subprocess.run(prodigal_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            _ = subprocess.run(
+                prodigal_command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
         except Exception as e:
             log.error("Unable to execute prodigal command for training")
             log.error(e)
-            stderr.print (f"[red] Unable to run prodigal commmand. ERROR {e} ")
+            stderr.print(f"[red] Unable to run prodigal commmand. ERROR {e} ")
             exit(1)
         return
 

@@ -25,7 +25,7 @@ alleles_found = False
 locus_list = []
 for line in lines:
     line = line.strip()
-    if line == "#Cluster 5" :
+    if line == "#Cluster 5":
         if alleles_found == False:
             alleles_found = True
             continue
@@ -37,7 +37,9 @@ for line in lines:
 # import pdb; pdb.set_trace()
 rand_locus = random.choice(locus_list)
 schema_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema/lmo0002.fasta"
-new_schema_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/test/cluster_lmo0002.fasta"
+new_schema_file = (
+    "/media/lchapado/Reference_data/proyectos_isciii/taranis/test/cluster_lmo0002.fasta"
+)
 q_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/test/q_file.fasta"
 with open(schema_file) as fh:
     with open(new_schema_file, "w") as fo:
@@ -52,15 +54,39 @@ with open(new_schema_file) as fh:
             if record.id == rand_locus:
                 SeqIO.write(record, fo, "fasta")
                 break
-print ("Selected locus: " , rand_locus)
-db_name ="/media/lchapado/Reference_data/proyectos_isciii/taranis/test/testing_clster/lmo0002"
-blast_command = ['makeblastdb' , '-in' , new_schema_file , '-parse_seqids', '-dbtype',  "nucl", '-out' , db_name]
-blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+print("Selected locus: ", rand_locus)
+db_name = "/media/lchapado/Reference_data/proyectos_isciii/taranis/test/testing_clster/lmo0002"
+blast_command = [
+    "makeblastdb",
+    "-in",
+    new_schema_file,
+    "-parse_seqids",
+    "-dbtype",
+    "nucl",
+    "-out",
+    db_name,
+]
+blast_result = subprocess.run(
+    blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+)
 
 blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
 # pdb.set_trace()
-#db=self.blast_dir, evalue=evalue, perc_identity=perc_identity_ref, reward=reward, penalty=penalty, gapopen=gapopen, gapextend=gapextend, outfmt=blast_parameters, max_target_seqs=max_target_seqs, max_hsps=max_hsps, num_threads=num_threads, query=core_reference_allele_path)
-cline = NcbiblastnCommandline(db=db_name, evalue=0.001, perc_identity=90, reward=1, penalty=-2, gapopen=1, gapextend=1, outfmt=blast_parameters, max_target_seqs=1100, max_hsps=1000, num_threads=4, query=q_file)
+# db=self.blast_dir, evalue=evalue, perc_identity=perc_identity_ref, reward=reward, penalty=penalty, gapopen=gapopen, gapextend=gapextend, outfmt=blast_parameters, max_target_seqs=max_target_seqs, max_hsps=max_hsps, num_threads=num_threads, query=core_reference_allele_path)
+cline = NcbiblastnCommandline(
+    db=db_name,
+    evalue=0.001,
+    perc_identity=90,
+    reward=1,
+    penalty=-2,
+    gapopen=1,
+    gapextend=1,
+    outfmt=blast_parameters,
+    max_target_seqs=1100,
+    max_hsps=1000,
+    num_threads=4,
+    query=q_file,
+)
 
 try:
     out, _ = cline()

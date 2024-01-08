@@ -52,7 +52,7 @@ def run_taranis():
     )
 
     # stderr.print("[green]                                          `._,._,'\n", highlight=False)
-    __version__ = "2.1.0"
+    __version__ = "3.0.0"
     stderr.print(
         "\n" "[grey39]    Taranis version {}".format(__version__), highlight=False
     )
@@ -167,6 +167,12 @@ def taranis_cli(verbose, log_file):
     help="Remove no CDS alleles from the schema.",
 )
 @click.option(
+    "--output-allele-annot/--no-output-allele-annot",
+    required=False,
+    default=True,
+    help="get extension annotation for all alleles in locus",
+)
+@click.option(
     "--genus",
     required=False,
     default="Genus",
@@ -184,29 +190,41 @@ def taranis_cli(verbose, log_file):
     default="Genus",
     help="Use genus-specific BLAST databases for Prokka schema genes annotation (needs --genus). Default is False.",
 )
+@click.option(
+    "--cpus",
+    required=False,
+    multiple=False,
+    type=int,
+    default=1,
+    help="Number of cpus used for execution",
+)
 def analyze_schema(
     inputdir,
     output,
     remove_subset,
     remove_duplicated,
     remove_no_cds,
+    output_allele_annot,
     genus,
     species,
     usegenus,
+    cpus,
 ):
     schema_files = taranis.utils.get_files_in_folder(inputdir, "fasta")
 
     """
-    schema_analyze = {}
+    schema_analyze = []
     for schema_file in schema_files:
         schema_obj = taranis.analyze_schema.AnalyzeSchema(schema_file, output, remove_subset, remove_duplicated, remove_no_cds, genus, species, usegenus)
-        schema_analyze.update(schema_obj.analyze_allele_in_schema())
-    
-    """
+        schema_analyze.append(schema_obj.analyze_allele_in_schema())
+    import pdb; pdb.set_trace()
+    _ = taranis.analyze_schema.collect_statistics(schema_analyze, output, output_allele_annot)
+    sys.exit(0)
     # for schema_file in schema_files:
+    """
     results = []
     start = time.perf_counter()
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=cpus) as executor:
         futures = [
             executor.submit(
                 taranis.analyze_schema.parallel_execution,
@@ -224,9 +242,10 @@ def analyze_schema(
         # Collect results as they complete
         for future in concurrent.futures.as_completed(futures):
             results.append(future.result())
-    _ = taranis.analyze_schema.collect_statistics(results, output)
+    _ = taranis.analyze_schema.collect_statistics(results, output, output_allele_annot)
     finish = time.perf_counter()
     print(f"Schema analyze finish in {round((finish-start)/60, 2)} minutes")
+
 
 # Reference alleles
 @taranis_cli.command(help_priority=2)
