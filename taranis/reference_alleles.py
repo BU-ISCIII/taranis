@@ -3,7 +3,7 @@ import numpy as np
 import os
 import re
 import rich.console
-import sys
+# import sys
 import subprocess
 
 # from Bio import SeqIO
@@ -77,17 +77,18 @@ class ReferenceAlleles:
         mash_folder = os.path.join(self.output, "mash")
         # _ = taranis.utils.write_fasta_file(mash_folder, self.selected_locus, multiple_files=True, extension=False)
         # save directory to return after mash
-        working_dir = os.getcwd()
+        # working_dir = os.getcwd()
         os.chdir(mash_folder)
         # run mash sketch command
         sketch_file = "reference.msh"
         mash_sketch_command = ["mash", "sketch", "-i", "-o", sketch_file, f_name]
         # mash sketch -i -o prueba.msh lmo0003.fasta
         # mash_sketch_command += list(self.selected_locus.keys())
-
+        """
         mash_sketch_result = subprocess.run(
             mash_sketch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
+        """
         # Get pairwise allele sequences mash distances
         # mash_distance_command = ["mash", "dist", sketch_path, sketch_path]
         mash_distance_command = ["mash", "triangle", "-i", "reference.msh"]
@@ -128,7 +129,7 @@ class ReferenceAlleles:
         clusters = clusterer.fit_predict(matrix_np)
         # clustering = AgglomerativeClustering(affinity="precomputed").fit(matrix_np)
         mean_distance = np.mean(matrix_np, 0)
-        std = np.std(matrix_np)
+        # std = np.std(matrix_np)
         min_mean = min(mean_distance)
         mean_all_alleles = np.mean(mean_distance)
         max_mean = max(mean_distance)
@@ -185,12 +186,12 @@ class ReferenceAlleles:
         # saca una lista de cuantas veces se repite un valor
         np.bincount(clusters)
         blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
-        from Bio.Blast.Applications import NcbiblastnCommandline
+
 
         # Create local BLAST database for all alleles in the locus
         db_name = "/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/blast/locus_db"
         # db_name = os.path.join("blast", 'locus_blastdb')
-        fasta_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/documentos_antiguos/datos_prueba/schema_1_locus/lmo0002.fasta"
+        # fasta_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/documentos_antiguos/datos_prueba/schema_1_locus/lmo0002.fasta"
         # pdb.set_trace()
         # blast_command = ['makeblastdb' , '-in' , fasta_file , '-parse_seqids', '-dbtype',  "nucl", '-out' , db_name]
         # blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
