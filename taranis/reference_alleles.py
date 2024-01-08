@@ -84,11 +84,9 @@ class ReferenceAlleles:
         mash_sketch_command = ["mash", "sketch", "-i", "-o", sketch_file, f_name]
         # mash sketch -i -o prueba.msh lmo0003.fasta
         # mash_sketch_command += list(self.selected_locus.keys())
-        
         _ = subprocess.run(
             mash_sketch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        
         # Get pairwise allele sequences mash distances
         # mash_distance_command = ["mash", "dist", sketch_path, sketch_path]
         mash_distance_command = ["mash", "triangle", "-i", "reference.msh"]
@@ -186,7 +184,6 @@ class ReferenceAlleles:
         # saca una lista de cuantas veces se repite un valor
         np.bincount(clusters)
         blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
-
 
         # Create local BLAST database for all alleles in the locus
         db_name = "/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/blast/locus_db"
@@ -328,7 +325,7 @@ class ReferenceAlleles:
             num_threads=4,
             query=outlier2_file,
         )
-        out, err = cline()
+        out, _ = cline()
         outlier2_lines = out.splitlines()
         outlier2_alleles = []
         for outlier2_line in outlier2_lines:
@@ -360,7 +357,7 @@ class ReferenceAlleles:
             num_threads=4,
             query=outlier3_file,
         )
-        out, err = cline()
+        out, _ = cline()
         outlier3_lines = out.splitlines()
         outlier3_alleles = []
         for outlier3_line in outlier3_lines:

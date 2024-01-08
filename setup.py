@@ -28,9 +28,7 @@ setup(
     author_email="smonzon@isciii.es",
     url="https://github.com/BU-ISCIII/taranis",
     license="GNU GENERAL PUBLIC LICENSE v.3",
-    entry_points={
-        "console_scripts": ["taranis=taranis.__main__:run_taranis"]
-    },
+    entry_points={"console_scripts": ["taranis=taranis.__main__:run_taranis"]},
     install_requires=required,
     packages=find_packages(exclude=("docs")),
     include_package_data=True,

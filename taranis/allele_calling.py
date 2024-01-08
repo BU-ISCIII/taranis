@@ -101,7 +101,7 @@ class AlleleCalling:
             # sel_row = np_lines[mask, :] = np_lines[mask, :]
             # query_seq = sel_row[0,14]
             sample_contig = sel_max["sseqid"]
-            abbr = self.assign_allele_type(
+            _ = self.assign_allele_type(
                 query_seq, allele_name, sample_contig, schema_gene
             )
         else:
