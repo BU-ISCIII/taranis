@@ -12,7 +12,7 @@ import os
 import plotly.graph_objects as go
 import re
 import rich.console
-import shutil
+
 import subprocess
 import tarfile
 
@@ -20,12 +20,8 @@ import sys
 
 from pathlib import Path
 from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
-
-import pdb
 
 log = logging.getLogger(__name__)
-
 
 def rich_force_colors():
     """
@@ -38,7 +34,6 @@ def rich_force_colors():
     ):
         return True
     return None
-
 
 stderr = rich.console.Console(
     stderr=True,
