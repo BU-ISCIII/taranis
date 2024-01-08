@@ -47,7 +47,7 @@ class Blast:
             log.error("Unable to create blast db for %s ", self.f_name)
             log.error(e)
             stderr.print(
-                f"[red] Unable to create blast database for sample %s", self.f_name
+                f"[red] Unable to create blast database for sample {self.f_name}"
             )
             exit(1)
         return
@@ -103,7 +103,7 @@ class Blast:
             log.error("Unable to run blast for %s ", self.out_blast_dir)
             log.error(e)
             stderr.print(
-                f"[red] Unable to run blast for database %s", self.out_blast_dir
+                f"[red] Unable to run blast for database {self.out_blast_dir}"
             )
             exit(1)
         return out.splitlines()

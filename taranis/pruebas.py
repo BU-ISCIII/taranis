@@ -13,7 +13,7 @@ import random
     ejecuto :
      ./alfatclust.py -i /media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema/lmo0003.fasta  -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/alfacluster_test/resultado_alfaclust_lmo003  -l 0.9
     despues ejecuto este programa de prueba cambiando los ficheros de resultados
-    
+
 """
 
 # read result of alfatclust
@@ -91,6 +91,7 @@ cline = NcbiblastnCommandline(
 try:
     out, _ = cline()
 except Exception as e:
+    print(e)
     pdb.set_trace()
 b_lines = out.splitlines()
 print("longitud del cluster = ", len(locus_list))

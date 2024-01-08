@@ -13,7 +13,6 @@ from collections import OrderedDict
 
 import taranis.utils
 
-import pdb
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
@@ -54,7 +53,7 @@ class AnalyzeSchema:
             for record in SeqIO.parse(self.schema_allele, "fasta"):
                 try:
                     prokka_ann = prokka_annotation[record.id]
-                except:
+                except Exception:
                     prokka_ann = "Not found in prokka"
                 a_quality[record.id] = {
                     "allele_name": self.allele_name,
@@ -132,7 +131,7 @@ class AnalyzeSchema:
         new_schema_folder = os.path.join(self.output, "new_schema")
         _ = taranis.utils.create_new_folder(new_schema_folder)
         new_schema_file = os.path.join(new_schema_folder, self.allele_name + ".fasta")
-        with open(self.schema_allele, "r") as fh:
+        with open(self.schema_allele, "r") as _:
             with open(new_schema_file, "w") as fo:
                 for record in SeqIO.parse(self.schema_allele, "fasta"):
                     if len(bad_quality_record) > 0:
@@ -145,7 +144,7 @@ class AnalyzeSchema:
 
         """
         if self.output_allele_annot:
-            # dump allele annotation to file 
+            # dump allele annotation to file
             ann_heading = ["gene", "allele", "allele direction","nucleotide sequence", "protein sequence", "nucleotide sequence length", "star codon", "CDS coding", "allele quality", "bad quality reason" ]
             ann_fields = ["direction", "dna_seq", "protein_seq", "length", "start_codon_alt","cds_coding", "quality", "reason"]
             f_name = os.path.join(self.output, self.allele_name +"_allele_annotation.csv")
