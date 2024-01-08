@@ -49,7 +49,7 @@ class AnalyzeSchema:
         a_quality = OrderedDict()
         allele_seq = {}
         bad_quality_record = []
-        with open(self.schema_allele) as fh:
+        with open(self.schema_allele) as _:
             for record in SeqIO.parse(self.schema_allele, "fasta"):
                 try:
                     prokka_ann = prokka_annotation[record.id]

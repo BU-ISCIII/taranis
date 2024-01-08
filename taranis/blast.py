@@ -46,9 +46,7 @@ class Blast:
         except Exception as e:
             log.error("Unable to create blast db for %s ", self.f_name)
             log.error(e)
-            stderr.print(
-                f"[red] Unable to create blast database for sample {self.f_name}"
-            )
+            stderr.print(f"[red] Unable to create blast database for sample {self.f_name}")
             exit(1)
         return
 

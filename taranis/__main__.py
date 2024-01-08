@@ -287,7 +287,7 @@ def reference_alleles(
         try:
             os.makedirs(output)
         except OSError as e:
-            log.info("Unable to create folder at %s", output)
+            log.info("Unable to create folder at %s with error %s", output, e)
             stderr.print("[red] ERROR. Unable to create folder  " + output)
             sys.exit(1)
     """Create the reference alleles from the schema """

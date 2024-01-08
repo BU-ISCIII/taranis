@@ -3,6 +3,7 @@
 from Bio import SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline
 import subprocess
+
 # import taranis.utils
 import pdb
 import random
