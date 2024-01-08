@@ -23,6 +23,7 @@ from Bio import SeqIO
 
 log = logging.getLogger(__name__)
 
+
 def rich_force_colors():
     """
     Check if any environment variables are set to force Rich to use coloured output
@@ -34,6 +35,7 @@ def rich_force_colors():
     ):
         return True
     return None
+
 
 stderr = rich.console.Console(
     stderr=True,
@@ -273,6 +275,7 @@ def write_fasta_file(out_folder, seq_data, allele_name=None, f_name=None):
     try:
         os.makedirs(out_folder, exist_ok=True)
     except OSError as e:
+        print(e)
         sys.exit(1)
     if isinstance(seq_data, dict):
         for key, seq in seq_data.items():

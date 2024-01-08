@@ -84,11 +84,11 @@ class ReferenceAlleles:
         mash_sketch_command = ["mash", "sketch", "-i", "-o", sketch_file, f_name]
         # mash sketch -i -o prueba.msh lmo0003.fasta
         # mash_sketch_command += list(self.selected_locus.keys())
-        """
-        mash_sketch_result = subprocess.run(
+        
+        _ = subprocess.run(
             mash_sketch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        """
+        
         # Get pairwise allele sequences mash distances
         # mash_distance_command = ["mash", "dist", sketch_path, sketch_path]
         mash_distance_command = ["mash", "triangle", "-i", "reference.msh"]
