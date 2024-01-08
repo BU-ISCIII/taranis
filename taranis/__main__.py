@@ -381,7 +381,7 @@ def allele_calling(
         try:
             os.makedirs(output)
         except OSError as e:
-            log.info("Unable to create folder at %s", output)
+            log.info("Unable to create folder at %s because %s" , output, e)
             stderr.print("[red] ERROR. Unable to create folder  " + output)
             sys.exit(1)
     # Filter fasta files from reference folder
