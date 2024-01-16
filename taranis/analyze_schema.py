@@ -10,6 +10,7 @@ from Bio import SeqIO
 
 # from Bio.SeqRecord import SeqRecord
 from collections import OrderedDict
+from typing import Self
 
 import taranis.utils
 
@@ -25,16 +26,32 @@ stderr = rich.console.Console(
 
 class AnalyzeSchema:
     def __init__(
-        self,
-        schema_allele,
-        output,
-        remove_subset,
-        remove_duplicated,
-        remove_no_cds,
-        genus,
-        species,
-        usegenus,
-    ):
+        self: Self,
+        schema_allele: str,
+        output: str,
+        remove_subset: bool,
+        remove_duplicated: bool,
+        remove_no_cds: bool,
+        genus: str,
+        species: str,
+        usegenus: str,
+    ) -> "AnalyzeSchema":
+        """AnalyzeSchema instance creation
+
+        Args:
+            self (Self): Self
+            schema_allele (str): Folder path where schema files are located
+            output (str): Out folder to save result
+            remove_subset (bool): Remove subset sequences if True
+            remove_duplicated (bool): Remove duplicated sequences if True
+            remove_no_cds (bool): Removing non coding sequences if True
+            genus (str): Genus name for Prokka schema genes annotation
+            species (str): Species name for Prokka schema genes annotation
+            usegenus (str): genus-specific BLAST databases for Prokka
+
+        Returns:
+            AnalyzeSchema: Instance of the created class
+        """
         self.schema_allele = schema_allele
         self.allele_name = Path(self.schema_allele).stem
         self.output = output
@@ -45,12 +62,12 @@ class AnalyzeSchema:
         self.species = species
         self.usegenus = usegenus
 
-    def check_allele_quality(self, prokka_annotation):
+    def check_allele_quality(self: Self, prokka_annotation) -> OrderedDict:
         a_quality = OrderedDict()
         allele_seq = {}
         bad_quality_record = []
-        with open(self.schema_allele) as _:
-            for record in SeqIO.parse(self.schema_allele, "fasta"):
+        with open(self.schema_allele) as fh:
+            for record in SeqIO.parse(fh, "fasta"):
                 try:
                     prokka_ann = prokka_annotation[record.id]
                 except Exception:
@@ -244,7 +261,7 @@ def collect_statistics(data, out_folder, output_allele_annot):
             allele_range[1:],
             group_alleles_df["num_alleles"].to_list(),
             ["Allele", "number of genes"],
-            "title",
+            "Number of alleles per gene",
         )
         # _ = taranis.utils.create_graphic(graphic_folder, "num_genes_per_allele.png", "lines", genes_alleles_df["alleles"].to_list(), genes_alleles_df["genes"].to_list(), ["Allele", "number of genes"],"title")
         # create pie graph for good quality
@@ -284,7 +301,7 @@ def collect_statistics(data, out_folder, output_allele_annot):
             "",
             stats_df["mean_length"].to_list(),
             "",
-            "Allele variability",
+            "Allele length variability",
         )
 
     summary_data = []
