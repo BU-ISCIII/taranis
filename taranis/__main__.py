@@ -199,16 +199,16 @@ def taranis_cli(verbose, log_file):
     help="Number of cpus used for execution",
 )
 def analyze_schema(
-    inputdir,
-    output,
-    remove_subset,
-    remove_duplicated,
-    remove_no_cds,
-    output_allele_annot,
-    genus,
-    species,
-    usegenus,
-    cpus,
+    inputdir: str,
+    output: str,
+    remove_subset: bool,
+    remove_duplicated: bool,
+    remove_no_cds: bool,
+    output_allele_annot: bool,
+    genus: str,
+    species: str,
+    usegenus: str,
+    cpus: int,
 ):
     schema_files = taranis.utils.get_files_in_folder(inputdir, "fasta")
 
@@ -270,8 +270,9 @@ def reference_alleles(
     output,
 ):
     # taranis reference-alleles -s ../../documentos_antiguos/datos_prueba/schema_1_locus/ -o ../../new_taranis_result_code
-    # taranis reference-alleles -s ../../documentos_antiguos/datos_prueba/schema_test/ -o ../../new_taranis_result_code
+    # taranis reference-alleles -s /media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema/ -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/reference_alleles
     schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
+
     # Check if output folder exists
     if taranis.utils.folder_exists(output):
         q_question = (
