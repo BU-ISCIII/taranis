@@ -1,0 +1,20 @@
+name: tests ci
+# This workflow runs the pipeline with the minimal test dataset to check 
+# is completed without any errors
+on:
+    pull_request:
+
+jobs:
+  test_ci:
+    name: Code testing
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out pipeline code
+        uses: actions/checkout@v4
+
+      - name: Install taranis
+        run: pip install .
+
+      - name: test analyze schema
+        run: taranis --help
