@@ -8,7 +8,6 @@ import Bio.Data.CodonTable
 
 from Bio import SeqIO
 
-# from Bio.SeqRecord import SeqRecord
 from collections import OrderedDict
 from typing import Self
 
@@ -62,7 +61,22 @@ class AnalyzeSchema:
         self.species = species
         self.usegenus = usegenus
 
-    def check_allele_quality(self: Self, prokka_annotation) -> OrderedDict:
+    def check_allele_quality(self: Self, prokka_annotation: dict) -> OrderedDict:
+        """Each allele in the locus file is analyzed its quality by checking
+            if it can be converted to protein, has start/stop codon, has multiple
+            stop codon, its a subsequence of the another allele, and if it is
+            duplicated.
+            A new schema file is generated, and if remove parameters are set, for
+            the bad quality, they are removed in this new schema file.
+            Dictionary with quality information for each allele is returned
+
+        Args:
+            self (Self): AnalyzeSchema instance
+            prokka_annotation (dict): Contains the annotation for each allele
+
+        Returns:
+            OrderedDict: Quality information for each allele
+        """
         a_quality = OrderedDict()
         allele_seq = {}
         bad_quality_record = []
@@ -174,7 +188,17 @@ class AnalyzeSchema:
 
         return a_quality
 
-    def fetch_statistics_from_alleles(self, a_quality):
+    def fetch_statistics_from_alleles(self: Self, a_quality: dict) -> dict:
+        """By using the information for each allele in the input data create a
+        dictionary with statistics data about length and quality
+
+        Args:
+            self (Self): AnalyzeSchema instance
+            a_quality (dict): Containing allele information
+
+        Returns:
+            dict: statistics information for all alleles
+        """
         # POSIBLE_BAD_QUALITY = ["not a start codon", "not a stop codon", "Extra in frame stop codon", "is not a multiple of three", "Duplicate allele", "Sub set allele"]
         record_data = {}
         bad_quality_reason = {}
@@ -205,7 +229,19 @@ class AnalyzeSchema:
 
         return record_data
 
-    def analyze_allele_in_schema(self):
+    def analyze_allele_in_schema(self: Self) -> list[dict, dict]:
+        """Analyze the alleles in the schema file by callig the function to
+        annotate each of the alle and using this info to provide it for checking
+        allele quality on check_allele_quality. With both info collection
+        statistics are obtain, returning a list of 2 dict, one with the statistics
+        information and the quality.
+
+        Args:
+            self (Self): _description_
+
+        Returns:
+            list[dict, dict]: _description_
+        """
         allele_data = {}
         # run annotations
         prokka_folder = os.path.join(self.output, "prokka", self.allele_name)
@@ -221,15 +257,30 @@ class AnalyzeSchema:
 
 
 def parallel_execution(
-    schema_allele,
-    output,
-    remove_subset,
-    remove_duplicated,
-    remove_no_cds,
-    genus,
-    species,
-    usegenus,
-):
+    schema_allele: str,
+    output: str,
+    remove_subset: bool,
+    remove_duplicated: bool,
+    remove_no_cds: bool,
+    genus: str,
+    species: str,
+    usegenus: str,
+) -> list[dict, dict]:
+    """_summary_
+
+    Args:
+        schema_allele (str): Folder path where schema files are located
+        output (str): Out folder to save result
+        remove_subset (bool): Remove subset sequences if True
+        remove_duplicated (bool): Remove duplicated sequences if True
+        remove_no_cds (bool): Removing non coding sequences if True
+        genus (str): Genus name for Prokka schema genes annotation
+        species (str): Species name for Prokka schema genes annotation
+        usegenus (str): genus-specific BLAST databases for Prokka
+
+    Returns:
+        list[dict, dict]:: _description_
+    """
     schema_obj = AnalyzeSchema(
         schema_allele,
         output,
@@ -244,13 +295,18 @@ def parallel_execution(
 
 
 def collect_statistics(data, out_folder, output_allele_annot):
-    def stats_graphics(stats_folder):
-        allele_range = [0, 300, 600, 1000, 1500]
+    def stats_graphics(stats_folder: str) -> None:
+        """Create the statistics graphics. Pie graphic for allele quality,
+            bar graphic for number of alleles, and box plot for allele variability
 
+        Args:
+            stats_folder (str): folder path to store graphic
+        """
+        allele_range = [0, 300, 600, 1000, 1500]
         graphic_folder = os.path.join(stats_folder, "graphics")
         _ = taranis.utils.create_new_folder(graphic_folder)
+
         # create graphic for alleles/number of genes
-        # genes_alleles_df = stats_df["num_alleles"].value_counts().rename_axis("alleles").sort_index().reset_index(name="genes")
         group_alleles_df = stats_df.groupby(
             pd.cut(stats_df["num_alleles"], allele_range)
         ).count()
@@ -263,18 +319,7 @@ def collect_statistics(data, out_folder, output_allele_annot):
             ["Allele", "number of genes"],
             "Number of alleles per gene",
         )
-        # _ = taranis.utils.create_graphic(graphic_folder, "num_genes_per_allele.png", "lines", genes_alleles_df["alleles"].to_list(), genes_alleles_df["genes"].to_list(), ["Allele", "number of genes"],"title")
-        # create pie graph for good quality
 
-        """
-        good_percent = [round(stats_df["good_percent"].mean(),2)]
-        good_percent.append(100 - good_percent[0])
-        labels = ["Good quality", "Bad quality"]
-        # pdb.set_trace()
-        _ = taranis.utils.create_graphic(graphic_folder, "quality_of_locus.png", "pie", good_percent, "", labels, "Quality of locus")
-        # create pie graph for bad quality reason. This is optional if there are
-        # bad quality alleles
-        """
         sum_all_alleles = stats_df["num_alleles"].sum()
 
         labels = []
@@ -307,20 +352,17 @@ def collect_statistics(data, out_folder, output_allele_annot):
     summary_data = []
     a_quality = []
     for idx in range(len(data)):
-        # pdb.set_trace()
         summary_data.append(data[idx][0])
         a_quality.append(data[idx][1])
 
     stats_df = pd.DataFrame(summary_data)
-    # a_quality = data[1]
     stats_folder = os.path.join(out_folder, "statistics")
     _ = taranis.utils.create_new_folder(stats_folder)
     _ = taranis.utils.write_data_to_file(stats_folder, "statistics.csv", stats_df)
-    # pdb.set_trace()
     stats_graphics(stats_folder)
 
     if output_allele_annot:
-        # dump allele annotation to file
+        # if parameter to save allele annotation then write to file
         ann_heading = [
             "gene",
             "allele",
@@ -343,7 +385,7 @@ def collect_statistics(data, out_folder, output_allele_annot):
             "quality",
             "reason",
         ]
-        # f_name = os.path.join(self.output, self.allele_name +"_allele_annotation.csv")
+
         ann_data = ",".join(ann_heading) + "\n"
         for gene in a_quality:
             for allele in gene.keys():

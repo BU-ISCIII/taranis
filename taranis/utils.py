@@ -7,9 +7,11 @@ import glob
 import io
 import logging
 import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
 import questionary
 import os
-import plotly.graph_objects as go
+
 import re
 import rich.console
 
@@ -76,14 +78,29 @@ def get_seq_direction(allele_sequence):
 
 
 def create_annotation_files(
-    fasta_file,
-    annotation_dir,
-    prefix,
-    genus="Genus",
-    species="species",
-    usegenus=False,
-    cpus=3,
-):
+    fasta_file : str,
+    annotation_dir : str,
+    prefix  : str,
+    genus : str ="Genus",
+    species : str ="species",
+    usegenus : str=False,
+    cpus : int =3,
+) -> str:
+    """prokka command is executed to generate the annotation files.
+    Return the folder path where prokka store these files 
+
+    Args:
+        fasta_file (str): fasta file used for annotation
+        annotation_dir (str): folder where annotation files are saved
+        prefix (str): string used for naming annotation files
+        genus (str, optional): parameter used in proka. Defaults to "Genus".
+        species (str, optional): parameter used in proka. Defaults to "species".
+        usegenus (str, optional): _description_. Defaults to False.
+        cpus (int, optional): number of cpus used to run prokka. Defaults to 3.
+
+    Returns:
+        str: folder path where generated files from prokka are stored
+    """    
     try:
         _ = subprocess.run(
             [
@@ -114,7 +131,12 @@ def create_annotation_files(
     return os.path.join(annotation_dir, prefix)
 
 
-def create_new_folder(folder_name):
+def create_new_folder(folder_name : str) -> None:
+    """Create directory defined in input data. No error occurs if folder exists 
+
+    Args:
+        folder_name (str): folder path to be created
+    """    
     try:
         os.makedirs(folder_name, exist_ok=True)
     except Exception as e:
@@ -124,9 +146,19 @@ def create_new_folder(folder_name):
     return
 
 
-def create_graphic(out_folder, f_name, mode, x_data, y_data, labels, title):
+def create_graphic(out_folder :str, f_name : str, mode : str, x_data : list, y_data :list, labels : list, title : str) -> None:
+    """Create the graphic and save it to file
+
+    Args:
+        out_folder (str): folder path to save the graphic
+        f_name (str): file name including extension
+        mode (str): type of graphic
+        x_data (list): data for x axis
+        y_data (list): data for y axis
+        labels (list): labels to be included
+        title (str): title of the figure
+    """    
     fig = go.Figure()
-    # pdb.set_trace()
     if mode == "lines":
         fig.add_trace(go.Scatter(x=x_data, y=y_data, mode=mode, name=title))
     elif mode == "pie":
@@ -138,18 +170,19 @@ def create_graphic(out_folder, f_name, mode, x_data, y_data, labels, title):
 
     fig.update_layout(title_text=title)
     fig.write_image(os.path.join(out_folder, f_name))
+    return
 
 
-def get_files_in_folder(folder, extension=None):
+def get_files_in_folder(folder : str, extension : str =None) -> list[str]:
     """get the list of files, filtered by extension in the input folder. If
     extension is not set, then all files in folder are returned
 
     Args:
-        folder (string): folder path
-        extension (string, optional): extension for filtering. Defaults to None.
+        folder (str): Folder path
+        extension (str, optional): Extension for filtering. Defaults to None.
 
     Returns:
-        list: list of files which match the condition
+        list[str]: list of files which match the condition
     """
     if not folder_exists(folder):
         log.error("Folder %s does not exists", folder)
@@ -158,14 +191,7 @@ def get_files_in_folder(folder, extension=None):
     if extension is None:
         extension = "*"
     folder_files = os.path.join(folder, "*." + extension)
-    files_in_folder = glob.glob(folder_files)
-    if len(files_in_folder) == 0:
-        log.error(
-            "Folder %s does not have any file which the extension %s", folder, extension
-        )
-        stderr.print("[red] Folder does not have any file which match your request")
-        sys.exit(1)
-    return files_in_folder
+    return glob.glob(folder_files)
 
 
 def file_exists(file_to_check):
@@ -240,7 +266,17 @@ def query_user_yes_no(question, default):
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def read_annotation_file(ann_file):
+def read_annotation_file(ann_file : str) -> dict:
+    """Read the annotation file and return a dictionary where key is the allele
+    name and the value is the annotation data that prokka was defined for the
+    allele 
+
+    Args:
+        ann_file (str): annotation file path (gff) 
+
+    Returns:
+        dict: contains the allele name and the predction
+    """
     """example of annotation file
 
     lmo0002_782	Prodigal:002006	CDS	1	1146	.	+	0	ID=OJGEGONH_00782;Name=dnaN_782;db_xref=COG:COG0592;gene=dnaN_782;inference=ab initio prediction:Prodigal:002006,similar to AA sequence:UniProtKB:P05649;locus_tag=OJGEGONH_00782;product=Beta sliding clamp
@@ -271,32 +307,33 @@ def read_fasta_file(fasta_file):
     return SeqIO.parse(fasta_file, "fasta")
 
 
-def write_fasta_file(out_folder, seq_data, allele_name=None, f_name=None):
+def write_fasta_file(out_folder: str, f_name: str,  allele_name:str, seq_data: str) -> str:
+    """_summary_
+
+    Args:
+        out_folder (str): _description_
+        seq_data (str): _description_
+        allele_name (str, optional): _description_. Defaults to None.
+        f_name (str, optional): _description_. Defaults to None.
+
+    Returns:
+        str: _description_
+    """    
     try:
         os.makedirs(out_folder, exist_ok=True)
     except OSError as e:
         print(e)
         sys.exit(1)
-    if isinstance(seq_data, dict):
-        for key, seq in seq_data.items():
-            if f_name is None:
-                # use the fasta name as file name
-                f_name = key + ".fasta"
-            f_path_name = os.path.join(out_folder, f_name)
-            with open(f_path_name, "w") as fo:
-                fo.write(">" + key + "\n")
-                fo.write(seq)
-    else:
-        if f_name is None:
-            f_name = allele_name
-        f_path_name = os.path.join(out_folder, f_name)
-        with open(f_path_name, "w") as fo:
-            fo.write(">" + allele_name + "\n")
-            fo.write(seq_data)
-    return f_name
+    
+    f_path_name = os.path.join(out_folder, f_name + ".fasta")
+    with open(f_path_name, "w") as fo:
+        fo.write("> " + allele_name + "\n")
+        fo.write(seq_data)
+    return f_path_name
 
 
 def write_data_to_compress_filed(out_folder, f_name, dump_data):
+
     with io.BytesIO() as buffer:
         with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
             # Add data to the tar archive
@@ -315,8 +352,19 @@ def write_data_to_compress_filed(out_folder, f_name, dump_data):
 
 
 def write_data_to_file(
-    out_folder, f_name, data, include_header=True, data_type="pandas", extension="csv"
-):
+    out_folder : str, f_name : str, data :pd.DataFrame|list, include_header : bool =True, data_type: str ="pandas", extension :str ="csv"
+) -> None:
+    """write data in the input parameter to disk
+
+    Args:
+        out_folder (str): Folder path to store file
+        f_name (str): file name without extension
+        data (pd.DataFrame | list): data to write. Can be dataframe or list
+        include_header (bool, optional): for pandas input check if header has to
+            be included in file. Defaults to True.
+        data_type (str, optional): type of data pandas or list. Defaults to "pandas".
+        extension (str, optional): extension of file. Defaults to "csv".
+    """      
     f_path_name = os.path.join(out_folder, f_name)
     if data_type == "pandas":
         data.to_csv(f_path_name, sep=",", header=include_header)
