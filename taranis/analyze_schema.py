@@ -9,7 +9,6 @@ import Bio.Data.CodonTable
 from Bio import SeqIO
 
 from collections import OrderedDict
-from typing import Self
 
 import taranis.utils
 
@@ -25,7 +24,7 @@ stderr = rich.console.Console(
 
 class AnalyzeSchema:
     def __init__(
-        self: Self,
+        self,
         schema_allele: str,
         output: str,
         remove_subset: bool,
@@ -38,7 +37,7 @@ class AnalyzeSchema:
         """AnalyzeSchema instance creation
 
         Args:
-            self (Self): Self
+            self : AnalyzeSchema instance
             schema_allele (str): Folder path where schema files are located
             output (str): Out folder to save result
             remove_subset (bool): Remove subset sequences if True
@@ -61,7 +60,7 @@ class AnalyzeSchema:
         self.species = species
         self.usegenus = usegenus
 
-    def check_allele_quality(self: Self, prokka_annotation: dict) -> OrderedDict:
+    def check_allele_quality(self, prokka_annotation: dict) -> OrderedDict:
         """Each allele in the locus file is analyzed its quality by checking
             if it can be converted to protein, has start/stop codon, has multiple
             stop codon, its a subsequence of the another allele, and if it is
@@ -71,7 +70,7 @@ class AnalyzeSchema:
             Dictionary with quality information for each allele is returned
 
         Args:
-            self (Self): AnalyzeSchema instance
+            self : AnalyzeSchema instance
             prokka_annotation (dict): Contains the annotation for each allele
 
         Returns:
@@ -188,12 +187,12 @@ class AnalyzeSchema:
 
         return a_quality
 
-    def fetch_statistics_from_alleles(self: Self, a_quality: dict) -> dict:
+    def fetch_statistics_from_alleles(self, a_quality: dict) -> dict:
         """By using the information for each allele in the input data create a
         dictionary with statistics data about length and quality
 
         Args:
-            self (Self): AnalyzeSchema instance
+            self: AnalyzeSchema instance
             a_quality (dict): Containing allele information
 
         Returns:
@@ -229,7 +228,7 @@ class AnalyzeSchema:
 
         return record_data
 
-    def analyze_allele_in_schema(self: Self) -> list[dict, dict]:
+    def analyze_allele_in_schema(self) -> list[dict, dict]:
         """Analyze the alleles in the schema file by callig the function to
         annotate each of the alle and using this info to provide it for checking
         allele quality on check_allele_quality. With both info collection
@@ -237,7 +236,7 @@ class AnalyzeSchema:
         information and the quality.
 
         Args:
-            self (Self): _description_
+            self : _description_
 
         Returns:
             list[dict, dict]: _description_
