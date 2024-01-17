@@ -78,16 +78,16 @@ def get_seq_direction(allele_sequence):
 
 
 def create_annotation_files(
-    fasta_file : str,
-    annotation_dir : str,
-    prefix  : str,
-    genus : str ="Genus",
-    species : str ="species",
-    usegenus : str=False,
-    cpus : int =3,
+    fasta_file: str,
+    annotation_dir: str,
+    prefix: str,
+    genus: str = "Genus",
+    species: str = "species",
+    usegenus: str = False,
+    cpus: int = 3,
 ) -> str:
     """prokka command is executed to generate the annotation files.
-    Return the folder path where prokka store these files 
+    Return the folder path where prokka store these files
 
     Args:
         fasta_file (str): fasta file used for annotation
@@ -100,7 +100,7 @@ def create_annotation_files(
 
     Returns:
         str: folder path where generated files from prokka are stored
-    """    
+    """
     try:
         _ = subprocess.run(
             [
@@ -131,12 +131,12 @@ def create_annotation_files(
     return os.path.join(annotation_dir, prefix)
 
 
-def create_new_folder(folder_name : str) -> None:
-    """Create directory defined in input data. No error occurs if folder exists 
+def create_new_folder(folder_name: str) -> None:
+    """Create directory defined in input data. No error occurs if folder exists
 
     Args:
         folder_name (str): folder path to be created
-    """    
+    """
     try:
         os.makedirs(folder_name, exist_ok=True)
     except Exception as e:
@@ -146,7 +146,15 @@ def create_new_folder(folder_name : str) -> None:
     return
 
 
-def create_graphic(out_folder :str, f_name : str, mode : str, x_data : list, y_data :list, labels : list, title : str) -> None:
+def create_graphic(
+    out_folder: str,
+    f_name: str,
+    mode: str,
+    x_data: list,
+    y_data: list,
+    labels: list,
+    title: str,
+) -> None:
     """Create the graphic and save it to file
 
     Args:
@@ -157,7 +165,7 @@ def create_graphic(out_folder :str, f_name : str, mode : str, x_data : list, y_d
         y_data (list): data for y axis
         labels (list): labels to be included
         title (str): title of the figure
-    """    
+    """
     fig = go.Figure()
     if mode == "lines":
         fig.add_trace(go.Scatter(x=x_data, y=y_data, mode=mode, name=title))
@@ -173,7 +181,7 @@ def create_graphic(out_folder :str, f_name : str, mode : str, x_data : list, y_d
     return
 
 
-def get_files_in_folder(folder : str, extension : str =None) -> list[str]:
+def get_files_in_folder(folder: str, extension: str = None) -> list[str]:
     """get the list of files, filtered by extension in the input folder. If
     extension is not set, then all files in folder are returned
 
@@ -266,13 +274,13 @@ def query_user_yes_no(question, default):
             sys.stdout.write("Please respond with 'yes' or 'no' (or 'y' or 'n').\n")
 
 
-def read_annotation_file(ann_file : str) -> dict:
+def read_annotation_file(ann_file: str) -> dict:
     """Read the annotation file and return a dictionary where key is the allele
     name and the value is the annotation data that prokka was defined for the
-    allele 
+    allele
 
     Args:
-        ann_file (str): annotation file path (gff) 
+        ann_file (str): annotation file path (gff)
 
     Returns:
         dict: contains the allele name and the predction
@@ -307,7 +315,9 @@ def read_fasta_file(fasta_file):
     return SeqIO.parse(fasta_file, "fasta")
 
 
-def write_fasta_file(out_folder: str, f_name: str,  allele_name:str, seq_data: str) -> str:
+def write_fasta_file(
+    out_folder: str, f_name: str, allele_name: str, seq_data: str
+) -> str:
     """_summary_
 
     Args:
@@ -318,13 +328,13 @@ def write_fasta_file(out_folder: str, f_name: str,  allele_name:str, seq_data: s
 
     Returns:
         str: _description_
-    """    
+    """
     try:
         os.makedirs(out_folder, exist_ok=True)
     except OSError as e:
         print(e)
         sys.exit(1)
-    
+
     f_path_name = os.path.join(out_folder, f_name + ".fasta")
     with open(f_path_name, "w") as fo:
         fo.write("> " + allele_name + "\n")
@@ -333,7 +343,6 @@ def write_fasta_file(out_folder: str, f_name: str,  allele_name:str, seq_data: s
 
 
 def write_data_to_compress_filed(out_folder, f_name, dump_data):
-
     with io.BytesIO() as buffer:
         with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
             # Add data to the tar archive
@@ -352,7 +361,12 @@ def write_data_to_compress_filed(out_folder, f_name, dump_data):
 
 
 def write_data_to_file(
-    out_folder : str, f_name : str, data :pd.DataFrame|list, include_header : bool =True, data_type: str ="pandas", extension :str ="csv"
+    out_folder: str,
+    f_name: str,
+    data: pd.DataFrame | list,
+    include_header: bool = True,
+    data_type: str = "pandas",
+    extension: str = "csv",
 ) -> None:
     """write data in the input parameter to disk
 
@@ -364,7 +378,7 @@ def write_data_to_file(
             be included in file. Defaults to True.
         data_type (str, optional): type of data pandas or list. Defaults to "pandas".
         extension (str, optional): extension of file. Defaults to "csv".
-    """      
+    """
     f_path_name = os.path.join(out_folder, f_name)
     if data_type == "pandas":
         data.to_csv(f_path_name, sep=",", header=include_header)
@@ -376,7 +390,7 @@ def find_multiple_stop_codons(seq) :
     stop_codons = ['TAA', 'TAG','TGA']
     c_index = []
     for idx in range (0, len(seq) -2, 3) :
-        c_seq = seq[idx : idx + 3]
+        c_seq = seq[idx:idx + 3]
         if c_seq in stop_codons :
             c_index.append(idx)
     if len(c_index) == 1:
