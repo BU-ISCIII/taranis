@@ -17,14 +17,11 @@ jobs:
       - name: Install dependencies
         run: $CONDA/bin/conda env update --file environment.yml --name base
 
-      # - name: install python packages
-      #   run: pip install -r requirements.txt
+      - name: activate conda
+        run: conda activate base
 
       - name: Install taranis
         run: pip install .
-
-      - name: testing directory
-        run: ls
 
       - name: test analyze schema
         run: taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1
