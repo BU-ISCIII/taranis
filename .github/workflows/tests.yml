@@ -17,6 +17,9 @@ jobs:
       - name: Install dependencies
         run: $CONDA/bin/conda env update --file environment.yml --name base
 
+      - name: init conda
+        run: conda init
+
       - name: activate conda
         run: conda activate base
 
