@@ -11,13 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-
-      - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: taranis_env
           environment-file: environment.yml
           auto-activate-base: false
-      - run: |
+      - name: Activate Conda environment
+        run: source $CONDA/etc/profile.d/conda.sh && conda activate taranis_env
+      - name: check conda
+        run: |
           conda list
           prokka -h
