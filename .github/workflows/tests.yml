@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      - uses: actions/checkout@v3
       - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: taranis_env
