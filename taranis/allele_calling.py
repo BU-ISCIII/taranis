@@ -84,7 +84,7 @@ class AlleleCalling:
     def search_alleles(self, ref_allele):
         allele_name = Path(ref_allele).stem
         schema_gene = os.path.join(self.schema, allele_name + ".fasta")
-        allele_name = Path(ref_allele).stem
+        # allele_name = Path(ref_allele).stem
         # run blast with sample as db and reference allele as query
         sample_blast_match = self.sample_blast.run_blast(ref_allele)
         if len(sample_blast_match) > 0:

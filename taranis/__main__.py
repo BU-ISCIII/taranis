@@ -10,7 +10,6 @@ import rich.traceback
 import sys
 import time
 
-import taranis.prediction
 import taranis.utils
 import taranis.analyze_schema
 import taranis.reference_alleles
