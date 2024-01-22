@@ -5,3 +5,4 @@ questionary
 bio
 scikit-learn
 plotly
+kaleido
