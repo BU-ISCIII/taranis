@@ -26,4 +26,6 @@ jobs:
         run: |
           source $CONDA/etc/profile.d/conda.sh
           conda activate myenv
-          prokka -h 
+          pip install .
+          taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1
+          
