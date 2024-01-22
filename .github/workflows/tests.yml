@@ -11,17 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Check out pipeline code
-        uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: $CONDA/bin/conda env update --file environment.yml --name taranis_env
-
-      - name: activate conda
-        run:  source $CONDA/etc/profile.d/conda.sh && conda activate taranis_env
-
-      - name: Install taranis
-        run: pip install .
-
-      - name: test analyze schema
-        run: taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1
+      - uses: actions/checkout@v4
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: anaconda-client-env
+          environment-file: etc/example-environment.yml
+          python-version: 3.5
+          condarc-file: etc/example-condarc.yml
+          auto-activate-base: false
+      - run: |
+          conda list
+          prokka -h
