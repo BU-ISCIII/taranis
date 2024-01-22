@@ -149,7 +149,7 @@ class AnalyzeSchema:
                     a_quality[rec_id]["reason"] = "Duplicate allele"
                     if self.remove_duplicated:
                         bad_quality_record.append(rec_id)
-        # check if sequence is a sub allele 
+        # check if sequence is a sub allele
         for rec_id, seq_value in allele_seq.items():
             unique_seq.remove(seq_value)
             if seq_value in unique_seq:
