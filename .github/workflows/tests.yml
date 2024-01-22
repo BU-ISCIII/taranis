@@ -24,7 +24,7 @@ jobs:
         run: pip install .
 
       - name: testing directory
-        run: echo ls
+        run: ls
 
       - name: test analyze schema
         run: taranis analyze-schema -i  $script_dir/test/MLST_listeria -o analyze_schema_test  --cpus 1
