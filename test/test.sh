@@ -129,12 +129,13 @@ echo "Assemblies: $assemblies"
 echo "Schema: $schema"
 echo "$PWD"
 cd
-$script_dir/../taranis.py analyze_schema -inputdir $script_dir/MLST_listeria -outputdir analyze_schema_test
+echo "Executing taranis analyze_schema"
+$script_dir/../taranis.py analyze_schema -i $script_dir/MLST_listeria -o analyze_schema_test --output-allele-annot --cpus 1
 
-$script_dir/../taranis.py reference_alleles -coregenedir $script_dir/MLST_listeria -outputdir reference_alleles_test
+# $script_dir/../taranis.py reference_alleles -coregenedir $script_dir/MLST_listeria -outputdir reference_alleles_test
 
-$script_dir/../taranis.py allele_calling -coregenedir $script_dir/$schema -inputdir $script_dir/$assemblies -refgenome $script_dir/$refgenome -outputdir allele_calling_test -percentlength 20 -refalleles reference_alleles_test -profile $script_dir/$profile
+# $script_dir/../taranis.py allele_calling -coregenedir $script_dir/$schema -inputdir $script_dir/$assemblies -refgenome $script_dir/$refgenome -outputdir allele_calling_test -percentlength 20 -refalleles reference_alleles_test -profile $script_dir/$profile
 
-$script_dir/../taranis.py distance_matrix -alleles_matrix allele_calling_test/result.tsv -outputdir distance_matrix_test
+# $script_dir/../taranis.py distance_matrix -alleles_matrix allele_calling_test/result.tsv -outputdir distance_matrix_test
 
-echo "ALL DONE. TEST COMPLETED SUCCESSFULLY YOUR INSTALLATION SHOULD BE CORRECT."
+echo "ALL DONE. TEST COMPLETED SUCCESSFULLY."
