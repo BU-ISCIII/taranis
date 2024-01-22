@@ -149,7 +149,7 @@ class AnalyzeSchema:
                     a_quality[rec_id]["reason"] = "Duplicate allele"
                     if self.remove_duplicated:
                         bad_quality_record.append(rec_id)
-
+        # check if sequence is a sub allele 
         for rec_id, seq_value in allele_seq.items():
             unique_seq.remove(seq_value)
             if seq_value in unique_seq:
@@ -171,19 +171,6 @@ class AnalyzeSchema:
                         SeqIO.write(record, fo, "fasta")
         # update the schema allele with the new file
         self.schema_allele = new_schema_file
-
-        """
-        if self.output_allele_annot:
-            # dump allele annotation to file
-            ann_heading = ["gene", "allele", "allele direction","nucleotide sequence", "protein sequence", "nucleotide sequence length", "star codon", "CDS coding", "allele quality", "bad quality reason" ]
-            ann_fields = ["direction", "dna_seq", "protein_seq", "length", "start_codon_alt","cds_coding", "quality", "reason"]
-            f_name = os.path.join(self.output, self.allele_name +"_allele_annotation.csv")
-            with open (f_name, "w") as fo:
-                fo.write(",".join(ann_heading) + "\n")
-                for allele in a_quality.keys():
-                    data_field = [a_quality[allele][field] for field in ann_fields]
-                    fo.write(self.allele_name + "," + allele + "," + ",".join(data_field) + "\n")
-        """
 
         return a_quality
 
@@ -321,11 +308,9 @@ def collect_statistics(data, out_folder, output_allele_annot):
 
         sum_all_alleles = stats_df["num_alleles"].sum()
 
-        labels = []
-        values = []
-        for item in taranis.utils.POSIBLE_BAD_QUALITY:
-            labels.append(item)
-            values.append(stats_df[item].sum())
+        labels = taranis.utils.POSIBLE_BAD_QUALITY
+        values = [stats_df[item].sum() for item in labels]
+
         labels.append("Good quality")
         values.append(sum_all_alleles - sum(values))
         _ = taranis.utils.create_graphic(

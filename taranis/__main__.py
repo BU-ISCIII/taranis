@@ -170,7 +170,7 @@ def taranis_cli(verbose, log_file):
     "--output-allele-annot/--no-output-allele-annot",
     required=False,
     default=True,
-    help="get extension annotation for all alleles in locus",
+    help="output prokka/allele annotation for all alleles in locus",
 )
 @click.option(
     "--genus",
@@ -212,7 +212,7 @@ def analyze_schema(
 ):
     schema_files = taranis.utils.get_files_in_folder(inputdir, "fasta")
 
-    """
+    """ TODO.DELETE CODE
     schema_analyze = []
     for schema_file in schema_files:
         schema_obj = taranis.analyze_schema.AnalyzeSchema(schema_file, output, remove_subset, remove_duplicated, remove_no_cds, genus, species, usegenus)
@@ -266,8 +266,8 @@ def analyze_schema(
     help="Output folder to save reference alleles",
 )
 def reference_alleles(
-    schema,
-    output,
+    schema: str,
+    output: str,
 ):
     # taranis reference-alleles -s ../../documentos_antiguos/datos_prueba/schema_1_locus/ -o ../../new_taranis_result_code
     # taranis reference-alleles -s /media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema/ -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/reference_alleles
