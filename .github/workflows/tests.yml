@@ -27,4 +27,4 @@ jobs:
         run: ls
 
       - name: test analyze schema
-        run: taranis analyze-schema -i  $script_dir/test/MLST_listeria -o analyze_schema_test  --cpus 1
+        run: taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1
