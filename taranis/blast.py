@@ -6,7 +6,6 @@ import taranis.utils
 
 from pathlib import Path
 from Bio.Blast.Applications import NcbiblastnCommandline
-import pdb
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
@@ -54,36 +53,37 @@ class Blast:
 
     def run_blast(
         self,
-        query,
-        evalue=0.001,
-        perc_identity=90,
-        reward=1,
-        penalty=-2,
-        gapopen=1,
-        gapextend=1,
-        max_target_seqs=10,
-        max_hsps=10,
-        num_threads=1,
-    ):
-        """_summary_
-            blastn -outfmt "6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq" -query /media/lchapado/Reference_data/proyectos_isciii/taranis/documentos_antiguos/pasteur_schema/lmo0002.fasta -db /media/lchapado/Reference_data/proyectos_isciii/taranis/test/blastdb/RA-L2073_R1/RA-L2073_R1 -evalue 0.001 -penalty -2 -reward 1 -gapopen 1 -gapextend 1  -perc_identity 100 > /media/lchapado/Reference_data/proyectos_isciii/taranis/test/blast_sample_locus002.txt
+        query: str,
+        evalue: float = 0.001,
+        perc_identity: int = 90,
+        reward: int = 1,
+        penalty: int = -2,
+        gapopen: int = 1,
+        gapextend: int = 1,
+        max_target_seqs: int = 1000,
+        max_hsps: int = 10,
+        num_threads: int = 1,
+    ) -> list:
+        """blast command is executed, returning a list of each match found
 
         Args:
-            query (_type_): _description_
-            evalue (float, optional): _description_. Defaults to 0.001.
-            perc_identity (int, optional): _description_. Defaults to 90.
-            reward (int, optional): _description_. Defaults to 1.
-            penalty (int, optional): _description_. Defaults to -2.
-            gapopen (int, optional): _description_. Defaults to 1.
-            gapextend (int, optional): _description_. Defaults to 1.
-            max_target_seqs (int, optional): _description_. Defaults to 10.
-            max_hsps (int, optional): _description_. Defaults to 10.
-            num_threads (int, optional): _description_. Defaults to 1.
+            query (str): file path which contains the fasta sequence to query
+            evalue (float, optional): filtering results on e-value. Defaults to 0.001.
+            perc_identity (int, optional): percentage of identity. Defaults to 90.
+            reward (int, optional): value for rewardin. Defaults to 1.
+            penalty (int, optional): penalty value. Defaults to -2.
+            gapopen (int, optional): value for gap open. Defaults to 1.
+            gapextend (int, optional): value for gap extended. Defaults to 1.
+            max_target_seqs (int, optional): max target to output. Defaults to 1000.
+            max_hsps (int, optional): max hsps. Defaults to 10.
+            num_threads (int, optional): number of threads. Defaults to 1.
+
+        Returns:
+            list: list of strings containing blast results
         """
         blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
-        pdb.set_trace()
-        # db=self.blast_dir, evalue=evalue, perc_identity=perc_identity_ref, reward=reward, penalty=penalty, gapopen=gapopen, gapextend=gapextend, outfmt=blast_parameters, max_target_seqs=max_target_seqs, max_hsps=max_hsps, num_threads=num_threads, query=core_reference_allele_path)
         cline = NcbiblastnCommandline(
+            task="blastn",
             db=self.out_blast_dir,
             evalue=evalue,
             perc_identity=perc_identity,

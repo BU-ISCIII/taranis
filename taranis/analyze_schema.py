@@ -8,7 +8,7 @@ import Bio.Data.CodonTable
 
 from Bio import SeqIO
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 import taranis.utils
 
@@ -140,11 +140,10 @@ class AnalyzeSchema:
         # get the unique sequences and compare the length with all sequences
         unique_seq = list(set(list(allele_seq.values())))
         if len(unique_seq) < len(allele_seq):
-            tmp_dict = {}
+            value_to_keys = defaultdict(list)
             for rec_id, seq_value in allele_seq.items():
-                if seq_value not in tmp_dict:
-                    tmp_dict[seq_value] = 0
-                else:
+                value_to_keys[seq_value].append(rec_id)
+                if len(value_to_keys[seq_value]) > 1:
                     a_quality[rec_id]["quality"] = "Bad quality"
                     a_quality[rec_id]["reason"] = "Duplicate allele"
                     if self.remove_duplicated:
