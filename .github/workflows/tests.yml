@@ -16,7 +16,7 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v2
         with:
-          activate-environment: myenv
+          activate-environment: taranis_env
           environment-file: environment.yml
 
       - name: Verify Conda environment
@@ -25,7 +25,7 @@ jobs:
       - name: Run your script
         run: |
           source $CONDA/etc/profile.d/conda.sh
-          conda activate myenv
+          conda activate taranis_env
           pip install .
           taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1
           
