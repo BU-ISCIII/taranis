@@ -28,6 +28,6 @@ jobs:
           conda activate taranis_env
       - name: testung analyze schema
         run:
-          pip install .
-          taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1
+          poetry install
+          taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1 --output-allele-annot --remove-no-cds --remove-duplicated --remove-subset
           
