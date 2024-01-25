@@ -139,18 +139,20 @@ class AnalyzeSchema:
         # check if there are duplicated alleles
         # get the unique sequences and compare the length with all sequences
         unique_seq = list(set(list(allele_seq.values())))
-        if len(unique_seq) < len(allele_seq):
-            value_to_keys = defaultdict(list)
-            for rec_id, seq_value in allele_seq.items():
-                value_to_keys[seq_value].append(rec_id)
-                if len(value_to_keys[seq_value]) > 1:
-                    a_quality[rec_id]["quality"] = "Bad quality"
-                    a_quality[rec_id]["reason"] = "Duplicate allele"
-                    if self.remove_duplicated:
-                        bad_quality_record.append(rec_id)
-        # check if sequence is a sub allele
+        value_to_keys = defaultdict(list)
         for rec_id, seq_value in allele_seq.items():
-            unique_seq.remove(seq_value)
+            value_to_keys[seq_value].append(rec_id)
+            # Check if sequence is already duplicate
+            if len(value_to_keys[seq_value]) > 1:
+                a_quality[rec_id]["quality"] = "Bad quality"
+                a_quality[rec_id]["reason"] = "Duplicate allele"
+                if self.remove_duplicated:
+                    bad_quality_record.append(rec_id)
+            # check if sequence is a sub allele
+            try:
+                unique_seq.remove(seq_value)
+            except ValueError:
+                log.warning("Already  deleted same sequence as for record id  %s" , record.id)
             if seq_value in unique_seq:
                 a_quality[rec_id]["quality"] = "Bad quality"
                 a_quality[rec_id]["reason"] = "Sub set allele"
@@ -293,8 +295,8 @@ def collect_statistics(data, out_folder, output_allele_annot):
 
         # create graphic for alleles/number of genes
         group_alleles_df = stats_df.groupby(
-            pd.cut(stats_df["num_alleles"], allele_range)
-        ).count()
+                pd.cut(stats_df["num_alleles"], allele_range)
+            ).count()
         _ = taranis.utils.create_graphic(
             graphic_folder,
             "num_genes_per_allele.png",
