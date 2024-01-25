@@ -28,7 +28,6 @@ def run_taranis():
     rich.traceback.install(console=stderr, width=200, word_wrap=True, extra_lines=1)
 
     # Print taranis header
-    # stderr.print("\n[green]{},--.[grey39]/[green],-.".format(" " * 42), highlight=False)
     stderr.print(
         "[blue]                ______           ___                     ___    ",
         highlight=False,
@@ -55,7 +54,6 @@ def run_taranis():
     stderr.print(
         "\n" "[grey39]    Taranis version {}".format(__version__), highlight=False
     )
-
     # Lanch the click cli
     taranis_cli()
 
@@ -92,7 +90,6 @@ class CustomHelpOrder(click.Group):
             cmd = super(CustomHelpOrder, self).command(*args, **kwargs)(f)
             help_priorities[cmd.name] = help_priority
             return cmd
-
         return decorator
 
 
@@ -122,13 +119,6 @@ def taranis_cli(verbose, log_file):
             )
         )
         log.addHandler(log_fh)
-
-
-# Analyze schema
-# taranis analyze-schema -i /media/lchapado/Reference_data/proyectos_isciii/taranis/documentos_antiguos/pasteur_schema -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/analyze_schema
-# testing data for analyze schema
-# taranis analyze-schema -i /media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/analyze_schema
-
 
 @taranis_cli.command(help_priority=1)
 @click.option(
@@ -211,16 +201,6 @@ def analyze_schema(
 ):
     schema_files = taranis.utils.get_files_in_folder(inputdir, "fasta")
 
-    """ TODO.DELETE CODE
-    schema_analyze = []
-    for schema_file in schema_files:
-        schema_obj = taranis.analyze_schema.AnalyzeSchema(schema_file, output, remove_subset, remove_duplicated, remove_no_cds, genus, species, usegenus)
-        schema_analyze.append(schema_obj.analyze_allele_in_schema())
-    import pdb; pdb.set_trace()
-    _ = taranis.analyze_schema.collect_statistics(schema_analyze, output, output_allele_annot)
-    sys.exit(0)
-    # for schema_file in schema_files:
-    """
     results = []
     start = time.perf_counter()
     with concurrent.futures.ProcessPoolExecutor(max_workers=cpus) as executor:
@@ -242,6 +222,9 @@ def analyze_schema(
         for future in concurrent.futures.as_completed(futures):
             results.append(future.result())
     _ = taranis.analyze_schema.collect_statistics(results, output, output_allele_annot)
+
+    _ = taranis.analyze_schema.collect_statistics(schema_analyze, output, output_allele_annot)
+
     finish = time.perf_counter()
     print(f"Schema analyze finish in {round((finish-start)/60, 2)} minutes")
 
@@ -268,8 +251,7 @@ def reference_alleles(
     schema: str,
     output: str,
 ):
-    # taranis reference-alleles -s ../../documentos_antiguos/datos_prueba/schema_1_locus/ -o ../../new_taranis_result_code
-    # taranis reference-alleles -s /media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema/ -o /media/lchapado/Reference_data/proyectos_isciii/taranis/test/reference_alleles
+
     schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
 
     # Check if output folder exists
@@ -294,12 +276,6 @@ def reference_alleles(
     for f_file in schema_files:
         ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output)
     _ = ref_alleles.create_ref_alleles()
-
-
-# Allele calling
-#  taranis -l ../../test/taranis.log  allele-calling -s ../../documentos_antiguos/datos_prueba/schema_test/ -r ../../documentos_antiguos/datos_prueba/reference_alleles/ -g ../../taranis_data/listeria_genoma_referencia/listeria.fasta -a ../../taranis_data/listeria_sampled/RA-L2073_R1.fasta -o ../../test/
-# taranis allele-calling -s ../../documentos_antiguos/datos_prueba/schema_test/ -r ../../documentos_antiguos/datos_prueba/reference_alleles/ -g ../../taranis_data/listeria_genoma_referencia/listeria.fasta -a ../../taranis_data/listeria_sampled/RA-L2073_R1.fasta -o ../../test/
-# taranis allele-calling -s ../../documentos_antiguos/datos_prueba/schema_test/ -r ../../documentos_antiguos/datos_prueba/reference_alleles/ -g ../../taranis_data/listeria_genoma_referencia/listeria.fasta -a ../../taranis_data/muestras_listeria_servicio_fasta/3789/assembly.fasta -o ../../test/
 
 
 @taranis_cli.command(help_priority=3)
