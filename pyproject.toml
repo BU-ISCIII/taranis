@@ -1,27 +1,18 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "taranis"
 version = "3.0.0"
-dynamic = ["dependencies"]
-requires-python = ">=3.10"
-
-authors = [
-    {name = "Sara Monzon", email = "smonzon@isciii.es"},
-    {name = "Luis Chapado", email = "lchapado@externos.isciii.es"},
-]
-maintainers = [
-    {name = "Luis Chapado", email = "lchapado@externos.isciii.es"}
-]
 description = "Tools for gene-by-gene allele calling analysis"
 readme = "README.md"
-license = {file = "LICENSE"}
+authors = ["Sara Monzon <smonzon@isciii.es>"]
+license = "GNU-3.0"
 
+[tool.poetry.dependencies]
+python = "^3.10"
 
-[tool.setuptools.dynamic]
-dependencies = {file = ["requirements.txt"]}
+[tool.poetry.scripts]
+taranis = "taranis.__main__:run_taranis"
+
 
 [tool.setuptools.packages.find]
 exclude = ["img", "virtualenv"]
+

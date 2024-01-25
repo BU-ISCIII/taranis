@@ -6,7 +6,7 @@ on:
     push:
 
 jobs:
-  create-conda-env:
+  test_analyze_schema:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,6 +26,8 @@ jobs:
         run: |
           source $CONDA/etc/profile.d/conda.sh
           conda activate taranis_env
+      - name: testung analyze schema
+        run:
           pip install .
           taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1
           
