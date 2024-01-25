@@ -90,6 +90,7 @@ class CustomHelpOrder(click.Group):
             cmd = super(CustomHelpOrder, self).command(*args, **kwargs)(f)
             help_priorities[cmd.name] = help_priority
             return cmd
+
         return decorator
 
 
@@ -119,6 +120,7 @@ def taranis_cli(verbose, log_file):
             )
         )
         log.addHandler(log_fh)
+
 
 @taranis_cli.command(help_priority=1)
 @click.option(
@@ -223,8 +225,6 @@ def analyze_schema(
             results.append(future.result())
     _ = taranis.analyze_schema.collect_statistics(results, output, output_allele_annot)
 
-    _ = taranis.analyze_schema.collect_statistics(schema_analyze, output, output_allele_annot)
-
     finish = time.perf_counter()
     print(f"Schema analyze finish in {round((finish-start)/60, 2)} minutes")
 
@@ -251,7 +251,6 @@ def reference_alleles(
     schema: str,
     output: str,
 ):
-
     schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
 
     # Check if output folder exists
