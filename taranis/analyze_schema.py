@@ -33,6 +33,7 @@ class AnalyzeSchema:
         genus: str,
         species: str,
         usegenus: str,
+        prokka_cpus: int,
     ) -> "AnalyzeSchema":
         """AnalyzeSchema instance creation
 
@@ -46,6 +47,7 @@ class AnalyzeSchema:
             genus (str): Genus name for Prokka schema genes annotation
             species (str): Species name for Prokka schema genes annotation
             usegenus (str): genus-specific BLAST databases for Prokka
+            prokka_cpus (int): number of cpus used in prokka
 
         Returns:
             AnalyzeSchema: Instance of the created class
@@ -59,6 +61,7 @@ class AnalyzeSchema:
         self.genus = genus
         self.species = species
         self.usegenus = usegenus
+        self.prokka_cpus = prokka_cpus
 
     def check_allele_quality(self, prokka_annotation: dict) -> OrderedDict:
         """Each allele in the locus file is analyzed its quality by checking
@@ -76,6 +79,7 @@ class AnalyzeSchema:
         Returns:
             OrderedDict: Quality information for each allele
         """
+        log.debug("Processing allele quality for %s", self.allele_name)
         a_quality = OrderedDict()
         allele_seq = {}
         bad_quality_record = []
@@ -135,7 +139,7 @@ class AnalyzeSchema:
                     and a_quality[record.id]["quality"] == "Bad quality"
                 ):
                     bad_quality_record.append(record.id)
-
+        log.debug("Checking bad quality of alleles for %s", self.allele_name)
         # check if there are duplicated alleles
         # get the unique sequences and compare the length with all sequences
         unique_seq = list(set(list(allele_seq.values())))
@@ -188,7 +192,7 @@ class AnalyzeSchema:
         Returns:
             dict: statistics information for all alleles
         """
-        # POSIBLE_BAD_QUALITY = ["not a start codon", "not a stop codon", "Extra in frame stop codon", "is not a multiple of three", "Duplicate allele", "Sub set allele"]
+        stderr.print("Processing quality statistics")
         record_data = {}
         bad_quality_reason = {}
         a_length = []
@@ -232,11 +236,13 @@ class AnalyzeSchema:
             list[dict, dict]: _description_
         """
         allele_data = {}
+        log.info("Analizing allele %s", self.allele_name)
         # run annotations
         prokka_folder = os.path.join(self.output, "prokka", self.allele_name)
         anotation_files = taranis.utils.create_annotation_files(
-            self.schema_allele, prokka_folder, self.allele_name
+            self.schema_allele, prokka_folder, self.allele_name, cpus=self.prokka_cpus
         )
+        log.info("Fetching anotation information for %s", self.allele_name)
         prokka_annotation = taranis.utils.read_annotation_file(anotation_files + ".gff")
 
         # Perform quality
@@ -254,6 +260,7 @@ def parallel_execution(
     genus: str,
     species: str,
     usegenus: str,
+    prokka_cpus: int = 3,
 ) -> list[dict, dict]:
     """_summary_
 
@@ -266,6 +273,7 @@ def parallel_execution(
         genus (str): Genus name for Prokka schema genes annotation
         species (str): Species name for Prokka schema genes annotation
         usegenus (str): genus-specific BLAST databases for Prokka
+        prokka_cpus (int): number of cpus used to execute prokka. Default 3
 
     Returns:
         list[dict, dict]:: _description_
@@ -279,6 +287,7 @@ def parallel_execution(
         genus,
         species,
         usegenus,
+        prokka_cpus,
     )
     return schema_obj.analyze_allele_in_schema()
 
@@ -291,13 +300,15 @@ def collect_statistics(data, out_folder, output_allele_annot):
         Args:
             stats_folder (str): folder path to store graphic
         """
+        stderr.print("Creating graphics")
+        log.info("Creating graphics")
         allele_range = [0, 300, 600, 1000, 1500]
         graphic_folder = os.path.join(stats_folder, "graphics")
         _ = taranis.utils.create_new_folder(graphic_folder)
 
         # create graphic for alleles/number of genes
         group_alleles_df = stats_df.groupby(
-            pd.cut(stats_df["num_alleles"], allele_range)
+            pd.cut(stats_df["num_alleles"], allele_range), observed=False
         ).count()
         _ = taranis.utils.create_graphic(
             graphic_folder,
@@ -385,7 +396,6 @@ def collect_statistics(data, out_folder, output_allele_annot):
                     + ",".join(data_field)
                     + "\n"
                 )
-
         _ = taranis.utils.write_data_to_compress_filed(
             out_folder, "allele_annotation.csv", ann_data
         )
