@@ -204,8 +204,15 @@ def analyze_schema(
     schema_files = taranis.utils.get_files_in_folder(inputdir, "fasta")
 
     results = []
+    max_cpus = taranis.utils.cpus_available()
+    if cpus > max_cpus:
+        stderr.print("[red] Number of CPUs bigger than the CPUs available")
+        stderr.print("Running code with ", max_cpus)
+        cpus = max_cpus
+    # Keeping 3 threads for running prokka for each parallel process
+    using_cpus, prokka_cpus = [cpus // 3, 3] if cpus // 3 >= 1 else [1, 1]
     start = time.perf_counter()
-    with concurrent.futures.ProcessPoolExecutor(max_workers=cpus) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=using_cpus) as executor:
         futures = [
             executor.submit(
                 taranis.analyze_schema.parallel_execution,
@@ -217,6 +224,7 @@ def analyze_schema(
                 genus,
                 species,
                 usegenus,
+                prokka_cpus,
             )
             for schema_file in schema_files
         ]

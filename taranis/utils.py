@@ -6,6 +6,7 @@ Common utility function used for relecov_tools package.
 import glob
 import io
 import logging
+import multiprocessing
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -60,6 +61,10 @@ POSIBLE_BAD_QUALITY = [
     "Duplicate allele",
     "Sub set allele",
 ]
+
+
+def cpus_available() -> int:
+    return multiprocessing.cpu_count()
 
 
 def get_seq_direction(allele_sequence):
