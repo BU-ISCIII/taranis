@@ -27,8 +27,5 @@ jobs:
           source $CONDA/etc/profile.d/conda.sh
           conda activate taranis_env
           poetry install
-
-      - name: testing analyze schema
-        run:
           taranis analyze-schema -i  test/MLST_listeria -o analyze_schema_test  --cpus 1 --output-allele-annot --remove-no-cds --remove-duplicated --remove-subset
           
