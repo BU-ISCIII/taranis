@@ -1,4 +1,5 @@
 import logging
+
 # import numpy as np
 import os
 import re
@@ -10,6 +11,7 @@ import subprocess
 # from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import SeqIO
+
 # from Bio.Blast.Applications import NcbiblastnCommandline
 from collections import OrderedDict
 from pathlib import Path
