@@ -1,5 +1,5 @@
 import logging
-import numpy as np
+# import numpy as np
 import os
 import re
 import rich.console
@@ -10,7 +10,7 @@ import subprocess
 # from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio import SeqIO
-from Bio.Blast.Applications import NcbiblastnCommandline
+# from Bio.Blast.Applications import NcbiblastnCommandline
 from collections import OrderedDict
 from pathlib import Path
 import taranis.utils
@@ -172,7 +172,7 @@ class ReferenceAlleles:
         locus_num = len(self.selected_locus)
         # pdb.set_trace()
         matrix_df = pd.read_csv("matrix_distance.tsv", sep="\t").fillna(value=0)
-        
+
         # remove the first line of the matrix that contain only the number of alleles
         matrix_df = matrix_df.drop(0)
         locus_list = matrix_df.iloc[0:locus_num, 0]
