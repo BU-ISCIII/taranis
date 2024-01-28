@@ -9,8 +9,12 @@ import subprocess
 
 # from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio import SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline
+from collections import OrderedDict
+from pathlib import Path
 import taranis.utils
+import taranis.blast
 
 import pdb
 
@@ -75,6 +79,7 @@ class ReferenceAlleles:
     def create_matrix_distance(self):
         # f_name = os.path.basename(self.fasta_file).split('.')[0]
         f_name = os.path.basename(self.fasta_file)
+        allele_name = Path(self.fasta_file).stem
         mash_folder = os.path.join(self.output, "mash")
         # _ = taranis.utils.write_fasta_file(mash_folder, self.selected_locus, multiple_files=True, extension=False)
         # save directory to return after mash
@@ -90,22 +95,84 @@ class ReferenceAlleles:
         )
         # Get pairwise allele sequences mash distances
         # mash_distance_command = ["mash", "dist", sketch_path, sketch_path]
-        mash_distance_command = ["mash", "triangle", "-i", "reference.msh"]
+        mash_distance_command = ["mash", "triangle", "-i", self.fasta_file]
         mash_distance_result = subprocess.Popen(
             mash_distance_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
-        # pdb.set_trace()
         out, err = mash_distance_result.communicate()
         with open("matrix_distance.tsv", "w") as fo:
             # adding alleles to create a heading
             # the value are not required to be in order, just only any name and the right length
             fo.write("alleles\t" + "\t".join(list(self.selected_locus.keys())) + "\n")
             fo.write(out.decode("UTF-8"))
+
+        # Create the blast distance. database is the locus and the query is each
+        # allele in the locus file
+        # Create  blast db with sample file
+        sample_blast_obj = taranis.blast.Blast("nucl")
+        blast_dir = os.path.join(self.output, f_name)
+        _ = sample_blast_obj.create_blastdb(self.fasta_file, blast_dir)
+
+        # create all fasta files for query
+        fasta_folder = os.path.join(self.output, "fasta", allele_name)
+        tmp_blast_matrix = {}
+        allele_list = []
+        counter = 0
+        with open(self.fasta_file) as fh:
+            for record in SeqIO.parse(fh, "fasta"):
+                # pdb.set_trace()
+                blast_allele = {}
+                query_file = taranis.utils.write_fasta_file(
+                    fasta_folder, record.id, record.id, str(record.seq)
+                )
+                # query_file = os.path.join(fasta_folder,record.id)
+                seq_blast_match = sample_blast_obj.run_blast(
+                    query_file,
+                    perc_identity=10,
+                    evalue=1,
+                    max_target_seqs=10000,
+                    num_threads=4,
+                )
+                q_allele = seq_blast_match[0].split("\t")[0]
+                allele_list.append(q_allele)
+                for seq_blast in seq_blast_match:
+                    b_line = seq_blast.split("\t")
+                    if not b_line[1] in blast_allele:
+                        blast_allele[b_line[1]] = b_line[2]
+                    else:
+                        if blast_allele[b_line[1]] < b_line[2]:
+                            blast_allele[b_line[1]] = b_line[2]
+                tmp_blast_matrix[q_allele] = blast_allele
+                counter += 1
+                if counter % 25 == 0:
+                    print("processing allele number ", counter)
+        blast_matrix = OrderedDict()
+        allele_list_2 = allele_list.copy()
+        pdb.set_trace()
+        for main_allele in allele_list:
+            identity_value = []
+            for sub_allele in allele_list_2:
+                if sub_allele in tmp_blast_matrix[main_allele]:
+                    identity_value.append(tmp_blast_matrix[main_allele][sub_allele])
+                else:
+                    identity_value.append(0)
+            blast_matrix[main_allele] = identity_value
+        import pandas as pd
+
+        matrix_df = pd.DataFrame(blast_matrix)
+        blast_matrix_path = os.path.join(
+            self.output, "blast", allele_name + "_blast_matrix.csv"
+        )
+        matrix_df.to_csv(blast_matrix_path, sep=",")
+        pdb.set_trace()
+
+        """
         import pandas as pd
 
         locus_num = len(self.selected_locus)
         # pdb.set_trace()
         matrix_df = pd.read_csv("matrix_distance.tsv", sep="\t").fillna(value=0)
+        
         # remove the first line of the matrix that contain only the number of alleles
         matrix_df = matrix_df.drop(0)
         locus_list = matrix_df.iloc[0:locus_num, 0]
@@ -383,10 +450,11 @@ class ReferenceAlleles:
         # import numpy as np
         # X = np.array([[0, 2, 3], [2, 0, 3], [3, 3, 0]])
         # clustering = AgglomerativeClustering(affinity="precomputed").fit(X)
+        """
 
     def create_ref_alleles(self):
         self.records = taranis.utils.read_fasta_file(self.fasta_file)
-        _ = self.check_locus_quality()
+        # _ = self.check_locus_quality()
         # pdb.set_trace()
         # Prepare data to use mash to create the distance matrix
         _ = self.create_matrix_distance()
