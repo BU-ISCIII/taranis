@@ -9,8 +9,6 @@ import taranis.utils
 import taranis.distance
 import taranis.clustering
 
-import pdb
-
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
     stderr=True,
@@ -47,7 +45,7 @@ class ReferenceAlleles:
         sparse_edge_weight_mtrx = coo_matrix(global_edge_weight_mtrx, shape=global_edge_weight_mtrx.shape)
         """
         # create a sparse matrix used for summary
-        # sparse_edge_weight_mtrx = coo_matrix(matrix_np, shape=matrix_np.shape)
+        _ = coo_matrix(matrix_np, shape=matrix_np.shape)
         pdb.set_trace()
         cluster_seq = taranis.clustering.ClusterDistance(
             dist_matrix_np, self.locus_name

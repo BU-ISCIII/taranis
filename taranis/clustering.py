@@ -3,7 +3,7 @@ import leidenalg
 import logging
 import numpy as np
 import rich.console
-
+import os
 import taranis.utils
 
 log = logging.getLogger(__name__)
