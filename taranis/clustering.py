@@ -35,7 +35,7 @@ class ClusterDistance:
         num_of_diag_elements = np.intersect1d(row_idx_pos, col_idx_pos).size
         num_of_non_diag_elements = row_idx_pos.size * col_idx_pos.size - num_of_diag_elements
         if num_of_non_diag_elements == 0:
-                return 1
+            return 1
         return (np.sum(self.dist_matrix[src_cluster_mtrx_idxs]) - num_of_diag_elements) / num_of_non_diag_elements
 
     def convert_to_seq_clusters(seq_cluster_ptrs, seq_id_to_seq_name_map):
