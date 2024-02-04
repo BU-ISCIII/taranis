@@ -46,7 +46,7 @@ class ReferenceAlleles:
         """
         # create a sparse matrix used for summary
         _ = coo_matrix(matrix_np, shape=matrix_np.shape)
-        pdb.set_trace()
+
         cluster_seq = taranis.clustering.ClusterDistance(
             dist_matrix_np, self.locus_name
         )
