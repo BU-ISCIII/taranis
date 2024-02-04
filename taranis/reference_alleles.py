@@ -4,19 +4,17 @@ import logging
 import os
 import re
 import rich.console
+import pandas as pd
+from pathlib import Path
 
 # import sys
 import subprocess
 
-# from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio import SeqIO
+from scipy.sparse import coo_matrix
 
-# from Bio.Blast.Applications import NcbiblastnCommandline
-from collections import OrderedDict
-from pathlib import Path
 import taranis.utils
-import taranis.blast
+import taranis.distance
+import taranis.clustering
 
 import pdb
 
@@ -32,85 +30,66 @@ stderr = rich.console.Console(
 class ReferenceAlleles:
     def __init__(self, fasta_file, output):
         self.fasta_file = fasta_file
+        self.locus_name = Path(fasta_file).stem
         self.output = output
-        self.records = None
-        self.locus_quality = {}
         self.selected_locus = {}
 
-    def check_locus_quality(self):
-        # START_CODONS_FORWARD = ['ATG', 'ATA', 'ATT', 'GTG', 'TTG', 'CTG']
-        # START_CODONS_REVERSE = ['CAT', 'TAT', 'AAT', 'CAC', 'CAA', 'CAG']
 
-        STOP_CODONS_FORWARD = ["TAA", "TAG", "TGA"]
-        STOP_CODONS_REVERSE = ["TTA", "CTA", "TCA"]
-        for record in self.records:
-            # Check if start condon forward
-            seq = str(record.seq)
-            s_codon_f = re.match(r"^(ATG|ATA|ATT|GTG|TTG|CTG).+(\w{3})$", seq)
-            if s_codon_f:
-                #  Check if last 3 characters are codon stop forward
-                if s_codon_f.group(2) in STOP_CODONS_FORWARD:
-                    # Check if multiple stop codon by translating to protein and
-                    # comparing length
-                    locus_prot = Seq(record.seq).translate()
-                    if len(locus_prot) == int(len(seq) / 3):
-                        self.locus_quality[record.id] = "good quality"
-                        self.selected_locus[record.id] = seq
-                    else:
-                        self.locus_quality[record.id] = "bad quality: multiple_stop"
-                else:
-                    self.locus_quality[record.id] = "bad quality: no_stop"
-            else:
-                # Check if start codon reverse
-                s_codon_r = re.match(r"^(\w{3}).+ (CAT|TAT|AAT|CAC|CAA|CAG)$", seq)
-                if s_codon_r:
-                    # Matched reverse start codon
-                    if s_codon_f.group(1) in STOP_CODONS_REVERSE:
-                        locus_prot = Seq(record.seq).reverse_complement().translate()
-                        if len(locus_prot) == int(len(record.seq) / 3):
-                            self.locus_quality[record.id] = "good quality"
-                            self.selected_locus[record.id] = seq
-                        else:
-                            self.locus_quality[record.id] = "bad quality: multiple_stop"
-                    else:
-                        self.locus_quality[record.id] = "bad quality: no_stop"
-                else:
-                    self.locus_quality[record.id] = "bad_quality: no_start"
-        return
-
-    def create_matrix_distance(self):
+    def create_cluster_alleles(self):
+        log.debug("Processing distance matrix for $s", self.fasta_file)
+        distance_obj = taranis.distance.DistanceMatrix(self.fasta_file)
+        mash_distance_df = distance_obj.create_matrix()
+        # fetch the allele position into array
+        postition_to_allele = {x: mash_distance_df.columns[x] for x in range(len(mash_distance_df.columns))}
+        log.debug(f"Created distance matrix for {self.fasta_file}")
+        position_to_allele = {x: mash_distance_df.columns[x] }
+        # convert the  triangle matrix into full data matrix
+        matrix_np = mash_distance_df.to_numpy()
+        t_matrix_np = matrix_np.transpose()
+        matrix_np = t_matrix_np + matrix_np
+        # At this point minimal distance is 0. For clustering requires to be 1
+        # the oposite.
+        dist_matrix_np = (matrix_np -1) * -1
+        """ in alfaclust TO DELETE
+        sparse_edge_weight_mtrx = coo_matrix(global_edge_weight_mtrx, shape=global_edge_weight_mtrx.shape)
+        """
+        # create a sparse matrix used for summary
+        sparse_edge_weight_mtrx = coo_matrix(matrix_np, shape=matrix_np.shape)
+        pdb.set_trace()
+        cluster_seq = taranis.clustering.ClusterDistance(dist_matrix_np, self.locus_name)
+        cluster_ptrs = cluster_seq.create_clusters()
+        cluster_seq.convert_to_seq_clusters(cluster_ptrs, postition_to_allele)
         # f_name = os.path.basename(self.fasta_file).split('.')[0]
-        f_name = os.path.basename(self.fasta_file)
-        allele_name = Path(self.fasta_file).stem
-        mash_folder = os.path.join(self.output, "mash")
+
+        # mash_folder = os.path.join(self.output, "mash")
         # _ = taranis.utils.write_fasta_file(mash_folder, self.selected_locus, multiple_files=True, extension=False)
         # save directory to return after mash
         # working_dir = os.getcwd()
-        os.chdir(mash_folder)
+        # os.chdir(mash_folder)
         # run mash sketch command
-        sketch_file = "reference.msh"
-        mash_sketch_command = ["mash", "sketch", "-i", "-o", sketch_file, f_name]
+        # sketch_file = "reference.msh"
+        # mash_sketch_command = ["mash", "sketch", "-i", "-o", sketch_file, f_name]
+        # mash_sketch_command = ["mash", "sketch", "-i", f_name]
+        """ mash command used by alfatclust
+         dist -C -i -v 0.0001 -d 0.30000000000000004 -p 16 /media/lchapado/Reference_data/proyectos_isciii/taranis/documentos_antiguos/pasteur_schema/lmo0002.fasta /media/lchapado/Reference_data/proyectos_isciii/taranis/documentos_antiguos/pasteur_schema/lmo0002.fasta -k 17 -s 2000'
+        """
         # mash sketch -i -o prueba.msh lmo0003.fasta
         # mash_sketch_command += list(self.selected_locus.keys())
-        _ = subprocess.run(
-            mash_sketch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
+        # _ = subprocess.run(
+        #     mash_sketch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        # )
         # Get pairwise allele sequences mash distances
         # mash_distance_command = ["mash", "dist", sketch_path, sketch_path]
-        mash_distance_command = ["mash", "triangle", "-i", self.fasta_file]
-        mash_distance_result = subprocess.Popen(
-            mash_distance_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        out, err = mash_distance_result.communicate()
-        with open("matrix_distance.tsv", "w") as fo:
-            # adding alleles to create a heading
-            # the value are not required to be in order, just only any name and the right length
-            fo.write("alleles\t" + "\t".join(list(self.selected_locus.keys())) + "\n")
-            fo.write(out.decode("UTF-8"))
+       
 
+       
+
+        pdb.set_trace()
+        
         # Create the blast distance. database is the locus and the query is each
         # allele in the locus file
         # Create  blast db with sample file
+        """
         sample_blast_obj = taranis.blast.Blast("nucl")
         blast_dir = os.path.join(self.output, f_name)
         _ = sample_blast_obj.create_blastdb(self.fasta_file, blast_dir)
@@ -168,7 +147,7 @@ class ReferenceAlleles:
         matrix_df.to_csv(blast_matrix_path, sep=",")
         pdb.set_trace()
 
-        """
+        
         import pandas as pd
 
         locus_num = len(self.selected_locus)
@@ -459,6 +438,6 @@ class ReferenceAlleles:
         # _ = self.check_locus_quality()
         # pdb.set_trace()
         # Prepare data to use mash to create the distance matrix
-        _ = self.create_matrix_distance()
+        _ = self.create_cluster_alleles()
 
         pass
