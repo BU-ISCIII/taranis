@@ -26,8 +26,6 @@ class ReferenceAlleles:
         self.selected_locus = {}
 
     def create_cluster_alleles(self):
-        """_summary_
-        """        
         log.debug("Processing distance matrix for $s", self.fasta_file)
         distance_obj = taranis.distance.DistanceMatrix(self.fasta_file)
         mash_distance_df = distance_obj.create_matrix()
@@ -53,7 +51,9 @@ class ReferenceAlleles:
             dist_matrix_np, self.locus_name
         )
         cluster_ptrs = cluster_seq.create_clusters()
-        cluster_seq.convert_to_seq_clusters(cluster_ptrs, postition_to_allele)
+        alleles_in_cluster = cluster_seq.convert_to_seq_clusters(
+            cluster_ptrs, postition_to_allele
+        )
 
     def create_ref_alleles(self):
         self.records = taranis.utils.read_fasta_file(self.fasta_file)

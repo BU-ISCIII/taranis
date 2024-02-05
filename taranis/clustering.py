@@ -3,7 +3,6 @@ import leidenalg
 import logging
 import numpy as np
 import rich.console
-import os
 import taranis.utils
 
 log = logging.getLogger(__name__)
@@ -23,11 +22,19 @@ class ClusterDistance:
         self.seed = None
         self.res_param = 0.9
 
-    def calculate_mean_cluster(self, src_cluster_row_idxs):
-        src_cluster_col_idxs = src_cluster_row_idxs
-        src_cluster_mtrx_idxs = np.ix_(src_cluster_row_idxs, src_cluster_col_idxs)
-        row_idx_pos = np.argwhere(src_cluster_row_idxs).flatten()
-        col_idx_pos = np.argwhere(src_cluster_col_idxs).flatten()
+    def calculate_closest_index(
+        self, cluster_mtrx_idxs: tuple, cluster_mean: float
+    ) -> list:
+        cluster_matrix = self.dist_matrix[cluster_mtrx_idxs]
+        cluster_flat = cluster_matrix.flatten()
+        closest_index = np.argmin(np.abs(cluster_flat - cluster_mean))
+        return [np.unravel_index(closest_index, cluster_matrix.shape)]
+
+    def calculate_mean_cluster(self, cluster_mtrx_idxs: tuple, row_idx_pos: np.ndarray):
+        col_idx_pos = row_idx_pos
+        # src_cluster_mtrx_idxs = np.ix_(src_cluster_row_idxs, src_cluster_col_idxs)
+        # row_idx_pos = np.argwhere(src_cluster_row_idxs).flatten()
+        # col_idx_pos = np.argwhere(src_cluster_col_idxs).flatten()
         num_of_diag_elements = np.intersect1d(row_idx_pos, col_idx_pos).size
         num_of_non_diag_elements = (
             row_idx_pos.size * col_idx_pos.size - num_of_diag_elements
@@ -35,33 +42,39 @@ class ClusterDistance:
         if num_of_non_diag_elements == 0:
             return 1
         return (
-            np.sum(self.dist_matrix[src_cluster_mtrx_idxs]) - num_of_diag_elements
+            np.sum(self.dist_matrix[cluster_mtrx_idxs]) - num_of_diag_elements
         ) / num_of_non_diag_elements
 
-    def convert_to_seq_clusters(seq_cluster_ptrs, seq_id_to_seq_name_map):
-        output_seq_clusters = list()
+    def convert_to_seq_clusters(
+        self, cluster_ids: np.array, id_to_seq_name: dict
+    ) -> dict:
+        out_clusters = {}
+        for cluster_id in range(np.max(cluster_ids) + 1):
+            alleles_in_cluster = []
+            out_clusters[cluster_id] = [
+                id_to_seq_name[seq_id]
+                for seq_id in np.argwhere(cluster_ids == cluster_id).flatten()
+            ]
 
-        for cluster_id in range(np.max(seq_cluster_ptrs) + 1):
-            seq_cluster = list()
-            for seq_id in np.argwhere(seq_cluster_ptrs == cluster_id).flatten():
-                seq_cluster.append(
-                    "{}{}".format(seq_id_to_seq_name_map[str(seq_id)], os.linesep)
-                )
+        return out_clusters
 
-            output_seq_clusters.append(seq_cluster)
-        return output_seq_clusters
-
-    def verify_cluster_quality(self, src_cluster_ptrs):
-        log.debug(f"Verifying cluster for {self.ref_seq_name}")
-        avg_clusters = {}
+    def collect_data_cluster(self, src_cluster_ptrs):
+        log.debug(f"Collecting data for cluster {self.ref_seq_name}")
+        cluster_data = {}
         for cluster_id in range(np.max(src_cluster_ptrs) + 1):
+            cluster_data[cluster_id] = {}
             log.debug(f"calculating mean for cluster number {cluster_id}")
-            src_cluster_bool_ptrs = src_cluster_ptrs == cluster_id
-            avg_clusters[cluster_id] = self.calculate_mean_cluster(
-                src_cluster_bool_ptrs
+            cluster_bool_ptrs = src_cluster_ptrs == cluster_id
+            cluster_mtrx_idxs = np.ix_(cluster_bool_ptrs, cluster_bool_ptrs)
+            row_idx_pos = np.argwhere(cluster_bool_ptrs).flatten()
+            # col_idx_pos = np.argwhere(cluster_bool_ptrs).flatten()
+            cluster_mean = self.calculate_mean_cluster(cluster_mtrx_idxs, row_idx_pos)
+            # pdb.set_trace()
+            cluster_data[cluster_id]["avg"] = cluster_mean
+            cluster_data[cluster_id]["closest_idx"] = self.calculate_closest_index(
+                cluster_mtrx_idxs, cluster_mean
             )
-
-        return avg_clusters
+        return cluster_data
 
     def create_clusters(self):
         comm_graph = ig.Graph.Weighted_Adjacency(
@@ -76,14 +89,19 @@ class ClusterDistance:
             seed=self.seed,
         )
         cluster_ptrs = np.array(graph_clusters.membership)
-
-        avg_clusters = self.verify_cluster_quality(cluster_ptrs)
+        # Convert the partition to a DataFrame
+        # df_clusters = pd.DataFrame({'Node': range(len(graph_clusters.membership)), 'Cluster': graph_clusters.membership})
+        # Calculate the centroid of each cluster
+        # cluster_centers = df_clusters.groupby('Cluster').apply(lambda x: np.mean(self.dist_matrix[x['Node']], axis=0)).values
+        clusters_data = self.collect_data_cluster(cluster_ptrs)
         # check that cluste average values are upper than 0.9
-        if not all(x > 0.9 for x in list(avg_clusters.values())):
-            log.warning(
-                f"There are some cluster below average of 0.9 in locus {self.ref_seq_name} "
-            )
-            stderr.print(
-                f"[red]There are some cluster below average of 0.9 in locus {self.ref_seq_name}"
-            )
+        for value in clusters_data.values():
+            if value["avg"] < 0.9 :
+                log.warning(
+                    f"There are some cluster below average of 0.9 in locus {self.ref_seq_name} "
+                )
+                stderr.print(
+                    f"[red]There are some cluster below average of 0.9 in locus {self.ref_seq_name}"
+                )
+
         return cluster_ptrs
