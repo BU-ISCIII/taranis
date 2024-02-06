@@ -2,9 +2,10 @@ import logging
 
 import rich.console
 from pathlib import Path
+import os
 
 from scipy.sparse import coo_matrix
-
+import pdb
 import taranis.utils
 import taranis.distance
 import taranis.clustering
@@ -47,19 +48,27 @@ class ReferenceAlleles:
         # create a sparse matrix used for summary
         _ = coo_matrix(matrix_np, shape=matrix_np.shape)
 
-        cluster_seq = taranis.clustering.ClusterDistance(
+        cluster_obj = taranis.clustering.ClusterDistance(
             dist_matrix_np, self.locus_name
         )
-        cluster_ptrs = cluster_seq.create_clusters()
-        alleles_in_cluster = cluster_seq.convert_to_seq_clusters(
+        cluster_ptrs, cluster_data = cluster_obj.create_clusters()
+        alleles_in_cluster = cluster_obj.convert_to_seq_clusters(
             cluster_ptrs, postition_to_allele
         )
+        cluster_file = os.path.join(self.output, "cluster_alleles_" + self.locus_name + ".txt")
+        pdb.set_trace()
+        with open(cluster_file, "w") as fo:
+            for cluster_id, alleles in alleles_in_cluster.items():
+                fo.write("Cluster number" + str(cluster_id + 1) + "\n")
+                fo.write("\n".join(alleles) + "\n")
+        pdb.set_trace()
+        return  cluster_data
 
     def create_ref_alleles(self):
         self.records = taranis.utils.read_fasta_file(self.fasta_file)
         # _ = self.check_locus_quality()
         # pdb.set_trace()
         # Prepare data to use mash to create the distance matrix
-        _ = self.create_cluster_alleles()
+        cluster_data = self.create_cluster_alleles()
 
         pass

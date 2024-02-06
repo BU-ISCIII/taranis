@@ -4,6 +4,7 @@ import logging
 import numpy as np
 import rich.console
 import taranis.utils
+import pdb
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
@@ -22,13 +23,12 @@ class ClusterDistance:
         self.seed = None
         self.res_param = 0.9
 
-    def calculate_closest_index(
+    def calculate_cluster_center(
         self, cluster_mtrx_idxs: tuple, cluster_mean: float
-    ) -> list:
+    ) -> int:
         cluster_matrix = self.dist_matrix[cluster_mtrx_idxs]
-        cluster_flat = cluster_matrix.flatten()
-        closest_index = np.argmin(np.abs(cluster_flat - cluster_mean))
-        return [np.unravel_index(closest_index, cluster_matrix.shape)]
+        row_means = np.mean(cluster_matrix, axis=1)
+        return cluster_mtrx_idxs[0][np.argmin(np.abs(row_means - cluster_mean))][0]
 
     def calculate_mean_cluster(self, cluster_mtrx_idxs: tuple, row_idx_pos: np.ndarray):
         col_idx_pos = row_idx_pos
@@ -50,7 +50,6 @@ class ClusterDistance:
     ) -> dict:
         out_clusters = {}
         for cluster_id in range(np.max(cluster_ids) + 1):
-            alleles_in_cluster = []
             out_clusters[cluster_id] = [
                 id_to_seq_name[seq_id]
                 for seq_id in np.argwhere(cluster_ids == cluster_id).flatten()
@@ -69,14 +68,18 @@ class ClusterDistance:
             row_idx_pos = np.argwhere(cluster_bool_ptrs).flatten()
             # col_idx_pos = np.argwhere(cluster_bool_ptrs).flatten()
             cluster_mean = self.calculate_mean_cluster(cluster_mtrx_idxs, row_idx_pos)
-            # pdb.set_trace()
+            # get the closest distance coordenates to cluster mean value
             cluster_data[cluster_id]["avg"] = cluster_mean
-            cluster_data[cluster_id]["closest_idx"] = self.calculate_closest_index(
+            cluster_data[cluster_id]["center_id"] = self.calculate_cluster_center(
                 cluster_mtrx_idxs, cluster_mean
             )
+            log.debug(f"Get the closest distance to culster mean for {cluster_id}")
+            # get the number of sequences for the cluster
+            cluster_data[cluster_id]["n_seq"] = len(cluster_mtrx_idxs[0])
         return cluster_data
 
     def create_clusters(self):
+        # pdb.set_trace()
         comm_graph = ig.Graph.Weighted_Adjacency(
             self.dist_matrix.tolist(), mode=1, loops=False
         )
@@ -89,6 +92,22 @@ class ClusterDistance:
             seed=self.seed,
         )
         cluster_ptrs = np.array(graph_clusters.membership)
+        """
+        cluster_centers = []
+        for cluster_id in np.unique(cluster_ptrs):
+            # Get the indices of data points in the current cluster
+            cluster_indices = np.where(cluster_ptrs == cluster_id)[0]
+            
+            # Compute the centroid (mean) of the data points in the current cluster
+            cluster_distances = self.dist_matrix[np.ix_(cluster_indices, cluster_indices)]
+            average_distances = np.mean(cluster_distances, axis=1)
+            centroid_index = cluster_indices[np.argmin(average_distances)]
+            centroid = self.dist_matrix[centroid_index]
+            cluster_centers.append(centroid)
+        for i, center in enumerate(cluster_centers):
+            print(f"Cluster {i+1}: {center}")
+        pdb.set_trace()
+        """
         # Convert the partition to a DataFrame
         # df_clusters = pd.DataFrame({'Node': range(len(graph_clusters.membership)), 'Cluster': graph_clusters.membership})
         # Calculate the centroid of each cluster
@@ -104,4 +123,4 @@ class ClusterDistance:
                     f"[red]There are some cluster below average of 0.9 in locus {self.ref_seq_name}"
                 )
 
-        return cluster_ptrs
+        return cluster_ptrs, clusters_data
