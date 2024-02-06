@@ -4,7 +4,6 @@ import logging
 import numpy as np
 import rich.console
 import taranis.utils
-import pdb
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
@@ -73,7 +72,7 @@ class ClusterDistance:
             cluster_data[cluster_id]["center_id"] = self.calculate_cluster_center(
                 cluster_mtrx_idxs, cluster_mean
             )
-            log.debug(f"Get the closest distance to culster mean for {cluster_id}")
+            log.debug(f"Get the cluster center for {cluster_id}")
             # get the number of sequences for the cluster
             cluster_data[cluster_id]["n_seq"] = len(cluster_mtrx_idxs[0])
         return cluster_data
@@ -92,30 +91,11 @@ class ClusterDistance:
             seed=self.seed,
         )
         cluster_ptrs = np.array(graph_clusters.membership)
-        """
-        cluster_centers = []
-        for cluster_id in np.unique(cluster_ptrs):
-            # Get the indices of data points in the current cluster
-            cluster_indices = np.where(cluster_ptrs == cluster_id)[0]
-            
-            # Compute the centroid (mean) of the data points in the current cluster
-            cluster_distances = self.dist_matrix[np.ix_(cluster_indices, cluster_indices)]
-            average_distances = np.mean(cluster_distances, axis=1)
-            centroid_index = cluster_indices[np.argmin(average_distances)]
-            centroid = self.dist_matrix[centroid_index]
-            cluster_centers.append(centroid)
-        for i, center in enumerate(cluster_centers):
-            print(f"Cluster {i+1}: {center}")
-        pdb.set_trace()
-        """
-        # Convert the partition to a DataFrame
-        # df_clusters = pd.DataFrame({'Node': range(len(graph_clusters.membership)), 'Cluster': graph_clusters.membership})
-        # Calculate the centroid of each cluster
-        # cluster_centers = df_clusters.groupby('Cluster').apply(lambda x: np.mean(self.dist_matrix[x['Node']], axis=0)).values
+
         clusters_data = self.collect_data_cluster(cluster_ptrs)
         # check that cluste average values are upper than 0.9
         for value in clusters_data.values():
-            if value["avg"] < 0.9 :
+            if value["avg"] < 0.9:
                 log.warning(
                     f"There are some cluster below average of 0.9 in locus {self.ref_seq_name} "
                 )
