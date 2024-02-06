@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -22,6 +22,9 @@ license = {file = "LICENSE"}
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
+
+[project.scripts]
+taranis = "taranis.__main__:run_taranis"
 
 [tool.setuptools.packages.find]
 exclude = ["img", "virtualenv"]

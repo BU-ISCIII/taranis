@@ -29,6 +29,7 @@ setup(
     url="https://github.com/BU-ISCIII/taranis",
     license="GNU GENERAL PUBLIC LICENSE v.3",
     entry_points={"console_scripts": ["taranis=taranis.__main__:run_taranis"]},
+    python_requires=">=3.9, <4",
     install_requires=required,
     packages=find_packages(exclude=("docs")),
     include_package_data=True,
