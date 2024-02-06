@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-"""
-Common utility function used for relecov_tools package.
-"""
-
 import glob
 import io
 import logging
