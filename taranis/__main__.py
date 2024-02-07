@@ -259,6 +259,7 @@ def reference_alleles(
     schema: str,
     output: str,
 ):
+    start = time.perf_counter()
     schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
 
     # Check if output folder exists
@@ -282,7 +283,10 @@ def reference_alleles(
     """Create the reference alleles from the schema """
     for f_file in schema_files:
         ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output)
-    _ = ref_alleles.create_ref_alleles()
+    results = ref_alleles.create_ref_alleles()
+    _ = taranis.reference_alleles.collect_statistics([results], output)
+    finish = time.perf_counter()
+    print(f"Reference alleles finish in {round((finish-start)/60, 2)} minutes")
 
 
 @taranis_cli.command(help_priority=3)
