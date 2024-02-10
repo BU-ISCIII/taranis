@@ -255,9 +255,16 @@ def analyze_schema(
     type=click.Path(),
     help="Output folder to save reference alleles",
 )
+@click.option(
+    "--eval-cluster/--no-eval-cluster",
+    required=False,
+    default=False,
+    help="Evaluate if the reference alleles match all alleles with a 90% identity",
+)
 def reference_alleles(
     schema: str,
     output: str,
+    eval_cluster: bool,
 ):
     start = time.perf_counter()
     schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
@@ -282,7 +289,7 @@ def reference_alleles(
             sys.exit(1)
     """Create the reference alleles from the schema """
     for f_file in schema_files:
-        ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output)
+        ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output, eval_cluster)
     results = ref_alleles.create_ref_alleles()
     _ = taranis.reference_alleles.collect_statistics([results], output)
     finish = time.perf_counter()
