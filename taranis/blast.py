@@ -17,10 +17,21 @@ stderr = rich.console.Console(
 
 
 class Blast:
-    def __init__(self, db_type):
+    def __init__(self, db_type: str):
+        """Blast instance creation
+
+        Args:
+            db_type (str): type of blast database (nucleotide or protein)
+        """
         self.db_type = db_type
 
-    def create_blastdb(self, file_name, blast_dir):
+    def create_blastdb(self, file_name: str, blast_dir: str) -> None:
+        """Create blast database and store it at blast dir
+
+        Args:
+            file_name (str): Fasta file from generate the database
+            blast_dir (str): directory to store blast database files
+        """
         self.f_name = Path(file_name).stem
         db_dir = os.path.join(blast_dir, self.f_name)
         self.out_blast_dir = os.path.join(db_dir, self.f_name)
@@ -63,6 +74,7 @@ class Blast:
         max_target_seqs: int = 1000,
         max_hsps: int = 10,
         num_threads: int = 1,
+        query_type: str = "file",
     ) -> list:
         """blast command is executed, returning a list of each match found
 
@@ -77,10 +89,13 @@ class Blast:
             max_target_seqs (int, optional): max target to output. Defaults to 1000.
             max_hsps (int, optional): max hsps. Defaults to 10.
             num_threads (int, optional): number of threads. Defaults to 1.
-
+            query_type (str, optional): format of query (either file or string)
         Returns:
             list: list of strings containing blast results
         """
+        if query_type == "stdin":
+            stdin_query = query
+            query = "-"
         blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
         cline = NcbiblastnCommandline(
             task="blastn",
@@ -98,10 +113,13 @@ class Blast:
             query=query,
         )
         try:
-            out, _ = cline()
+            if query_type == "stdin":
+                out, _ = cline(stdin=stdin_query)
+            else:
+                out, _ = cline()
         except Exception as e:
-            log.error("Unable to run blast for %s ", self.out_blast_dir)
-            log.error(e)
+            # log.error("Unable to run blast for %s ", self.out_blast_dir)
+            # log.error(e)
             stderr.print(f"[red] Unable to run blast {self.out_blast_dir}")
             exit(1)
         return out.splitlines()

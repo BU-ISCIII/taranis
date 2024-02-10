@@ -7,7 +7,9 @@ import os
 import taranis.utils
 import taranis.distance
 import taranis.clustering
+import taranis.eval_cluster
 from Bio import SeqIO
+import pdb
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
@@ -19,19 +21,21 @@ stderr = rich.console.Console(
 
 
 class ReferenceAlleles:
-    def __init__(self, fasta_file: str, output: str):
+    def __init__(self, fasta_file: str, output: str, eval_cluster: bool):
         """ReferenceAlleles instance creation
 
         Args:
             fasta_file (str): file name included path for locus
             output (str): output folder
+            eval_cluster (bool): True if cluster evaluation must be done
         """
         self.fasta_file = fasta_file
         self.locus_name = Path(fasta_file).stem
         self.output = output
+        self.eval_cluster = eval_cluster
         self.selected_locus = {}
 
-    def create_cluster_alleles(self) -> list:
+    def create_cluster_alleles(self) -> dict:
         """Alleles in fasta file are clustering by using two additional classes:
             DistanceMatrix which creates a matrix of distance using the allele
             sequences, and ClusterDistance which get the matrix and group the
@@ -84,13 +88,20 @@ class ReferenceAlleles:
                 fo.write("Cluster number" + str(cluster_id + 1) + "\n")
                 fo.write("\n".join(alleles) + "\n")
 
-        return [cluster_data, reference_alleles]
+        return {
+            "cluster_data": cluster_data,
+            "reference_alleles": reference_alleles,
+            "alleles_in_cluster": alleles_in_cluster,
+        }
 
-    def save_reference_alleles(self, reference_alleles: list) -> None:
+    def save_reference_alleles(self, reference_alleles: list) -> str:
         """From the input list it fetch the allele squence and save it as fasta
 
         Args:
             reference_alleles (list): list having the allele ids
+
+        Returns:
+            str: file path of the reference alleles
         """
         record_seq = {}
         with open(self.fasta_file) as fh:
@@ -100,9 +111,9 @@ class ReferenceAlleles:
         ref_allele_file = os.path.join(self.output, self.locus_name + ".fa")
         with open(ref_allele_file, "w") as fo:
             for r_id, r_seq in record_seq.items():
-                fo.write(r_id + "\n")
+                fo.write(">" + r_id + "\n")
                 fo.write(r_seq + "\n")
-        return
+        return ref_allele_file
 
     def create_ref_alleles(self) -> dict:
         """Main method to create the reference alleles
@@ -112,9 +123,20 @@ class ReferenceAlleles:
         """
         self.records = taranis.utils.read_fasta_file(self.fasta_file)
         # Prepare data to use mash to create the distance matrix
-        cluster_data, reference_alleles = self.create_cluster_alleles()
-        _ = self.save_reference_alleles(reference_alleles)
-        return cluster_data
+        allele_data = self.create_cluster_alleles()
+        ref_fasta_file = self.save_reference_alleles(allele_data["reference_alleles"])
+        if self.eval_cluster:
+            stderr.print(f"Evaluating clusters")
+            evaluation_obj = taranis.eval_cluster.EvaluateCluster(
+                self.fasta_file, self.locus_name, self.output
+            )
+            evaluation_obj.evaluate_clusters(
+                allele_data["alleles_in_cluster"],
+                allele_data["cluster_data"],
+                ref_fasta_file,
+            )
+
+        return allele_data["cluster_data"]
 
 
 def collect_statistics(data_alleles: list, out_folder: str) -> None:
