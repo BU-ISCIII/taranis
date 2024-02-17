@@ -171,9 +171,9 @@ class EvaluateCluster:
             if result_eval["validation"] is False:
                 evaluation_alleles[cluster_id]["result"] = "NOK"
                 if len(result_eval["alleles_not_found"]) > 0:
-                    evaluation_alleles[cluster_id]["alleles_not_found"] = (
-                        result_eval["alleles_not_found"]
-                    )
+                    evaluation_alleles[cluster_id]["alleles_not_found"] = result_eval[
+                        "alleles_not_found"
+                    ]
                 if len(result_eval["alleles_not_in_cluster"]) > 0:
                     evaluation_alleles[cluster_id][
                         "alleles_not_in_cluster"
