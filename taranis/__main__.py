@@ -258,15 +258,64 @@ def analyze_schema(
 @click.option(
     "--eval-cluster/--no-eval-cluster",
     required=False,
-    default=False,
-    help="Evaluate if the reference alleles match all alleles with a 90% identity",
+    default=True,
+    help="Evaluate if the reference alleles match against blast with a 90% identity",
+)
+@click.option(
+    "-k",
+    "--kmer-size",
+    required=False,
+    type=int,
+    default=21,
+    help="Mash parameter for K-mer size.",
+)
+@click.option(
+    "-S",
+    "--sketch-size",
+    required=False,
+    type=int,
+    default=2000,
+    help="Mash parameter for Sketch size",
+)
+@click.option(
+    "-r",
+    "--cluster-resolution",
+    required=False,
+    type=float,
+    default=0.92,
+    help="Resolution value used for clustering.",
+)
+@click.option(
+    "--seed",
+    required=False,
+    type=int,
+    default=None,
+    help="Seed value for clustering",
+)
+@click.option(
+    "--cpus",
+    required=False,
+    multiple=False,
+    type=int,
+    default=1,
+    help="Number of cpus used for execution",
 )
 def reference_alleles(
     schema: str,
     output: str,
     eval_cluster: bool,
+    kmer_size: int,
+    sketch_size: int,
+    cluster_resolution: float,
+    seed: int,
+    cpus: int,
 ):
     start = time.perf_counter()
+    max_cpus = taranis.utils.cpus_available()
+    if cpus > max_cpus:
+        stderr.print("[red] Number of CPUs bigger than the CPUs available")
+        stderr.print("Running code with ", max_cpus)
+        cpus = max_cpus
     schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
 
     # Check if output folder exists
@@ -288,10 +337,32 @@ def reference_alleles(
             stderr.print("[red] ERROR. Unable to create folder  " + output)
             sys.exit(1)
     """Create the reference alleles from the schema """
+    results = []
+    """
     for f_file in schema_files:
-        ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output, eval_cluster)
-    results = ref_alleles.create_ref_alleles()
-    _ = taranis.reference_alleles.collect_statistics([results], output)
+        
+        ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output, eval_cluster, kmer_size, sketch_size)
+        c_data = ref_alleles.create_ref_alleles()
+        results.append(c_data)
+        """
+    with concurrent.futures.ThreadPoolExecutor(max_workers=cpus) as executor:
+        futures = [
+            executor.submit(
+                taranis.reference_alleles.parallel_execution,
+                f_file,
+                output,
+                eval_cluster,
+                kmer_size,
+                sketch_size,
+                cluster_resolution,
+                seed,
+            )
+            for f_file in schema_files
+        ]
+    # import pdb; pdb.set_trace()
+    for future in concurrent.futures.as_completed(futures):
+        results.append(future.result())
+    _ = taranis.reference_alleles.collect_statistics(results, eval_cluster, output)
     finish = time.perf_counter()
     print(f"Reference alleles finish in {round((finish-start)/60, 2)} minutes")
 

@@ -71,7 +71,7 @@ class Blast:
         penalty: int = -2,
         gapopen: int = 1,
         gapextend: int = 1,
-        max_target_seqs: int = 1000,
+        max_target_seqs: int = 2000,
         max_hsps: int = 10,
         num_threads: int = 1,
         query_type: str = "file",

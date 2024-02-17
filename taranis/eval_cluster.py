@@ -19,6 +19,13 @@ stderr = rich.console.Console(
 
 class EvaluateCluster:
     def __init__(self, locus_path: str, locus_name: str, output: str):
+        """EvaluateCluster instance creation
+
+        Args:
+            locus_path (str): path of the locus
+            locus_name (str): locus name
+            output (str): folder to store results
+        """
         self.locus_path = locus_path
         self.locus_name = locus_name
 
@@ -29,18 +36,39 @@ class EvaluateCluster:
         _ = self.blast_obj.create_blastdb(locus_path, self.output)
         return
 
+    def delete_blast_db_folder(self):
+        """Delete blast db folder"""
+        taranis.utils.delete_folder(os.path.join(self.output, self.locus_name))
+
     def find_cluster_from_ref_allele(self, cluster_ref_alleles: dict) -> dict:
+        """Create a dictionary to map de cluster belongs to the reference allele
+
+        Args:
+            cluster_ref_alleles (dict): values collected for statistics with the
+                cluster id and the reference allele name
+
+        Returns:
+            dict: relation between reference allele name and the cluster
+        """
         return dict(
             [(value["center_id"], c_id) for c_id, value in cluster_ref_alleles.items()]
         )
 
-    def summary(self, cluster_data: dict) -> list:
-        summary_table = [
-            "Locus name",
-            "result",
-            "alleles not found",
-            "alleles not in cluster",
-        ]
+    def summary(self, cluster_data: dict) -> dict:
+        """Create the summary information from the individual result for each
+           cluster
+
+        Args:
+            cluster_data (dict): cluster evaluation
+
+        Returns:
+            dict: summary table for getting nice presentation of evaluation data
+                and global result for the locus
+        """
+        summary_table = []
+        summary_data = {"result": "OK"}
+        # heading = "Locus name,result,alleles not found,alleles not in cluster"
+        # summary_table.append(heading)
         sorted_cluster = sorted(cluster_data.keys())
         for cluster_id in sorted_cluster:
             row_data = [self.locus_name, str(cluster_id)]
@@ -55,20 +83,24 @@ class EvaluateCluster:
                 if "alleles_not_in_culster" in cluster_data[cluster_id]
                 else "-"
             )
+            if cluster_data[cluster_id]["result"] == "NOK":
+                summary_data["result"] = "NOK"
             summary_table.append(",".join(row_data))
-        return summary_table
+        # pdb.set_trace()
+        summary_data["individual"] = summary_table
+        return summary_data
 
-    def validate_cluster(self, blast_result: dict, cluster_data: list) -> dict:
+    def validate_cluster(self, blast_result: list, cluster_data: list) -> dict:
         """For cluster validation, the sequence id matched in blast are compared
             with the cluster sequences. Return False validation if there are
             difference between them.
 
         Args:
-            blast_result (dict): _description_
-            cluster_data (list): _description_
+            blast_result (list): blast matches results
+            cluster_data (list): allele names for the cluster to evaluate
 
         Returns:
-            dict: _description_
+            dict: result of the evaluation
         """
         # index of sequence id
         sseqid = 1
@@ -81,7 +113,8 @@ class EvaluateCluster:
             else:
                 alleles_not_in_cluster.append(blast_allele)
 
-        if len(cluster_data) == len(blast_alleles):
+        if len(cluster_data) == len(set(blast_alleles)):
+            # pdb.set_trace()
             return {"validation": True}
         result = {"validation": False}
         # convert list to numpy array to find out differences
@@ -96,8 +129,23 @@ class EvaluateCluster:
         return result
 
     def evaluate_clusters(
-        self, cluster_alleles: dict, cluster_ref_alleles, ref_alleles_file: str
-    ):
+        self, cluster_alleles: dict, cluster_ref_alleles: dict, ref_alleles_file: str
+    ) -> list:
+        """Perform clusted evaluation comparing for each clusted defined in
+            previous step with searching the matches that blast found running
+            witha 90% of percentage of identity
+
+        Args:
+            cluster_alleles (dict): contains the cluster id as dict and the list
+                of allele names as value
+            cluster_ref_alleles (dict): statistics information for each cluster
+                to fetch the reference allele for each cluster
+            ref_alleles_file (str): reference alleles to get the seqence for the
+                reference allele
+
+        Returns:
+            list: evaluation imformation for each cluster
+        """
         reference_alleles = {}
         evaluation_alleles = {}
         ref_allele_in_cluster = self.find_cluster_from_ref_allele(cluster_ref_alleles)
@@ -117,7 +165,6 @@ class EvaluateCluster:
             query_file.close()
 
             cluster_id = ref_allele_in_cluster[r_id]
-            # pdb.set_trace()
             result_eval = self.validate_cluster(
                 blast_result, cluster_alleles[cluster_id]
             )
