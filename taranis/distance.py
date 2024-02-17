@@ -18,18 +18,21 @@ stderr = rich.console.Console(
 
 class DistanceMatrix:
     def __init__(
-        self,
-        file_path: str,
+        self, file_path: str, k_mer_value: str = "21", sketch_size: str = "2000"
     ) -> "DistanceMatrix":
         """DistanceMatrix instance creation
 
         Args:
             file_path (str): Locus file path
+            k_mer_value (str, optional): Hashes will be based on strings of this many nucleotides. Defaults to "21".
+            sketch_size (str, optional): Each sketch will have at most this many non-redundant min-hashes. Defaults to "2000".
 
         Returns:
-            DistanceMatrix: created instance
+            DistanceMatrix: created distance
         """
         self.file_path = file_path
+        self.k_mer_value = k_mer_value
+        self.sketch_size = sketch_size
 
     def create_matrix(self) -> pd.DataFrame:
         """Create distance matrix using external program called mash
@@ -44,9 +47,9 @@ class DistanceMatrix:
             "-i",
             self.file_path,
             "-k",
-            "17",
+            str(self.k_mer_value),
             "-s",
-            "2000",
+            str(self.sketch_size),
         ]
         try:
             mash_distance_result = subprocess.Popen(

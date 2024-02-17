@@ -15,18 +15,26 @@ stderr = rich.console.Console(
 
 
 class ClusterDistance:
-    def __init__(self, dist_matrix: np.array, ref_seq_name: str):
+    def __init__(
+        self,
+        dist_matrix: np.array,
+        ref_seq_name: str,
+        resolution: float = 0.92,
+        seed: int = None,
+    ):
         """ClusterDistance instance creation
 
         Args:
             dist_matrix (np.array): distance matrix
             ref_seq_name (str): locus name
+            resolution (float): resolution value for the clustering
+            seed (int): seed for the clustering
         """
         self.dist_matrix = dist_matrix
         self.num_seq = dist_matrix.shape[0]
         self.ref_seq_name = ref_seq_name
-        self.seed = None
-        self.res_param = 0.9
+        self.seed = seed
+        self.resolution = resolution
 
     def calculate_cluster_center(
         self, cluster_mtrx_idxs: tuple, cluster_mean: float
@@ -102,12 +110,12 @@ class ClusterDistance:
 
         Returns:
             dict: where key is the cluster number and value a list of the
-                statistic data
+                statistics data
         """
         log.debug(f"Collecting data for cluster {self.ref_seq_name}")
         cluster_data = {}
         for cluster_id in range(np.max(src_cluster_ptrs) + 1):
-            cluster_data[cluster_id] = {}
+            cluster_data[cluster_id] = {"locus_name": self.ref_seq_name}
             log.debug(f"calculating mean for cluster number {cluster_id}")
             cluster_bool_ptrs = src_cluster_ptrs == cluster_id
             cluster_mtrx_idxs = np.ix_(cluster_bool_ptrs, cluster_bool_ptrs)
@@ -124,13 +132,17 @@ class ClusterDistance:
             cluster_data[cluster_id]["n_seq"] = len(cluster_mtrx_idxs[0])
         return cluster_data
 
-    def create_clusters(self) -> list[dict]:
+    def create_clusters(self, resolution) -> list[dict]:
         """main method to create clustering using the Leiden algorithm
+
+        Args:
+            resolution (float): resolution value for the clustering
 
         Returns:
             list: two dictionaries are returned first with the cluster and the
             matrix indexes adn second the statistics data for each cluster
         """
+        self.resolution = resolution
         comm_graph = ig.Graph.Weighted_Adjacency(
             self.dist_matrix.tolist(), mode=1, loops=False
         )
@@ -139,20 +151,10 @@ class ClusterDistance:
             leidenalg.CPMVertexPartition,
             weights="weight",
             n_iterations=-1,
-            resolution_parameter=self.res_param,
+            resolution_parameter=self.resolution,
             seed=self.seed,
         )
         cluster_ptrs = np.array(graph_clusters.membership)
 
         clusters_data = self.collect_data_cluster(cluster_ptrs)
-        # check that cluste average values are upper than 0.9
-        for value in clusters_data.values():
-            if value["avg"] < 0.9:
-                log.warning(
-                    f"There are some cluster below average of 0.9 in locus {self.ref_seq_name} "
-                )
-                stderr.print(
-                    f"[red]There are some cluster below average of 0.9 in locus {self.ref_seq_name}"
-                )
-
         return [cluster_ptrs, clusters_data]

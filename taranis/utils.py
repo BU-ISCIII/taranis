@@ -4,10 +4,11 @@ import io
 import logging
 import multiprocessing
 import numpy as np
+import os
 import pandas as pd
 import plotly.graph_objects as go
 import questionary
-import os
+import shutil
 
 import re
 import rich.console
@@ -170,10 +171,12 @@ def create_graphic(
     fig = go.Figure()
     if mode == "lines":
         fig.add_trace(go.Scatter(x=x_data, y=y_data, mode=mode, name=title))
+        fig.update_layout(xaxis_title=labels[0], yaxis_title=labels[1])
     elif mode == "pie":
         fig.add_trace(go.Pie(labels=labels, values=x_data))
     elif mode == "bar":
         fig.add_trace(go.Bar(x=x_data, y=y_data))
+        fig.update_layout(xaxis_title=labels[0], yaxis_title=labels[1])
     elif mode == "box":
         fig.add_trace(go.Box(y=y_data))
 
@@ -182,25 +185,19 @@ def create_graphic(
     return
 
 
-def get_files_in_folder(folder: str, extension: str = None) -> list[str]:
-    """get the list of files, filtered by extension in the input folder. If
-    extension is not set, then all files in folder are returned
+def delete_folder(folder_to_delete: str) -> None:
+    """Delete the input folder
 
     Args:
-        folder (str): Folder path
-        extension (str, optional): Extension for filtering. Defaults to None.
-
-    Returns:
-        list[str]: list of files which match the condition
+        folder_to_delete (str): folder path to be deleted
     """
-    if not folder_exists(folder):
-        log.error("Folder %s does not exists", folder)
-        stderr.print("[red] Schema folder does not exist. " + folder + "!")
+    try:
+        shutil.rmtree(folder_to_delete)
+    except Exception as e:
+        log.error("Folder %s can not be deleted %s", folder_to_delete, e)
+        stderr.print("[red] Folder does not have any file which match your request")
         sys.exit(1)
-    if extension is None:
-        extension = "*"
-    folder_files = os.path.join(folder, "*." + extension)
-    return glob.glob(folder_files)
+    return
 
 
 def file_exists(file_to_check):
@@ -235,6 +232,27 @@ def folder_exists(folder_to_check):
     if os.path.isdir(folder_to_check):
         return True
     return False
+
+
+def get_files_in_folder(folder: str, extension: str = None) -> list[str]:
+    """get the list of files, filtered by extension in the input folder. If
+    extension is not set, then all files in folder are returned
+
+    Args:
+        folder (str): Folder path
+        extension (str, optional): Extension for filtering. Defaults to None.
+
+    Returns:
+        list[str]: list of files which match the condition
+    """
+    if not folder_exists(folder):
+        log.error("Folder %s does not exists", folder)
+        stderr.print("[red] Schema folder does not exist. " + folder + "!")
+        sys.exit(1)
+    if extension is None:
+        extension = "*"
+    folder_files = os.path.join(folder, "*." + extension)
+    return glob.glob(folder_files)
 
 
 def prompt_text(msg):
