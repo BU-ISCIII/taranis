@@ -338,13 +338,6 @@ def reference_alleles(
             sys.exit(1)
     """Create the reference alleles from the schema """
     results = []
-    """
-    for f_file in schema_files:
-        
-        ref_alleles = taranis.reference_alleles.ReferenceAlleles(f_file, output, eval_cluster, kmer_size, sketch_size)
-        c_data = ref_alleles.create_ref_alleles()
-        results.append(c_data)
-        """
     with concurrent.futures.ThreadPoolExecutor(max_workers=cpus) as executor:
         futures = [
             executor.submit(

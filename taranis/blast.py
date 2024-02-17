@@ -118,8 +118,8 @@ class Blast:
             else:
                 out, _ = cline()
         except Exception as e:
-            # log.error("Unable to run blast for %s ", self.out_blast_dir)
-            # log.error(e)
+            log.error("Unable to run blast for %s ", self.out_blast_dir)
+            log.error(e)
             stderr.print(f"[red] Unable to run blast {self.out_blast_dir}")
             exit(1)
         return out.splitlines()
