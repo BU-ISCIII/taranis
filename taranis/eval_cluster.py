@@ -6,7 +6,6 @@ import os
 import taranis.utils
 import taranis.blast
 from Bio import SeqIO
-import pdb
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(

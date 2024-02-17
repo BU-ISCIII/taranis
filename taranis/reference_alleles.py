@@ -9,7 +9,6 @@ import taranis.distance
 import taranis.clustering
 import taranis.eval_cluster
 from Bio import SeqIO
-import pdb
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
@@ -81,39 +80,6 @@ class ReferenceAlleles:
     def processing_cluster_data(
         self, cluster_data: np.array, cluster_ptrs: np.array, position_to_allele: dict
     ) -> dict:
-        """As per result of ClusterDistance methods, the
-            reference alleles are saved to file and statistics information is
-            returned
-
-        Returns:
-            list: two dictionaires are returned, cluster_data having statistics
-                and reference_alleles, where keys are cluster number and value
-                the reference allele for the cluster
-        """
-        """
-        # dist_matrix_np, postition_to_allele = self.create_distance_matrix()
-        
-        
-        # log.debug("Processing distance matrix for $s", self.fasta_file)
-        # distance_obj = taranis.distance.DistanceMatrix(self.fasta_file, self.kmer_size, self.sketch_size)
-        # mash_distance_df = distance_obj.create_matrix()
-        # log.debug(f"Created distance matrix for {self.fasta_file}")
-        # fetch the allele position into array
-
-        postition_to_allele = {
-            x: mash_distance_df.columns[x] for x in range(len(mash_distance_df.columns))
-        }
-        # convert the  triangle matrix into full data matrix
-        matrix_np = mash_distance_df.to_numpy()
-        t_matrix_np = matrix_np.transpose()
-        matrix_np = t_matrix_np + matrix_np
-        # At this point minimal distance is 0. For clustering requires to be 1
-        # the oposite.
-        dist_matrix_np = (matrix_np - 1) * -1
-        """
-
-        # convert the center pointer to allele name and create list to get
-        # sequences
 
         reference_alleles = []
         for cluster_id, values in cluster_data.items():
@@ -176,7 +142,7 @@ class ReferenceAlleles:
             dist_matrix_np,
             self.locus_name,
         )
-        # pdb.set_trace()
+
         for resolution in np.arange(self.cluster_resolution, 1, 0.025):
             cluster_ptrs, cluster_data = self.cluster_obj.create_clusters(
                 round(resolution, 3)
@@ -194,13 +160,11 @@ class ReferenceAlleles:
             evaluation_obj = taranis.eval_cluster.EvaluateCluster(
                 self.fasta_file, self.locus_name, self.output
             )
-            # pdb.set_trace()
             evaluation_result = evaluation_obj.evaluate_clusters(
                 allele_data["alleles_in_cluster"],
                 allele_data["cluster_data"],
                 ref_fasta_file,
             )
-            # pdb.set_trace()
             if evaluation_result["result"] == "OK" or resolution >= 1:
                 # delete blast database used for evaluation
                 _ = evaluation_obj.delete_blast_db_folder()
