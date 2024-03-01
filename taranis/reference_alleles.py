@@ -1,24 +1,14 @@
 import logging
-
-# import numpy as np
-import os
-import re
+import numpy as np
 import rich.console
-
-# import sys
-import subprocess
-
-# from Bio import SeqIO
-from Bio.Seq import Seq
-from Bio import SeqIO
-
-# from Bio.Blast.Applications import NcbiblastnCommandline
-from collections import OrderedDict
 from pathlib import Path
-import taranis.utils
-import taranis.blast
+import os
 
-import pdb
+import taranis.utils
+import taranis.distance
+import taranis.clustering
+import taranis.eval_cluster
+from Bio import SeqIO
 
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
@@ -30,435 +20,280 @@ stderr = rich.console.Console(
 
 
 class ReferenceAlleles:
-    def __init__(self, fasta_file, output):
-        self.fasta_file = fasta_file
-        self.output = output
-        self.records = None
-        self.locus_quality = {}
-        self.selected_locus = {}
+    def __init__(
+        self,
+        fasta_file: str,
+        output: str,
+        eval_cluster: bool,
+        kmer_size: int,
+        sketch_size: int,
+        cluster_resolution: float = 0.92,
+        seed: int = None,
+    ):
+        """ReferenceAlleles instance creation
 
-    def check_locus_quality(self):
-        # START_CODONS_FORWARD = ['ATG', 'ATA', 'ATT', 'GTG', 'TTG', 'CTG']
-        # START_CODONS_REVERSE = ['CAT', 'TAT', 'AAT', 'CAC', 'CAA', 'CAG']
-
-        STOP_CODONS_FORWARD = ["TAA", "TAG", "TGA"]
-        STOP_CODONS_REVERSE = ["TTA", "CTA", "TCA"]
-        for record in self.records:
-            # Check if start condon forward
-            seq = str(record.seq)
-            s_codon_f = re.match(r"^(ATG|ATA|ATT|GTG|TTG|CTG).+(\w{3})$", seq)
-            if s_codon_f:
-                #  Check if last 3 characters are codon stop forward
-                if s_codon_f.group(2) in STOP_CODONS_FORWARD:
-                    # Check if multiple stop codon by translating to protein and
-                    # comparing length
-                    locus_prot = Seq(record.seq).translate()
-                    if len(locus_prot) == int(len(seq) / 3):
-                        self.locus_quality[record.id] = "good quality"
-                        self.selected_locus[record.id] = seq
-                    else:
-                        self.locus_quality[record.id] = "bad quality: multiple_stop"
-                else:
-                    self.locus_quality[record.id] = "bad quality: no_stop"
-            else:
-                # Check if start codon reverse
-                s_codon_r = re.match(r"^(\w{3}).+ (CAT|TAT|AAT|CAC|CAA|CAG)$", seq)
-                if s_codon_r:
-                    # Matched reverse start codon
-                    if s_codon_f.group(1) in STOP_CODONS_REVERSE:
-                        locus_prot = Seq(record.seq).reverse_complement().translate()
-                        if len(locus_prot) == int(len(record.seq) / 3):
-                            self.locus_quality[record.id] = "good quality"
-                            self.selected_locus[record.id] = seq
-                        else:
-                            self.locus_quality[record.id] = "bad quality: multiple_stop"
-                    else:
-                        self.locus_quality[record.id] = "bad quality: no_stop"
-                else:
-                    self.locus_quality[record.id] = "bad_quality: no_start"
-        return
-
-    def create_matrix_distance(self):
-        # f_name = os.path.basename(self.fasta_file).split('.')[0]
-        f_name = os.path.basename(self.fasta_file)
-        allele_name = Path(self.fasta_file).stem
-        mash_folder = os.path.join(self.output, "mash")
-        # _ = taranis.utils.write_fasta_file(mash_folder, self.selected_locus, multiple_files=True, extension=False)
-        # save directory to return after mash
-        # working_dir = os.getcwd()
-        os.chdir(mash_folder)
-        # run mash sketch command
-        sketch_file = "reference.msh"
-        mash_sketch_command = ["mash", "sketch", "-i", "-o", sketch_file, f_name]
-        # mash sketch -i -o prueba.msh lmo0003.fasta
-        # mash_sketch_command += list(self.selected_locus.keys())
-        _ = subprocess.run(
-            mash_sketch_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        # Get pairwise allele sequences mash distances
-        # mash_distance_command = ["mash", "dist", sketch_path, sketch_path]
-        mash_distance_command = ["mash", "triangle", "-i", self.fasta_file]
-        mash_distance_result = subprocess.Popen(
-            mash_distance_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        )
-        out, err = mash_distance_result.communicate()
-        with open("matrix_distance.tsv", "w") as fo:
-            # adding alleles to create a heading
-            # the value are not required to be in order, just only any name and the right length
-            fo.write("alleles\t" + "\t".join(list(self.selected_locus.keys())) + "\n")
-            fo.write(out.decode("UTF-8"))
-
-        # Create the blast distance. database is the locus and the query is each
-        # allele in the locus file
-        # Create  blast db with sample file
-        sample_blast_obj = taranis.blast.Blast("nucl")
-        blast_dir = os.path.join(self.output, f_name)
-        _ = sample_blast_obj.create_blastdb(self.fasta_file, blast_dir)
-
-        # create all fasta files for query
-        fasta_folder = os.path.join(self.output, "fasta", allele_name)
-        tmp_blast_matrix = {}
-        allele_list = []
-        counter = 0
-        with open(self.fasta_file) as fh:
-            for record in SeqIO.parse(fh, "fasta"):
-                # pdb.set_trace()
-                blast_allele = {}
-                query_file = taranis.utils.write_fasta_file(
-                    fasta_folder, record.id, record.id, str(record.seq)
-                )
-                # query_file = os.path.join(fasta_folder,record.id)
-                seq_blast_match = sample_blast_obj.run_blast(
-                    query_file,
-                    perc_identity=10,
-                    evalue=1,
-                    max_target_seqs=10000,
-                    num_threads=4,
-                )
-                q_allele = seq_blast_match[0].split("\t")[0]
-                allele_list.append(q_allele)
-                for seq_blast in seq_blast_match:
-                    b_line = seq_blast.split("\t")
-                    if not b_line[1] in blast_allele:
-                        blast_allele[b_line[1]] = b_line[2]
-                    else:
-                        if blast_allele[b_line[1]] < b_line[2]:
-                            blast_allele[b_line[1]] = b_line[2]
-                tmp_blast_matrix[q_allele] = blast_allele
-                counter += 1
-                if counter % 25 == 0:
-                    print("processing allele number ", counter)
-        blast_matrix = OrderedDict()
-        allele_list_2 = allele_list.copy()
-        pdb.set_trace()
-        for main_allele in allele_list:
-            identity_value = []
-            for sub_allele in allele_list_2:
-                if sub_allele in tmp_blast_matrix[main_allele]:
-                    identity_value.append(tmp_blast_matrix[main_allele][sub_allele])
-                else:
-                    identity_value.append(0)
-            blast_matrix[main_allele] = identity_value
-        import pandas as pd
-
-        matrix_df = pd.DataFrame(blast_matrix)
-        blast_matrix_path = os.path.join(
-            self.output, "blast", allele_name + "_blast_matrix.csv"
-        )
-        matrix_df.to_csv(blast_matrix_path, sep=",")
-        pdb.set_trace()
-
+        Args:
+            fasta_file (str): file name included path for locus
+            output (str): output folder
+            eval_cluster (bool): True if cluster evaluation must be done
+            kmer_size (int): kmer size for mash distance
+            sketch_size (int): sketch size for mash distance
+            cluster_resolution (float): resolution for clustering
+            seed (int): seed for random number generator
         """
-        import pandas as pd
+        self.fasta_file = fasta_file
+        self.locus_name = Path(fasta_file).stem
+        self.output = output
+        self.eval_cluster = eval_cluster
+        self.kmer_size = kmer_size
+        self.sketch_size = sketch_size
+        self.cluster_resolution = cluster_resolution
+        self.seed = seed
+        self.selected_locus = {}
+        self.cluster_obj = None
 
-        locus_num = len(self.selected_locus)
-        # pdb.set_trace()
-        matrix_df = pd.read_csv("matrix_distance.tsv", sep="\t").fillna(value=0)
+    def create_distance_matrix(self) -> list:
+        """Create the distance matrix for the alleles in the fasta file
 
-        # remove the first line of the matrix that contain only the number of alleles
-        matrix_df = matrix_df.drop(0)
-        locus_list = matrix_df.iloc[0:locus_num, 0]
-        matrix_np = matrix_df.iloc[:, 1:].to_numpy()
-        # convert the triangular matrix to mirror up triangular part
+        Returns:
+            np.array: distance matrix
+            dict: position to allele name
+        """
+        log.debug("Processing distance matrix for $s", self.fasta_file)
+        distance_obj = taranis.distance.DistanceMatrix(
+            self.fasta_file, self.kmer_size, self.sketch_size
+        )
+        mash_distance_df = distance_obj.create_matrix()
+        log.debug(f"Created distance matrix for {self.fasta_file}")
+        postition_to_allele = {
+            x: mash_distance_df.columns[x] for x in range(len(mash_distance_df.columns))
+        }
+        # convert the  triangle matrix into full data matrix
+        matrix_np = mash_distance_df.to_numpy()
         t_matrix_np = matrix_np.transpose()
         matrix_np = t_matrix_np + matrix_np
-        # values_np = matrix_df.iloc[:,2].to_numpy()
+        # At this point minimal distance is 0. For clustering requires to be 1
+        # the oposite.
+        dist_matrix_np = (matrix_np - 1) * -1
+        return dist_matrix_np, postition_to_allele
 
-        # matrix_np = values_np.reshape(locus_num, locus_num)
-        # out = out.decode('UTF-8').split('\n')
-        from sklearn.cluster import AgglomerativeClustering
+    def processing_cluster_data(
+        self, cluster_data: np.array, cluster_ptrs: np.array, position_to_allele: dict
+    ) -> dict:
 
-        clusterer = AgglomerativeClustering(
-            n_clusters=7,
-            metric="precomputed",
-            linkage="average",
-            distance_threshold=None,
+        reference_alleles = []
+        for cluster_id, values in cluster_data.items():
+            center_allele = position_to_allele[values["center_id"]]
+            values["center_id"] = center_allele
+            reference_alleles.append(center_allele)
+        alleles_in_cluster = self.cluster_obj.convert_to_seq_clusters(
+            cluster_ptrs, position_to_allele
         )
-        clusters = clusterer.fit_predict(matrix_np)
-        # clustering = AgglomerativeClustering(affinity="precomputed").fit(matrix_np)
-        mean_distance = np.mean(matrix_np, 0)
-        # std = np.std(matrix_np)
-        min_mean = min(mean_distance)
-        mean_all_alleles = np.mean(mean_distance)
-        max_mean = max(mean_distance)
-        # buscar el indice que tiene el minimo valor de media
-        min_mean_idx = np.where(mean_distance == float(min_mean))[0][0]
-        # create fasta file with the allele
-        min_allele = self.selected_locus[locus_list[min_mean_idx]]
-
-        record_allele_folder = os.path.join(os.getcwd(), f_name.split(".")[0])
-        min_allele_file = taranis.utils.write_fasta_file(
-            record_allele_folder, min_allele, locus_list[min_mean_idx]
+        cluster_folder = os.path.join(self.output, "Clusters")
+        _ = taranis.utils.create_new_folder(cluster_folder)
+        cluster_file = os.path.join(
+            cluster_folder, "cluster_alleles_" + self.locus_name + ".txt"
         )
-        # pdb.set_trace()
-        # busca el indice que tiene el valor de la media
-        mean_all_closser_value = taranis.utils.find_nearest_numpy_value(
-            mean_distance, mean_all_alleles
-        )
-        mean_all_alleles_idx = np.where(mean_distance == float(mean_all_closser_value))[
-            0
-        ][0]
-        # create fasta file with the allele
-        mean_allele = self.selected_locus[locus_list[mean_all_alleles_idx]]
-        # record_allele_folder = os.path.join(mash_folder, f_name)
-        mean_allele_file = taranis.utils.write_fasta_file(
-            record_allele_folder, mean_allele, locus_list[mean_all_alleles_idx]
-        )
+        with open(cluster_file, "w") as fo:
+            for cluster_id, alleles in alleles_in_cluster.items():
+                fo.write("Cluster number" + str(cluster_id + 1) + "\n")
+                fo.write("\n".join(alleles) + "\n")
 
-        # busca el indice con la mayor distancia
-        max_mean_idx = np.where(mean_distance == float(max_mean))[0][0]
-        # create fasta file with the allele
-        max_allele = self.selected_locus[locus_list[max_mean_idx]]
-        max_allele_file = taranis.utils.write_fasta_file(
-            record_allele_folder, max_allele, locus_list[max_mean_idx]
-        )
+        return {
+            "cluster_data": cluster_data,
+            "reference_alleles": reference_alleles,
+            "alleles_in_cluster": alleles_in_cluster,
+        }
 
-        # Elijo un outlier lmo0002_185 para ver la distancia
-        outlier_allele = self.selected_locus[locus_list[184]]
-        outlier_allele_file = taranis.utils.write_fasta_file(
-            record_allele_folder, outlier_allele, locus_list[184]
-        )
+    def save_reference_alleles(self, reference_alleles: list) -> str:
+        """From the input list it fetch the allele squence and save it as fasta
 
-        # elijo un segundo outlier lmo0002_95 que tiene como cluster =1
-        outlier2_allele = self.selected_locus[locus_list[95]]
-        outlier2_allele_file = taranis.utils.write_fasta_file(
-            record_allele_folder, outlier2_allele, locus_list[95]
-        )
+        Args:
+            reference_alleles (list): list having the allele ids
 
-        # elijo un tercer outlier lmo0002_185 que tiene como cluster =4
-        outlier3_allele = self.selected_locus[locus_list[185]]
-        outlier3_allele_file = taranis.utils.write_fasta_file(
-            record_allele_folder, outlier3_allele, locus_list[185]
-        )
-
-        # saca una lista de cuantas veces se repite un valor
-        np.bincount(clusters)
-        blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
-
-        # Create local BLAST database for all alleles in the locus
-        db_name = "/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/blast/locus_db"
-        # db_name = os.path.join("blast", 'locus_blastdb')
-        # fasta_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/documentos_antiguos/datos_prueba/schema_1_locus/lmo0002.fasta"
-        # pdb.set_trace()
-        # blast_command = ['makeblastdb' , '-in' , fasta_file , '-parse_seqids', '-dbtype',  "nucl", '-out' , db_name]
-        # blast_result = subprocess.run(blast_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # taranis.utils.create_blastdb(fasta_file, db_name, 'nucl', logger):
-        # locus_db_name = os.path.join(db_name, f_name[0], f_name[0])
-        # query_data= self.selected_locus["lmo0002_1"]
-        # All alleles in locus VS reference allele chosen (centroid) BLAST
-
-        # ref_query_file="/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/mash/lmo0002/query.fasta"
-        # cline = NcbiblastnCommandline(db=db_name, evalue=0.001, perc_identity=100, reward=1, penalty=-2, gapopen=1, gapextend=1, outfmt=blast_parameters, max_target_seqs=0, max_hsps=0, num_threads=4, query=ref_query_file)
-
-        # minima distancia .
-        # min_dist_file="/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/mash/lmo0002/lmo0002_610"
-        # pdb.set_trace()
-        min_dist_file = os.path.join(record_allele_folder, min_allele_file)
-        cline = NcbiblastnCommandline(
-            db=db_name,
-            evalue=0.001,
-            perc_identity=90,
-            reward=1,
-            penalty=-2,
-            gapopen=1,
-            gapextend=1,
-            outfmt=blast_parameters,
-            max_target_seqs=1100,
-            max_hsps=1000,
-            num_threads=4,
-            query=min_dist_file,
-        )
-        out, err = cline()
-        min_dist_lines = out.splitlines()
-        min_dist_alleles = []
-        for min_dist in min_dist_lines:
-            min_dist_alleles.append(min_dist.split("\t")[1])
-        min_np = np.array(min_dist_alleles)
-        # pdb.set_trace()
-        print("matches con min distancia: ", len(min_dist_lines))
-        print("Not coverage using as reference", np.setdiff1d(locus_list, min_np))
-        # distancia media. Sale 133 matches
-        # mean_dist_file="/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/mash/lmo0002/lmo0002_870"
-        mean_dist_file = os.path.join(record_allele_folder, mean_allele_file)
-        cline = NcbiblastnCommandline(
-            db=db_name,
-            evalue=0.001,
-            perc_identity=90,
-            reward=1,
-            penalty=-2,
-            gapopen=1,
-            gapextend=1,
-            outfmt=blast_parameters,
-            max_target_seqs=1100,
-            max_hsps=1000,
-            num_threads=4,
-            query=mean_dist_file,
-        )
-        out, err = cline()
-        mean_dist_lines = out.splitlines()
-        mean_dist_alleles = []
-        for mean_dist in mean_dist_lines:
-            mean_dist_alleles.append(mean_dist.split("\t")[1])
-        mean_np = np.array(mean_dist_alleles)
-        print("matches con distancia media: ", len(mean_dist_lines))
-        print("Not coverage using as reference", np.setdiff1d(locus_list, mean_np))
-
-        # maxima distancia,
-        # ref_query_file="/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/mash/lmo0002/lmo0002_216"
-        max_dist_file = os.path.join(record_allele_folder, max_allele_file)
-        cline = NcbiblastnCommandline(
-            db=db_name,
-            evalue=0.001,
-            perc_identity=90,
-            reward=1,
-            penalty=-2,
-            gapopen=1,
-            gapextend=1,
-            outfmt=blast_parameters,
-            max_target_seqs=1100,
-            max_hsps=1000,
-            num_threads=4,
-            query=max_dist_file,
-        )
-        out, err = cline()
-        max_dist_lines = out.splitlines()
-        max_dist_alleles = []
-        for max_dist in max_dist_lines:
-            max_dist_alleles.append(max_dist.split("\t")[1])
-        max_np = np.array(max_dist_alleles)
-        print("matches con max distancia: ", len(max_dist_lines))
-        print("Not coverage using as reference", np.setdiff1d(locus_list, max_np))
-
-        # eligiendo uno de los outliers ,
-        # outlier_file="/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/mash/lmo0002/lmo0002_183"
-        outlier_file = os.path.join(record_allele_folder, outlier_allele_file)
-        cline = NcbiblastnCommandline(
-            db=db_name,
-            evalue=0.001,
-            perc_identity=90,
-            reward=1,
-            penalty=-2,
-            gapopen=1,
-            gapextend=1,
-            outfmt=blast_parameters,
-            max_target_seqs=1100,
-            max_hsps=1000,
-            num_threads=4,
-            query=outlier_file,
-        )
-        out, err = cline()
-        outlier_lines = out.splitlines()
-        outlier_alleles = []
-        for outlier_line in outlier_lines:
-            outlier_alleles.append(outlier_line.split("\t")[1])
-        outlier_np = np.array(outlier_alleles)
-        print("matches con outliers distancia: ", len(outlier_lines))
-
-        print("Alleles added using outlier as reference", outlier_np)
-        new_ref_np = np.unique(np.concatenate((min_np, outlier_np), axis=0))
-        print("\n", "remaining alleles ", np.setdiff1d(locus_list, new_ref_np))
-
-        # eligiendo el segundo de los outliers ,
-        # outlier_file="/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/mash/lmo0002/lmo0002_183"
-        outlier2_file = os.path.join(record_allele_folder, outlier2_allele_file)
-        cline = NcbiblastnCommandline(
-            db=db_name,
-            evalue=0.001,
-            perc_identity=90,
-            reward=1,
-            penalty=-2,
-            gapopen=1,
-            gapextend=1,
-            outfmt=blast_parameters,
-            max_target_seqs=1100,
-            max_hsps=1000,
-            num_threads=4,
-            query=outlier2_file,
-        )
-        out, _ = cline()
-        outlier2_lines = out.splitlines()
-        outlier2_alleles = []
-        for outlier2_line in outlier2_lines:
-            outlier2_alleles.append(outlier2_line.split("\t")[1])
-        outlier2_np = np.array(outlier2_alleles)
-        print("matches con second outliers distance: ", len(outlier2_lines))
-        # print("Alleles added using second outlier as reference" , outlier2_np)
-        upd_new_ref_np = np.unique(np.concatenate((new_ref_np, outlier2_np), axis=0))
-        print(
-            "\n",
-            "remaining alleles after second outlier",
-            np.setdiff1d(locus_list, upd_new_ref_np),
-        )
-
-        # eligiendo el tercero de los outliers ,
-        # outlier_file="/media/lchapado/Reference_data/proyectos_isciii/taranis/new_taranis_result_code/mash/lmo0002/lmo0002_183"
-        outlier3_file = os.path.join(record_allele_folder, outlier3_allele_file)
-        cline = NcbiblastnCommandline(
-            db=db_name,
-            evalue=0.001,
-            perc_identity=90,
-            reward=1,
-            penalty=-2,
-            gapopen=1,
-            gapextend=1,
-            outfmt=blast_parameters,
-            max_target_seqs=1100,
-            max_hsps=1000,
-            num_threads=4,
-            query=outlier3_file,
-        )
-        out, _ = cline()
-        outlier3_lines = out.splitlines()
-        outlier3_alleles = []
-        for outlier3_line in outlier3_lines:
-            outlier3_alleles.append(outlier3_line.split("\t")[1])
-        outlier3_np = np.array(outlier3_alleles)
-        print("matches con third outliers distance: ", len(outlier3_lines))
-        # print("Alleles added using second outlier as reference" , outlier2_np)
-        upd2_new_ref_np = np.unique(
-            np.concatenate((upd_new_ref_np, outlier3_np), axis=0)
-        )
-        print(
-            "\n",
-            "remaining alleles after second outlier",
-            np.setdiff1d(locus_list, upd2_new_ref_np),
-        )
-
-        print("\n Still missing ", len(np.setdiff1d(locus_list, upd2_new_ref_np)))
-
-        pdb.set_trace()
-
-        # from sklearn.cluster import AgglomerativeClustering
-        # import numpy as np
-        # X = np.array([[0, 2, 3], [2, 0, 3], [3, 3, 0]])
-        # clustering = AgglomerativeClustering(affinity="precomputed").fit(X)
+        Returns:
+            str: file path of the reference alleles
         """
+        record_seq = {}
+        with open(self.fasta_file) as fh:
+            for record in SeqIO.parse(fh, "fasta"):
+                if record.id in reference_alleles:
+                    record_seq[record.id] = str(record.seq)
+        ref_allele_file = os.path.join(self.output, self.locus_name + ".fa")
+        with open(ref_allele_file, "w") as fo:
+            for r_id, r_seq in record_seq.items():
+                fo.write(">" + r_id + "\n")
+                fo.write(r_seq + "\n")
+        return ref_allele_file
 
-    def create_ref_alleles(self):
+    def create_ref_alleles(self) -> dict:
+        """Alleles in fasta file are clustering by using two additional classes:
+            DistanceMatrix which creates a matrix of distance using the allele
+            sequences, and ClusterDistance which get the matrix and group the
+            alleles in clusters.
+
+        Returns:
+            dict: containg statistics information for each cluster, and
+            optionally a list of evaluation cluster results
+        """
         self.records = taranis.utils.read_fasta_file(self.fasta_file)
-        # _ = self.check_locus_quality()
-        # pdb.set_trace()
-        # Prepare data to use mash to create the distance matrix
-        _ = self.create_matrix_distance()
+        dist_matrix_np, postition_to_allele = self.create_distance_matrix()
+        self.cluster_obj = taranis.clustering.ClusterDistance(
+            dist_matrix_np,
+            self.locus_name,
+        )
 
-        pass
+        for resolution in np.arange(self.cluster_resolution, 1, 0.025):
+            cluster_ptrs, cluster_data = self.cluster_obj.create_clusters(
+                round(resolution, 3)
+            )
+
+            allele_data = self.processing_cluster_data(
+                cluster_data, cluster_ptrs, postition_to_allele
+            )
+            ref_fasta_file = self.save_reference_alleles(
+                allele_data["reference_alleles"]
+            )
+
+            # evaluate clusters aginst blast results
+            stderr.print(f"Evaluating clusters for {self.locus_name}")
+            evaluation_obj = taranis.eval_cluster.EvaluateCluster(
+                self.fasta_file, self.locus_name, self.output
+            )
+            evaluation_result = evaluation_obj.evaluate_clusters(
+                allele_data["alleles_in_cluster"],
+                allele_data["cluster_data"],
+                ref_fasta_file,
+            )
+            if evaluation_result["result"] == "OK" or resolution >= 1:
+                # delete blast database used for evaluation
+                _ = evaluation_obj.delete_blast_db_folder()
+                break
+            stderr.print(
+                f"[yellow]{self.locus_name} resolution {resolution} not good enough. Increasing resolution"
+            )
+            log.info(
+                "%s resolution %s not good enough. Increasing resolution",
+                self.locus_name,
+                resolution,
+            )
+
+        return {
+            "cluster_data": allele_data["cluster_data"],
+            "evaluation": evaluation_result,
+        }
+
+
+def parallel_execution(
+    fasta_file: str,
+    output: str,
+    eval_cluster: bool,
+    kmer_size: int,
+    sketch_size: int,
+    cluster_resolution: float,
+    seed: int,
+):
+    """Parallel execution of the reference alleles creation
+
+    Args:
+        fasta_file (str): file name included path for locus
+        output (str): output folder
+        eval_cluster (bool): True if cluster evaluation must be done
+        kmer_size (int): kmer size for mash distance
+        sketch_size (int): sketch size for mash distance
+        cluster_resolution (float): resolution for clustering
+        seed (int): seed for random number generator
+    """
+    ref_alleles_obj = taranis.reference_alleles.ReferenceAlleles(
+        fasta_file,
+        output,
+        eval_cluster,
+        kmer_size,
+        sketch_size,
+        cluster_resolution,
+        seed,
+    )
+    return ref_alleles_obj.create_ref_alleles()
+
+
+def collect_statistics(data_alleles: list, eval_cluster: bool, out_folder: str) -> None:
+    """Collect the individual statistics for each locus to create graphics
+
+    Args:
+        data_alleles (list): list having two dictionaries, cluster_data for
+            information and evalluation for the result of evaluating
+        eval_cluser (bool): True if evaluation data exists to dump this info
+        out_folder (str): folder to save graphics
+    """
+
+    def stats_graphics(stats_folder: str, cluster_alleles: dict) -> None:
+        """Create the statistics graphics. Bar graphic for number of cluster
+            per alleles
+
+        Args:
+            stats_folder (str): folder path to store graphic
+            cluster_alleles (dict): contain number of clusters as key and number
+                of alleles having the same cluster number as value
+        """
+        stderr.print("Creating graphics")
+        log.info("Creating graphics")
+        graphic_folder = os.path.join(stats_folder, "graphics")
+        _ = taranis.utils.create_new_folder(graphic_folder)
+        cluster, alleles = zip(*cluster_alleles.items())
+        _ = taranis.utils.create_graphic(
+            graphic_folder,
+            "num_genes_per_allele.png",
+            "bar",
+            cluster,
+            alleles,
+            ["Gene", "Number of clusters"],
+            "Number of cluster per gene",
+        )
+
+    # split into cluster_data and evaluation_data
+    cluster_data = []
+    eval_data = []
+    cluster_data_graph = {}
+    clusters_list = []
+    # split the data into cluster and evaluation
+    for d_allele in data_alleles:
+        cluster_data.append(d_allele["cluster_data"])
+        eval_data.append(d_allele["evaluation"])
+    # collect the number of clusters for each allele
+    for c_data in cluster_data:
+        cluster_number = len(c_data)
+        # get data for graphic
+        cluster_data_graph[cluster_number] = (
+            cluster_data_graph.get(cluster_number, 0) + 1
+        )
+        # collect cluster information
+        for c_idx, c_value in dict(sorted(c_data.items())).items():
+            clusters_list.append(
+                c_value["locus_name"]
+                + ","
+                + str(c_idx)
+                + ","
+                + str(round(c_value["avg"], 2))
+                + ","
+                + c_value["center_id"]
+                + ","
+                + str(c_value["n_seq"])
+            )
+    heading = "Locus name,cluster number,average,center allele,number of sequences"
+    summary_file = os.path.join(out_folder, "evaluate_cluster", "cluster_summary.csv")
+    with open(summary_file, "w") as fo:
+        fo.write(heading + "\n")
+        fo.write("\n".join(clusters_list) + "\n")
+
+    _ = stats_graphics(out_folder, cluster_data_graph)
+    if eval_cluster:
+        heading = "Locus name,cluster number,result,alleles not match in blast,alleles not found in cluster"
+        eval_file = os.path.join(
+            out_folder, "evaluate_cluster", "cluster_evaluation.csv"
+        )
+        with open(eval_file, "w") as fo:
+            fo.write(heading + "\n")
+            for eval in eval_data:
+                fo.write("\n".join(eval["individual"]) + "\n")
+
+    return
