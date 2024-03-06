@@ -119,7 +119,7 @@ class ReferenceAlleles:
             for record in SeqIO.parse(fh, "fasta"):
                 if record.id in reference_alleles:
                     record_seq[record.id] = str(record.seq)
-        ref_allele_file = os.path.join(self.output, self.locus_name + ".fa")
+        ref_allele_file = os.path.join(self.output, self.locus_name + ".fasta")
         with open(ref_allele_file, "w") as fo:
             for r_id, r_seq in record_seq.items():
                 fo.write(">" + r_id + "\n")
