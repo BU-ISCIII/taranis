@@ -22,6 +22,18 @@ stderr = rich.console.Console(
     stderr=True, force_terminal=taranis.utils.rich_force_colors()
 )
 
+def expand_wildcards(ctx, param, value):
+    if value:
+        expanded_paths = []
+        for path in value:
+            # Check if path contains wildcard
+            if '*' in path:
+                # Expand wildcard
+                expanded_paths.extend(glob.glob(path))
+            else:
+                expanded_paths.append(path)
+        return expanded_paths
+    return None
 
 def run_taranis():
     # Set up the rich traceback
@@ -352,7 +364,6 @@ def reference_alleles(
             )
             for f_file in schema_files
         ]
-    # import pdb; pdb.set_trace()
     for future in concurrent.futures.as_completed(futures):
         results.append(future.result())
     _ = taranis.reference_alleles.collect_statistics(results, eval_cluster, output)
@@ -366,7 +377,7 @@ def reference_alleles(
     "--schema",
     required=True,
     multiple=False,
-    type=click.Path(),
+    type=click.Path(exists=True),
     help="Directory where the schema with the core gene files are located. ",
 )
 @click.option(
@@ -374,24 +385,8 @@ def reference_alleles(
     "--reference",
     required=True,
     multiple=False,
-    type=click.Path(),
+    type=click.Path(exists=True),
     help="Directory where the schema reference allele files are located. ",
-)
-@click.option(
-    "-g",
-    "--genome",
-    required=True,
-    multiple=False,
-    type=click.Path(),
-    help="Genome reference file",
-)
-@click.option(
-    "-a",
-    "--sample",
-    required=True,
-    multiple=False,
-    type=click.Path(),
-    help="Sample location file in fasta format. ",
 )
 @click.option(
     "-o",
@@ -401,27 +396,17 @@ def reference_alleles(
     type=click.Path(),
     help="Output folder to save reference alleles",
 )
+@click.argument("assemblies", callback=expand_wildcards, nargs=-1, required=True, type=click.Path(exists=True))
 def allele_calling(
     schema,
     reference,
-    genome,
-    sample,
+    assemblies,
     output,
 ):
-    folder_to_check = [schema, reference]
-    for folder in folder_to_check:
-        if not taranis.utils.folder_exists(folder):
-            log.error("folder %s does not exists", folder)
-            stderr.print("[red] Folder does not exist. " + folder + "!")
-            sys.exit(1)
-    if not taranis.utils.file_exists(sample):
-        log.error("file %s does not exists", sample)
-        stderr.print("[red] File does not exist. " + sample + "!")
-        sys.exit(1)
-    schema_files = taranis.utils.get_files_in_folder(schema, "fasta")
-    if len(schema_files) == 0:
-        log.error("Schema folder %s does not have any fasta file", schema)
-        stderr.print("[red] Schema folder does not have any fasta file")
+    schema_ref_files = taranis.utils.get_files_in_folder(reference, "fasta")
+    if len(schema_ref_files) == 0:
+        log.error("Referenc allele folder %s does not have any fasta file", schema)
+        stderr.print("[red] reference allele folder does not have any fasta file")
         sys.exit(1)
 
     # Check if output folder exists
@@ -440,19 +425,24 @@ def allele_calling(
             os.makedirs(output)
         except OSError as e:
             log.info("Unable to create folder at %s with error %s", output, e)
-            stderr.print("[red] ERROR. Unable to create folder  " + output)
+            stderr.print("[red] ERROR. Unable to create {output} folder" )
             sys.exit(1)
     # Filter fasta files from reference folder
-    ref_alleles = glob.glob(os.path.join(reference, "*.fasta"))
+    # ref_alleles = glob.glob(os.path.join(reference, "*.fasta"))
     # Create predictions
+
+    """
     pred_out = os.path.join(output, "prediction")
     pred_sample = taranis.prediction.Prediction(genome, sample, pred_out)
     pred_sample.training()
     pred_sample.prediction()
+    """
 
     """Analyze the sample file against schema to identify outbreakers
     """
-    sample_allele = taranis.allele_calling.AlleleCalling(
-        pred_sample, sample, schema, ref_alleles, output
-    )
-    sample_allele.analyze_sample()
+    results = []
+    for assembly_file in assemblies:
+        results.append(taranis.allele_calling.parallel_execution(assembly_file, schema, schema_ref_files, output))
+
+    
+    # sample_allele_obj.analyze_sample()
