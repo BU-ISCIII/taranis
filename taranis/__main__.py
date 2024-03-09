@@ -15,6 +15,9 @@ import taranis.analyze_schema
 import taranis.reference_alleles
 import taranis.allele_calling
 
+from pathlib import Path
+import pdb
+
 log = logging.getLogger()
 
 # Set up rich stderr console
@@ -364,8 +367,12 @@ def reference_alleles(
             )
             for f_file in schema_files
         ]
-    for future in concurrent.futures.as_completed(futures):
-        results.append(future.result())
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                results.append(future.result())
+            except Exception as e:
+                print(e)
+                continue
     _ = taranis.reference_alleles.collect_statistics(results, eval_cluster, output)
     finish = time.perf_counter()
     print(f"Reference alleles finish in {round((finish-start)/60, 2)} minutes")
@@ -442,7 +449,8 @@ def allele_calling(
     """
     results = []
     for assembly_file in assemblies:
-        results.append(taranis.allele_calling.parallel_execution(assembly_file, schema, schema_ref_files, output))
-
+        assembly_name = Path(assembly_file).stem
+        results.append({assembly_name: taranis.allele_calling.parallel_execution(assembly_file, schema, schema_ref_files, output)})
+        pdb.set_trace()
     
     # sample_allele_obj.analyze_sample()
