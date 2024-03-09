@@ -72,7 +72,13 @@ class DistanceMatrix:
         dist_matrix.write("alleles\t" + "\t".join(allele_names) + "\n")
         dist_matrix.write("\n".join(out_data[1:]))
         dist_matrix.seek(0)
-        matrix_pd = pd.read_csv(dist_matrix, sep="\t", index_col="alleles").fillna(0)
+        file_test = "/media/lchapado/Reference_data/proyectos_isciii/taranis/test/reference_alleles_testing_full_schema_17a/error.csv"
+        #with open(file_test, "w") as fo:
+        #    fo.write("alleles\t" + "\t".join(allele_names) + "\n")
+        #    fo.write("\n".join(out_data[1:]))
+
+        #import pdb; pdb.set_trace()
+        matrix_pd = pd.read_csv(dist_matrix, sep="\t", index_col="alleles", engine="python").fillna(0)
         # Close object and discard memory buffer
         dist_matrix.close()
         log.debug(f"create distance for {allele_name}")
