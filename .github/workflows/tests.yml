@@ -33,5 +33,5 @@ jobs:
         run: |
           source $CONDA/etc/profile.d/conda.sh
           conda activate taranis_env
-          taranis reference-allele -s test/MLST_listeria/reference_allele -o reference_allele_test --cpus 1 
+          taranis reference-alleles -s test/MLST_listeria/reference_allele -o reference_allele_test --cpus 1 
           
