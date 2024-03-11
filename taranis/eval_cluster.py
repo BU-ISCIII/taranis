@@ -85,7 +85,6 @@ class EvaluateCluster:
             if cluster_data[cluster_id]["result"] == "NOK":
                 summary_data["result"] = "NOK"
             summary_table.append(",".join(row_data))
-        # pdb.set_trace()
         summary_data["individual"] = summary_table
         return summary_data
 
@@ -113,7 +112,6 @@ class EvaluateCluster:
                 alleles_not_in_cluster.append(blast_allele)
 
         if len(cluster_data) == len(set(blast_alleles)):
-            # pdb.set_trace()
             return {"validation": True}
         result = {"validation": False}
         # convert list to numpy array to find out differences

@@ -21,8 +21,6 @@ import sys
 from pathlib import Path
 from Bio import SeqIO
 
-import pdb
-
 log = logging.getLogger(__name__)
 
 
@@ -276,7 +274,6 @@ def grep_execution(input_file: str, pattern: str, parameters: str) -> list:
             text=True,
         )
     except subprocess.CalledProcessError as e:
-        pdb.set_trace()
         log.error("Unable to run grep. Error message: %s ", e)
         return []
     return result.stdout.split("\n")

@@ -13,8 +13,6 @@ from pathlib import Path
 from Bio import SeqIO
 
 
-import pdb
-
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
     stderr=True,
@@ -64,7 +62,7 @@ class AlleleCalling:
 
             # Hacer un blast con la query esta secuencia y la database del alelo
             # Create  blast db with sample file
-            pdb.set_trace()
+            pass
 
         elif len(blast_result) == 1:
             column_blast_res = blast_result[0].split("\t")
@@ -79,10 +77,8 @@ class AlleleCalling:
                 allele_name = grep_result[0].split(">")[1]
 
                 # allele is labled as EXACT
-                pdb.set_trace()
                 return ["EXC", allele_name, allele_details]
             # check if contig is shorter than allele
-            pdb.set_trace()
             if int(column_blast_res[3]) > int(column_blast_res[4]):
                 # check if sequence is shorter because it starts or ends at the contig
                 if (
@@ -94,28 +90,21 @@ class AlleleCalling:
                     == column_blast_res[15]  # check reverse at contig start
                 ):
                     # allele is labled as PLOT
-                    pdb.set_trace()
                     return ["PLOT", allele_name, allele_details]
                 # allele is labled as ASM
-                pdb.set_trace()
                 return ["ASM", allele_name, allele_details]
             # check if contig is longer than allele
             if int(column_blast_res[3]) < int(column_blast_res[4]):
                 # allele is labled as ALM
-                pdb.set_trace()
                 return ["ALM", allele_name, allele_details]
             if int(column_blast_res[3]) == int(column_blast_res[4]):
                 # allele is labled as INF
-                pdb.set_trace()
                 return ["INF", allele_name, allele_details]
-
-        pdb.set_trace()
 
     def search_match_allele(self):
         # Create  blast db with sample file
 
         result = {"allele_type": {}, "allele_match": {}, "allele_details": {}}
-        # pdb.set_trace()
         for ref_allele in self.ref_alleles:
             # schema_alleles = os.path.join(self.schema, ref_allele)
             # parallel in all CPUs in cluster node
@@ -142,19 +131,17 @@ class AlleleCalling:
                 allele_file = os.path.join(self.schema, os.path.basename(ref_allele))
                 # blast_result = self.blast_obj.run_blast(q_file,perc_identity=100)
                 allele_name = Path(allele_file).stem
-                # pdb.set_trace()
                 (
                     result["allele_type"][allele_name],
                     result["allele_match"][allele_name],
                     result["allele_details"][allele_name],
                 ) = self.assign_allele_type(blast_result, allele_file, allele_name)
-                # pdb.set_trace()
             else:
                 # Sample does not have a reference allele to be matched
                 # Keep LNF info
                 # ver el codigo de espe
                 # lnf_tpr_tag()
-                pdb.set_trace()
+                pass
 
         return result
 

@@ -5,7 +5,7 @@ from Bio.Blast.Applications import NcbiblastnCommandline
 import subprocess
 
 # import taranis.utils
-import pdb
+
 import random
 
 """
@@ -35,7 +35,6 @@ for line in lines:
             break
         locus_list.append(line)
 
-# import pdb; pdb.set_trace()
 rand_locus = random.choice(locus_list)
 schema_file = "/media/lchapado/Reference_data/proyectos_isciii/taranis/taranis_testing_data/listeria_testing_schema/lmo0002.fasta"
 new_schema_file = (
@@ -72,7 +71,6 @@ blast_result = subprocess.run(
 )
 
 blast_parameters = '"6 , qseqid , sseqid , pident ,  qlen , length , mismatch , gapopen , evalue , bitscore , sstart , send , qstart , qend , sseq , qseq"'
-# pdb.set_trace()
 # db=self.blast_dir, evalue=evalue, perc_identity=perc_identity_ref, reward=reward, penalty=penalty, gapopen=gapopen, gapextend=gapextend, outfmt=blast_parameters, max_target_seqs=max_target_seqs, max_hsps=max_hsps, num_threads=num_threads, query=core_reference_allele_path)
 cline = NcbiblastnCommandline(
     db=db_name,
@@ -93,8 +91,6 @@ try:
     out, _ = cline()
 except Exception as e:
     print(e)
-    pdb.set_trace()
 b_lines = out.splitlines()
 print("longitud del cluster = ", len(locus_list))
 print("numero de matches = ", len(b_lines))
-# pdb.set_trace()

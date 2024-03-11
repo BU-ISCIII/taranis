@@ -16,7 +16,6 @@ import taranis.reference_alleles
 import taranis.allele_calling
 
 from pathlib import Path
-import pdb
 
 log = logging.getLogger()
 
@@ -465,6 +464,5 @@ def allele_calling(
                 )
             }
         )
-        pdb.set_trace()
 
     # sample_allele_obj.analyze_sample()
