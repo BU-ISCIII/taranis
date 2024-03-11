@@ -25,18 +25,20 @@ stderr = rich.console.Console(
     stderr=True, force_terminal=taranis.utils.rich_force_colors()
 )
 
+
 def expand_wildcards(ctx, param, value):
     if value:
         expanded_paths = []
         for path in value:
             # Check if path contains wildcard
-            if '*' in path:
+            if "*" in path:
                 # Expand wildcard
                 expanded_paths.extend(glob.glob(path))
             else:
                 expanded_paths.append(path)
         return expanded_paths
     return None
+
 
 def run_taranis():
     # Set up the rich traceback
@@ -403,7 +405,13 @@ def reference_alleles(
     type=click.Path(),
     help="Output folder to save reference alleles",
 )
-@click.argument("assemblies", callback=expand_wildcards, nargs=-1, required=True, type=click.Path(exists=True))
+@click.argument(
+    "assemblies",
+    callback=expand_wildcards,
+    nargs=-1,
+    required=True,
+    type=click.Path(exists=True),
+)
 def allele_calling(
     schema,
     reference,
@@ -432,7 +440,7 @@ def allele_calling(
             os.makedirs(output)
         except OSError as e:
             log.info("Unable to create folder at %s with error %s", output, e)
-            stderr.print("[red] ERROR. Unable to create {output} folder" )
+            stderr.print("[red] ERROR. Unable to create {output} folder")
             sys.exit(1)
     # Filter fasta files from reference folder
     # ref_alleles = glob.glob(os.path.join(reference, "*.fasta"))
@@ -450,7 +458,13 @@ def allele_calling(
     results = []
     for assembly_file in assemblies:
         assembly_name = Path(assembly_file).stem
-        results.append({assembly_name: taranis.allele_calling.parallel_execution(assembly_file, schema, schema_ref_files, output)})
+        results.append(
+            {
+                assembly_name: taranis.allele_calling.parallel_execution(
+                    assembly_file, schema, schema_ref_files, output
+                )
+            }
+        )
         pdb.set_trace()
-    
+
     # sample_allele_obj.analyze_sample()
