@@ -80,7 +80,6 @@ class ReferenceAlleles:
     def processing_cluster_data(
         self, cluster_data: np.array, cluster_ptrs: np.array, position_to_allele: dict
     ) -> dict:
-
         reference_alleles = []
         for cluster_id, values in cluster_data.items():
             center_allele = position_to_allele[values["center_id"]]
@@ -119,11 +118,11 @@ class ReferenceAlleles:
             for record in SeqIO.parse(fh, "fasta"):
                 if record.id in reference_alleles:
                     record_seq[record.id] = str(record.seq)
-        ref_allele_file = os.path.join(self.output, self.locus_name + ".fa")
+        ref_allele_file = os.path.join(self.output, self.locus_name + ".fasta")
         with open(ref_allele_file, "w") as fo:
-            for r_id, r_seq in record_seq.items():
-                fo.write(">" + r_id + "\n")
-                fo.write(r_seq + "\n")
+            for ref_allele in reference_alleles:
+                fo.write(">" + ref_allele + "\n")
+                fo.write(record_seq[ref_allele] + "\n")
         return ref_allele_file
 
     def create_ref_alleles(self) -> dict:
@@ -255,6 +254,8 @@ def collect_statistics(data_alleles: list, eval_cluster: bool, out_folder: str) 
     eval_data = []
     cluster_data_graph = {}
     clusters_list = []
+    stderr.print("Process starts for collecting statistics")
+    log.info("Process starts for collecting statistics")
     # split the data into cluster and evaluation
     for d_allele in data_alleles:
         cluster_data.append(d_allele["cluster_data"])
