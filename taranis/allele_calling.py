@@ -9,7 +9,6 @@ import taranis.blast
 
 # import numpy
 from collections import OrderedDict
-import pandas as pd
 from pathlib import Path
 from Bio import SeqIO
 
