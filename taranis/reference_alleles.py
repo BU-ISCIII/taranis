@@ -80,7 +80,6 @@ class ReferenceAlleles:
     def processing_cluster_data(
         self, cluster_data: np.array, cluster_ptrs: np.array, position_to_allele: dict
     ) -> dict:
-
         reference_alleles = []
         for cluster_id, values in cluster_data.items():
             center_allele = position_to_allele[values["center_id"]]

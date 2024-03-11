@@ -14,7 +14,6 @@ from pathlib import Path
 from Bio import SeqIO
 
 
-
 import pdb
 
 log = logging.getLogger(__name__)
@@ -27,7 +26,9 @@ stderr = rich.console.Console(
 
 
 class AlleleCalling:
-    def __init__(self,  sample_file: str, schema: str, reference_alleles: list, out_folder:str):
+    def __init__(
+        self, sample_file: str, schema: str, reference_alleles: list, out_folder: str
+    ):
         # self.prediction = prediction
         self.sample_file = sample_file
         self.schema = schema
@@ -39,22 +40,23 @@ class AlleleCalling:
         self.blast_obj = taranis.blast.Blast("nucl")
         _ = self.blast_obj.create_blastdb(sample_file, self.blast_dir)
 
-
-    def assign_allele_type(self, blast_result: list, allele_file: str, allele_name: str)->list:
-        def get_blast_details(blast_result: list, allele_name: str)->list:
+    def assign_allele_type(
+        self, blast_result: list, allele_file: str, allele_name: str
+    ) -> list:
+        def get_blast_details(blast_result: list, allele_name: str) -> list:
             # get blast details
             blast_details = [
-                blast_result[0].split("_")[0], # Core gene
+                blast_result[0].split("_")[0],  # Core gene
                 self.s_name,
                 "gene annotation",
                 "product annotation",
-                allele_name, 
+                allele_name,
                 "allele quality",
-                blast_result[1], # contig
-                blast_result[3], # query length
-                blast_result[9], # contig start
-                blast_result[10], # contig end
-                blast_result[13], # contig sequence
+                blast_result[1],  # contig
+                blast_result[3],  # query length
+                blast_result[9],  # contig start
+                blast_result[10],  # contig end
+                blast_result[13],  # contig sequence
             ]
             return blast_details
 
@@ -64,17 +66,19 @@ class AlleleCalling:
             # Hacer un blast con la query esta secuencia y la database del alelo
             # Create  blast db with sample file
             pdb.set_trace()
-            
+
         elif len(blast_result) == 1:
             column_blast_res = blast_result[0].split("\t")
             column_blast_res[13] = column_blast_res[13].replace("-", "")
             allele_details = get_blast_details(column_blast_res, allele_name)
-           
-            grep_result = taranis.utils.grep_execution(allele_file, column_blast_res[13], "-b1")
+
+            grep_result = taranis.utils.grep_execution(
+                allele_file, column_blast_res[13], "-b1"
+            )
             # check if sequence match alleles in schema
             if len(grep_result) > 0:
                 allele_name = grep_result[0].split(">")[1]
-                
+
                 # allele is labled as EXACT
                 pdb.set_trace()
                 return ["EXC", allele_name, allele_details]
@@ -83,10 +87,12 @@ class AlleleCalling:
             if int(column_blast_res[3]) > int(column_blast_res[4]):
                 # check if sequence is shorter because it starts or ends at the contig
                 if (
-                    column_blast_res[9] == 1 # check  at contig start
-                    or column_blast_res[14] == column_blast_res[10] # check at contig end
-                    or column_blast_res[10] == 1 # check reverse at contig end
-                    or column_blast_res[9] == column_blast_res[15] # check reverse at contig start
+                    column_blast_res[9] == 1  # check  at contig start
+                    or column_blast_res[14]
+                    == column_blast_res[10]  # check at contig end
+                    or column_blast_res[10] == 1  # check reverse at contig end
+                    or column_blast_res[9]
+                    == column_blast_res[15]  # check reverse at contig start
                 ):
                     # allele is labled as PLOT
                     pdb.set_trace()
@@ -103,15 +109,13 @@ class AlleleCalling:
                 # allele is labled as INF
                 pdb.set_trace()
                 return ["INF", allele_name, allele_details]
-            
-            
-        pdb.set_trace()
 
+        pdb.set_trace()
 
     def search_match_allele(self):
         # Create  blast db with sample file
-        
-        result = {"allele_type":{}, "allele_match":{}, "allele_details":{}}
+
+        result = {"allele_type": {}, "allele_match": {}, "allele_details": {}}
         # pdb.set_trace()
         for ref_allele in self.ref_alleles:
             # schema_alleles = os.path.join(self.schema, ref_allele)
@@ -140,7 +144,11 @@ class AlleleCalling:
                 # blast_result = self.blast_obj.run_blast(q_file,perc_identity=100)
                 allele_name = Path(allele_file).stem
                 # pdb.set_trace()
-                result["allele_type"][allele_name], result["allele_match"][allele_name], result["allele_details"][allele_name] = self.assign_allele_type(blast_result, allele_file, allele_name)
+                (
+                    result["allele_type"][allele_name],
+                    result["allele_match"][allele_name],
+                    result["allele_details"][allele_name],
+                ) = self.assign_allele_type(blast_result, allele_file, allele_name)
                 # pdb.set_trace()
             else:
                 # Sample does not have a reference allele to be matched
@@ -148,12 +156,12 @@ class AlleleCalling:
                 # ver el codigo de espe
                 # lnf_tpr_tag()
                 pdb.set_trace()
-            
 
-        
         return result
 
-def parallel_execution(sample_file: str, schema: str, reference_alleles: list, out_folder: str):
 
+def parallel_execution(
+    sample_file: str, schema: str, reference_alleles: list, out_folder: str
+):
     allele_obj = AlleleCalling(sample_file, schema, reference_alleles, out_folder)
     return allele_obj.search_match_allele()

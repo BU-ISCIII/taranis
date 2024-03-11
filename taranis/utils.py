@@ -22,6 +22,7 @@ from pathlib import Path
 from Bio import SeqIO
 
 import pdb
+
 log = logging.getLogger(__name__)
 
 
@@ -255,6 +256,7 @@ def get_files_in_folder(folder: str, extension: str = None) -> list[str]:
     folder_files = os.path.join(folder, "*." + extension)
     return glob.glob(folder_files)
 
+
 def grep_execution(input_file: str, pattern: str, parameters: str) -> list:
     """_summary_
 
@@ -268,7 +270,7 @@ def grep_execution(input_file: str, pattern: str, parameters: str) -> list:
     """
     try:
         result = subprocess.run(
-            ["grep", parameters, pattern, input_file] ,
+            ["grep", parameters, pattern, input_file],
             capture_output=True,
             check=True,
             text=True,
@@ -278,6 +280,7 @@ def grep_execution(input_file: str, pattern: str, parameters: str) -> list:
         log.error("Unable to run grep. Error message: %s ", e)
         return []
     return result.stdout.split("\n")
+
 
 def prompt_text(msg):
     source = questionary.text(msg).unsafe_ask()
