@@ -10,6 +10,8 @@ import taranis.clustering
 import taranis.eval_cluster
 from Bio import SeqIO
 
+import pdb
+
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
     stderr=True,
@@ -282,11 +284,21 @@ def collect_statistics(data_alleles: list, eval_cluster: bool, out_folder: str) 
             )
     heading = "Locus name,cluster number,average,center allele,number of sequences"
     summary_file = os.path.join(out_folder, "evaluate_cluster", "cluster_summary.csv")
+    locus_clustering_file = os.path.join(
+        out_folder, "evaluate_cluster", "cluster_per_locus.csv"
+    )
     with open(summary_file, "w") as fo:
         fo.write(heading + "\n")
         fo.write("\n".join(clusters_list) + "\n")
 
     _ = stats_graphics(out_folder, cluster_data_graph)
+
+    with open(locus_clustering_file, "w") as fo:
+        fo.write("number of clusters, number of locus\n")
+        sorted_clusters = dict(sorted(cluster_data_graph.items()))
+        for key, value in sorted_clusters.items():
+            fo.write(str(key) + "," + str(value) + "\n")
+
     if eval_cluster:
         heading = "Locus name,cluster number,result,alleles not match in blast,alleles not found in cluster"
         eval_file = os.path.join(
