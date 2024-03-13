@@ -10,8 +10,6 @@ import taranis.clustering
 import taranis.eval_cluster
 from Bio import SeqIO
 
-import pdb
-
 log = logging.getLogger(__name__)
 stderr = rich.console.Console(
     stderr=True,
