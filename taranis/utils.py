@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 import glob
+import gzip
 import io
 import logging
 import multiprocessing
-import numpy as np
 import os
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.io as pio
 import questionary
 import shutil
 
@@ -20,6 +21,7 @@ import sys
 
 from pathlib import Path
 from Bio import SeqIO
+from Bio.Seq import Seq
 
 log = logging.getLogger(__name__)
 
@@ -61,6 +63,11 @@ POSIBLE_BAD_QUALITY = [
 
 
 def cpus_available() -> int:
+    """Get the number of cpus available in the system
+
+    Returns:
+        int: number of cpus
+    """
     return multiprocessing.cpu_count()
 
 
@@ -77,6 +84,31 @@ def get_seq_direction(allele_sequence):
     ):
         return "reverse"
     return "Error"
+
+
+def check_additional_programs_installed(software_list: list) -> None:
+    """Check if the input list of programs are installed in the system
+
+    Args:
+        software_list (list): list of programs to be checked
+    """
+    for program, command in software_list:
+        try:
+            _ = subprocess.run(
+                [program, command],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=True,
+            )
+        except Exception as e:
+            log.error(
+                "Program %s is not installed in the system. Error message: %s ",
+                program,
+                e,
+            )
+            stderr.print("[red] Program " + program + " is not installed in the system")
+            sys.exit(1)
+    return
 
 
 def create_annotation_files(
@@ -169,19 +201,30 @@ def create_graphic(
         title (str): title of the figure
     """
     fig = go.Figure()
-    if mode == "lines":
-        fig.add_trace(go.Scatter(x=x_data, y=y_data, mode=mode, name=title))
-        fig.update_layout(xaxis_title=labels[0], yaxis_title=labels[1])
-    elif mode == "pie":
-        fig.add_trace(go.Pie(labels=labels, values=x_data))
-    elif mode == "bar":
-        fig.add_trace(go.Bar(x=x_data, y=y_data))
-        fig.update_layout(xaxis_title=labels[0], yaxis_title=labels[1])
-    elif mode == "box":
-        fig.add_trace(go.Box(y=y_data))
+    layout_update = {}
+    plot_options = {
+        "lines": (go.Scatter, {"mode": mode}),
+        "pie": (go.Pie, {"labels": labels, "values": x_data}),
+        "bar": (go.Bar, {"x": x_data, "y": y_data}),
+        "box": (go.Box, {"y": y_data}),
+    }
 
-    fig.update_layout(title_text=title)
-    fig.write_image(os.path.join(out_folder, f_name))
+    if mode in plot_options:
+        trace_class, trace_kwargs = plot_options[mode]
+        fig.add_trace(trace_class(**trace_kwargs))
+        if mode == "bar":
+            layout_update = {
+                "xaxis_title": labels[0],
+                "yaxis_title": labels[1],
+                "xaxis_tickangle": 45,
+            }
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
+
+    layout_update["title_text"] = title
+    fig.update_layout(**layout_update)
+
+    pio.write_image(fig, os.path.join(out_folder, f_name))
     return
 
 
@@ -214,10 +257,13 @@ def file_exists(file_to_check):
     return False
 
 
+"""
 def find_nearest_numpy_value(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx]
+
+ """
 
 
 def folder_exists(folder_to_check):
@@ -232,6 +278,28 @@ def folder_exists(folder_to_check):
     if os.path.isdir(folder_to_check):
         return True
     return False
+
+
+def get_alignment_data(allele_sequence: str, ref_sequences: dict[str]) -> dict:
+    """Get the alignment data between the allele sequence and the reference alleles
+
+    Args:
+        allele_sequence (str): sequence to be compared
+        ref_sequences (dict): sequences of reference alleles
+
+    Returns:
+        dict: key: ref_sequence, value: alignment data
+    """
+    alignment_data = {}
+    for ref_allele, ref_sequence in ref_sequences.items():
+        alignment = ""
+        for idx, (a, b) in enumerate(zip(allele_sequence, ref_sequence)):
+            if a == b:
+                alignment += "|"
+            else:
+                alignment += " "
+        alignment_data[ref_allele] = [ref_sequence, alignment, allele_sequence]
+    return alignment_data
 
 
 def get_files_in_folder(folder: str, extension: str = None) -> list[str]:
@@ -255,16 +323,67 @@ def get_files_in_folder(folder: str, extension: str = None) -> list[str]:
     return glob.glob(folder_files)
 
 
-def grep_execution(input_file: str, pattern: str, parameters: str) -> list:
-    """_summary_
+def get_snp_information(
+    ref_sequence: str, alt_sequence: str, ref_allele_name
+) -> dict[list[str]]:
+    """Get the snp information between the reference allele sequence and the
+        allele sequence in sample.
+        It collects; position of snp, nucleotide changed reference/alternative,
+        triplet code (belongs the change), amino acid change and category of
+        amino acid
 
     Args:
-        input_file (str): _description_
-        pattern (str): _description_
-        parmeters (str): _description_
+        ref_sequences (dict): sequences of reference alleles
+        allele_sequence (str): sequence to be compared
 
     Returns:
-        list: _description_
+        dict: key: ref_sequence, value: list of snp information
+    """
+    snp_info = {}
+    ref_protein = str(Seq(ref_sequence).translate())
+    alt_protein = str(Seq(alt_sequence).translate())
+
+    snp_line = []
+    for idx, (ref, alt) in enumerate(zip(ref_sequence, alt_sequence)):
+        if alt != ref:
+            # calculate the triplet index
+            triplet_idx = idx // 3
+            # get triplet code
+            ref_triplet = ref_sequence[triplet_idx * 3 : triplet_idx * 3 + 3]
+            alt_triplet = alt_sequence[triplet_idx * 3 : triplet_idx * 3 + 3]
+            # get amino acid change
+            ref_aa = ref_protein[triplet_idx]
+            alt_aa = alt_protein[triplet_idx]
+            # get amino acid category
+            ref_category = map_amino_acid_to_annotation(ref_sequence[triplet_idx])
+            alt_category = map_amino_acid_to_annotation(alt_sequence[triplet_idx])
+            snp_line.append(
+                [
+                    str(idx),
+                    ref,
+                    alt,
+                    ref_triplet,
+                    alt_triplet,
+                    ref_aa,
+                    alt_aa,
+                    ref_category,
+                    alt_category,
+                ]
+            )
+    snp_info[ref_allele_name] = snp_line
+    return snp_info
+
+
+def grep_execution(input_file: str, pattern: str, parameters: str) -> list[str]:
+    """run grep command and return the output
+
+    Args:
+        input_file (str): input file path
+        pattern (str): pattern to be searched
+        parmeters (str): parameters to be used in grep
+
+    Returns:
+        list[str]: list of lines which match the pattern
     """
     try:
         result = subprocess.run(
@@ -274,14 +393,73 @@ def grep_execution(input_file: str, pattern: str, parameters: str) -> list:
             text=True,
         )
     except subprocess.CalledProcessError as e:
-        log.error("Unable to run grep. Error message: %s ", e)
+        log.debug("Unable to run grep. Error message: %s ", e)
         return []
     return result.stdout.split("\n")
+
+
+def map_amino_acid_to_annotation(amino_acid):
+    # Dictionary mapping amino acids to their categories
+    amino_acid_categories = {
+        "A": "Nonpolar",
+        "C": "Polar",
+        "D": "Acidic",
+        "E": "Acidic",
+        "F": "Nonpolar",
+        "G": "Nonpolar",
+        "H": "Basic",
+        "I": "Nonpolar",
+        "K": "Basic",
+        "L": "Nonpolar",
+        "M": "Nonpolar",
+        "N": "Polar",
+        "P": "Nonpolar",
+        "Q": "Polar",
+        "R": "Basic",
+        "S": "Polar",
+        "T": "Polar",
+        "V": "Nonpolar",
+        "W": "Nonpolar",
+        "Y": "Polar",
+    }
+
+    # Return the category of the given amino acid
+    return amino_acid_categories.get(amino_acid, "Unknown")
 
 
 def prompt_text(msg):
     source = questionary.text(msg).unsafe_ask()
     return source
+
+
+def prompt_user_if_folder_exists(folder: str) -> bool:
+    """Prompt the user to continue if the folder exists
+
+    Args:
+        folder (str): folder path
+
+    Returns:
+        bool: True if user wants to continue
+    """
+    if folder_exists(folder):
+        q_question = (
+            "Folder "
+            + folder
+            + " already exists. Files will be overwritten. Do you want to continue?"
+        )
+        if "no" in query_user_yes_no(q_question, "no"):
+            log.info("Aborting code by user request")
+            stderr.print("[red] Exiting code. ")
+            sys.exit(1)
+    else:
+        try:
+            os.makedirs(folder)
+        except OSError as e:
+            log.info("Unable to create folder at %s with error %s", folder, e)
+            stderr.print("[red] ERROR. Unable to create folder  " + folder)
+            sys.exit(1)
+
+    return True
 
 
 def query_user_yes_no(question, default):
@@ -342,9 +520,12 @@ def read_annotation_file(ann_file: str) -> dict:
 
     for line in lines:
         if "Prodigal" in line:
-            gene_match = re.search(r"(.*)[\t]Prodigal.*gene=(\w+)_.*", line)
+            gene_match = re.search(r"(.*)[\t]Prodigal.*gene=(\w+)_.*product=(.*)", line)
             if gene_match:
-                ann_data[gene_match.group(1)] = gene_match.group(2)
+                ann_data[gene_match.group(1)] = {
+                    "gene": gene_match.group(2),
+                    "product": gene_match.group(3).strip(),
+                }
             else:
                 pred_match = re.search(r"(.*)[\t]Prodigal.*product=(\w+)_.*", line)
                 if pred_match:
@@ -352,6 +533,40 @@ def read_annotation_file(ann_file: str) -> dict:
         if "fasta" in line:
             break
     return ann_data
+
+
+def read_compressed_file(
+    file_name: str, separator: str = ",", index_key: int = None, mapping: list = []
+) -> dict | str:
+    """Read the compressed file and return a dictionary using as key value
+    the mapping data if the index_key is an integer, else return the uncompressed
+    file
+
+    Args:
+        file_name (str): file to be uncompressed
+        separator (str, optional): split line according separator. Defaults to ",".
+        index_key (int, optional): index value . Defaults to None.
+        mapping (list, optional): defined the key value for dictionary. Defaults to [].
+
+    Returns:
+        dict|str: uncompresed information file
+    """
+    out_data = {}
+    with gzip.open(file_name, "rb") as fh:
+        lines = fh.readlines()
+    if not index_key:
+        return lines[:-2]
+    for line in lines[1:]:
+        line = line.decode("utf-8")
+        s_line = line.split(separator)
+        # ignore empty lines
+        if len(s_line) == 1:
+            continue
+        key_data = s_line[index_key]
+        out_data[key_data] = {}
+        for item in mapping:
+            out_data[key_data][item[0]] = s_line[item[1]]
+    return out_data
 
 
 def read_fasta_file(fasta_file):
